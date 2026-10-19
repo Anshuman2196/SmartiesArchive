@@ -44,14 +44,14 @@ create policy "Owners upload media into their work folder"
 on storage.objects for insert to authenticated
 with check (
   bucket_id = 'story-media'
-  and storage.foldername(name)[1] = auth.uid()::text
-  and exists (select 1 from public.works w where w.id::text = storage.foldername(name)[2] and w.author_id = auth.uid())
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (select 1 from public.works w where w.id::text = (storage.foldername(name))[2] and w.author_id = auth.uid())
 );
 
 create policy "Owners delete their work media"
 on storage.objects for delete to authenticated
 using (
   bucket_id = 'story-media'
-  and storage.foldername(name)[1] = auth.uid()::text
-  and exists (select 1 from public.works w where w.id::text = storage.foldername(name)[2] and w.author_id = auth.uid())
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (select 1 from public.works w where w.id::text = (storage.foldername(name))[2] and w.author_id = auth.uid())
 );
