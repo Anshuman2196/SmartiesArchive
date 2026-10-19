@@ -85,16 +85,18 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     } else if (current.text !== undefined) reject("text_on_non_text_node", path, nodeType, "text");
 
     let attrs: Record<string, unknown> = {};
-    if (current.attrs !== undefined) {
-      if (typeof current.attrs !== "object" || current.attrs === null || Array.isArray(current.attrs)) reject("invalid_attrs_object", path, nodeType, "attrs");
+    if (current.attrs !== undefined && current.attrs !== null) {
+      if (typeof current.attrs !== "object" || Array.isArray(current.attrs)) reject("invalid_attrs_object", path, nodeType, "attrs");
       attrs = current.attrs as Record<string, unknown>;
     }
-    if (nodeType === "heading" && ![1, 2, 3].includes(Number(attrs.level))) reject("invalid_heading_level", path, nodeType, "level");
+    const headingLevel = attrs.level ?? 1;
+    const literaryTreatment = attrs.treatment ?? "narration";
+    if (nodeType === "heading" && ![1, 2, 3].includes(Number(headingLevel))) reject("invalid_heading_level", path, nodeType, "level");
     const indent = attrs.indent;
     if (["paragraph", "heading", "literaryBlock"].includes(nodeType) && indent != null && (!Number.isInteger(indent) || Number(indent) < 0 || Number(indent) > 4)) reject("invalid_indent", path, nodeType, "indent");
     const textAlign = attrs.textAlign;
     if (["paragraph", "heading"].includes(nodeType) && textAlign != null && !["left", "center", "right", "justify"].includes(String(textAlign))) reject("invalid_alignment", path, nodeType, "textAlign");
-    if (nodeType === "literaryBlock" && !literaryTreatments.includes(attrs.treatment as LiteraryTreatment)) reject("invalid_literary_treatment", path, nodeType, "treatment");
+    if (nodeType === "literaryBlock" && !literaryTreatments.includes(literaryTreatment as LiteraryTreatment)) reject("invalid_literary_treatment", path, nodeType, "treatment");
     if (nodeType === "imageBlock") {
       if (!storageRef(attrs.src, ownerId, workId)) reject("invalid_image_reference", path, nodeType, "src");
       if (typeof attrs.alt !== "string" || attrs.alt.length > 300) reject("invalid_image_alt", path, nodeType, "alt");
@@ -105,10 +107,10 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     if (nodeType === "orderedList" && attrs.start != null && (!Number.isInteger(attrs.start) || Number(attrs.start) < 1 || Number(attrs.start) > 100_000)) reject("invalid_list_start", path, nodeType, "start");
     if (nodeType === "codeBlock" && attrs.language != null && (typeof attrs.language !== "string" || !/^[a-z\d_+#.-]{1,40}$/i.test(attrs.language))) reject("invalid_code_language", path, nodeType, "language");
 
-    if (Object.keys(attrs).length) {
+    if (Object.keys(attrs).length || nodeType === "heading" || nodeType === "literaryBlock") {
       output.attrs = nodeType === "imageBlock" ? { src: attrs.src, alt: attrs.alt, caption: attrs.caption, width: attrs.width ?? 100, align: attrs.align ?? "center" }
-        : nodeType === "heading" || nodeType === "paragraph" ? { ...(nodeType === "heading" ? { level: attrs.level } : {}), ...(textAlign != null ? { textAlign } : {}), ...(indent != null ? { indent } : {}) }
-          : nodeType === "literaryBlock" ? { treatment: attrs.treatment, ...(indent != null ? { indent } : {}) }
+        : nodeType === "heading" || nodeType === "paragraph" ? { ...(nodeType === "heading" ? { level: headingLevel } : {}), ...(textAlign != null ? { textAlign } : {}), ...(indent != null ? { indent } : {}) }
+          : nodeType === "literaryBlock" ? { treatment: literaryTreatment, ...(indent != null ? { indent } : {}) }
             : nodeType === "orderedList" ? { ...(attrs.start != null ? { start: attrs.start } : {}) }
               : nodeType === "codeBlock" ? { ...(attrs.language != null ? { language: attrs.language } : {}) } : {};
       if (!Object.keys(output.attrs).length) delete output.attrs;

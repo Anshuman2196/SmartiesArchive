@@ -75,6 +75,25 @@ test("real TipTap JSON with default null attrs and a color mark passes server va
   } finally { editor.destroy(); }
 });
 
+test("null node attrs use safe TipTap defaults and survive save reload and preview payloads", () => {
+  const oldTipTapDocument = { type: "doc", content: [
+    { type: "paragraph", attrs: null, content: [{ type: "text", text: "A recovered paragraph 🙂" }] },
+    { type: "heading", attrs: null, content: [{ type: "text", text: "Recovered heading" }] },
+    { type: "literaryBlock", attrs: null, content: [{ type: "paragraph", content: [{ type: "text", text: "A remembered thought" }] }] },
+  ] };
+  const saved = validateRichDocument(oldTipTapDocument, owner, work);
+  assert.deepEqual(saved.document.content[0].attrs, undefined);
+  assert.deepEqual(saved.document.content[1].attrs, { level: 1 });
+  assert.deepEqual(saved.document.content[2].attrs, { treatment: "narration" });
+  const reloaded = normalizeReaderContent(JSON.parse(JSON.stringify(toRichContent(saved.document))), saved.plainText, owner, work);
+  assert.equal(reloaded.type, "rich");
+  if (reloaded.type === "rich") assert.deepEqual(validateRichDocument(reloaded.document, owner, work).document, saved.document);
+});
+
+test("non-null malformed node attrs remain rejected", () => {
+  assertRejectedBy({ type: "doc", content: [{ type: "paragraph", attrs: ["invalid"], content: [{ type: "text", text: "still preserved" }] }] }, "invalid_attrs_object");
+});
+
 test("malformed mark attributes return a safe rule and path without retaining text", () => {
   const input = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "private writing here", marks: [{ type: "textStyle", attrs: { fontSize: "999px" } }] }] }] };
   assert.throws(() => validateRichDocument(input, owner, work), (error: unknown) => {
