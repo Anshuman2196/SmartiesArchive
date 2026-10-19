@@ -16,6 +16,7 @@ export async function updateSession(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  try { await supabase.auth.getUser(); }
+  catch { /* Keep public routes available during a temporary Auth outage. */ }
   return response;
 }

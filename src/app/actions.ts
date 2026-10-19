@@ -10,23 +10,34 @@ const fail = (message: string): never => redirect(`/auth?error=${encodeURICompon
 
 export async function register(form: FormData) {
   const parsed = registrationSchema.safeParse({ email: value(form, "email"), password: value(form, "password"), username: value(form, "username"), displayName: value(form, "displayName") });
-  if (parsed.success === false) return fail("Check your details. Passwords need at least 10 characters; usernames use 3–24 letters, numbers, or underscores.");
+  if (parsed.success === false) return fail("Check your details. Passwords need at least 10 characters; usernames use 3 to 24 letters, numbers, or underscores.");
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { data: { username: parsed.data.username, display_name: parsed.data.displayName }, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback` } });
-  if (error) fail(error.message);
+  let signupResult: Awaited<ReturnType<typeof supabase.auth.signUp>> | undefined;
+  try {
+    signupResult = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { data: { username: parsed.data.username, display_name: parsed.data.displayName }, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/auth/callback` } });
+  } catch { fail("The authentication service is unavailable. Please try again."); }
+  if (!signupResult) return fail("The authentication service is unavailable. Please try again.");
+  const { data, error } = signupResult;
+  if (error) fail("We couldn't create your account. Check your details or try signing in if you already have an account.");
+  if (data.session) redirect("/studio");
   redirect("/auth?message=Check+your+email+to+confirm+your+account.");
 }
 
 export async function signIn(form: FormData) {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email: value(form, "email"), password: value(form, "password") });
-  if (error) fail(error.message);
+  let error;
+  try { ({ error } = await supabase.auth.signInWithPassword({ email: value(form, "email"), password: value(form, "password") })); }
+  catch { fail("The authentication service is unavailable. Please try again."); }
+  if (error) fail("Email or password could not be verified. If you just registered, confirm your email first.");
   redirect("/studio");
 }
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  let error;
+  try { ({ error } = await supabase.auth.signOut()); }
+  catch { fail("We couldn't complete sign out. Please try again."); }
+  if (error) fail("We couldn't complete sign out. Please try again.");
   redirect("/");
 }
 
