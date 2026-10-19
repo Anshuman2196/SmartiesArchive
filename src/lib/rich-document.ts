@@ -23,6 +23,15 @@ export class RichDocumentValidationError extends Error {
     this.diagnostic = diagnostic;
   }
 }
+export function safeRichDocumentErrorMessage(error: RichDocumentValidationError): string {
+  const labels: Record<string, string> = { level: "heading level", indent: "paragraph indentation", textAlign: "paragraph alignment", treatment: "literary style", src: "image source", alt: "image description", caption: "image caption", width: "image width", align: "image alignment", href: "link address", color: "text color", backgroundColor: "highlight color", fontFamily: "font family", fontSize: "font size", start: "list numbering", language: "code language" };
+  const field = error.diagnostic.attribute ? labels[error.diagnostic.attribute] : undefined;
+  const block = error.diagnostic.path.match(/content\[(\d+)\]/)?.[1];
+  const where = block ? ` near item ${Number(block) + 1}` : "";
+  if (error.diagnostic.rule === "empty_document") return "Add some chapter text before saving. Your current draft is still in the editor.";
+  if (field) return `Check the ${field}${where}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
+  return `One chapter element${where} could not be saved. Your full document is still open; download a recovery copy or retry.`;
+}
 function reject(rule: string, path: string, nodeType?: string, attribute?: string, markType?: string): never {
   throw new RichDocumentValidationError({ rule, path, ...(nodeType ? { nodeType } : {}), ...(attribute ? { attribute } : {}), ...(markType ? { markType } : {}) });
 }

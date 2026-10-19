@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { legacyTextToRichDocument, toRichContent, validateRichDocument } from "./rich-document.ts";
+import { legacyTextToRichDocument, safeRichDocumentErrorMessage, toRichContent, validateRichDocument } from "./rich-document.ts";
 import { normalizeReaderContent } from "./chapter-content.ts";
 import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -83,6 +83,17 @@ test("malformed mark attributes return a safe rule and path without retaining te
     assert.equal(JSON.stringify(error).includes("private writing here"), false);
     return true;
   });
+});
+
+test("validation feedback identifies a safe formatting target without revealing chapter text", () => {
+  let caught: unknown;
+  try { validateRichDocument({ type: "doc", content: [{ type: "imageBlock", attrs: { src: asset, alt: "private image description", caption: "private caption", width: 101 } }] }, owner, work); }
+  catch (error) { caught = error; }
+  assert.ok(caught instanceof Error);
+  const message = safeRichDocumentErrorMessage(caught as Parameters<typeof safeRichDocumentErrorMessage>[0]);
+  assert.match(message, /image width near item 1/);
+  assert.match(message, /download a recovery copy/);
+  assert.doesNotMatch(message, /private image description|private caption|101/);
 });
 
 test("all editor node and mark types survive save, reload, preview data, and publish payload validation", () => {

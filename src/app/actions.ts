@@ -8,7 +8,7 @@ import { friendlyAuthError, safeNextPath } from "@/lib/auth-feedback";
 import { buildChapterContent } from "@/lib/chapter-content";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { RichDocumentValidationError, validateRichDocument } from "@/lib/rich-document";
+import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
 import { storyImageExtension, validStoryImageHeader } from "@/lib/image-validation";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -423,7 +423,7 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
   } catch (error) {
     if (error instanceof RichDocumentValidationError) {
       console.warn("[rich-document-validation]", error.diagnostic);
-      return { ok: false, message: "Some formatting needs attention before this draft can be saved. Your writing is still open in the editor; adjust it or retry." };
+      return { ok: false, message: safeRichDocumentErrorMessage(error) };
     }
     return { ok: false, message: "The chapter could not be saved. Your writing is still open in the editor; please retry." };
   }

@@ -91,6 +91,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState("text");
+  const [selectionActive, setSelectionActive] = useState(false);
   const [preview, setPreview] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
   const [media, setMedia] = useState<Array<{ src: string; previewSrc: string; name: string }>>([]);
@@ -107,14 +108,16 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const busy = useRef(false);
   const router = useRouter();
 
-  const editor = useEditor({ extensions, content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); } });
+  const editor = useEditor({ extensions, content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
   const save = useCallback(async () => {
     if (!dirty) return true;
     if (busy.current) return false;
     const revision = documentRevision;
     busy.current = true; setStatus("Saving draft…");
-    const result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt);
-    busy.current = false;
+    let result: Awaited<ReturnType<typeof saveRichChapter>>;
+    try { result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt); }
+    catch { result = { ok: false, message: "The save could not reach the server. Your writing is still here; retry when connected." }; }
+    finally { busy.current = false; }
     if (!result.ok) { setSaveError(result.message ?? "Draft could not be saved. Your writing is still here. Retry when ready."); setStatus("Not saved"); return false; }
     if (result.chapterId) setChapterId(result.chapterId);
     if (result.updatedAt) setUpdatedAt(result.updatedAt);
@@ -125,7 +128,6 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   }, [chapterId, dirty, documentRevision, updatedAt, workId]);
 
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, save]);
-  useEffect(() => { if (window.matchMedia("(min-width: 1051px)").matches) setSidebarOpen(true); }, []);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
 
   const wordCount = plainTextFromRichDocument(documentRef.current).trim().split(/\s+/).filter(Boolean).length;
@@ -156,36 +158,45 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const headingValue = editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : editor.isActive("blockquote") ? "quote" : "p";
   const changeBlock = (value: string) => { if (value === "quote") editor.chain().focus().setBlockquote().run(); else if (value === "p") editor.chain().focus().setParagraph().run(); else editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) as 1 | 2 | 3 }).run(); };
   const setTextColor = (value: string) => editor.chain().focus().setColor(value).run();
-  const isSelectionEmpty = editor.state.selection.empty;
   const tabs = [{ id: "text", label: "Text" }, { id: "type", label: "Typography" }, { id: "insert", label: "Insert" }, { id: "literary", label: "Literary" }, { id: "document", label: "Document" }];
+  const downloadRecovery = () => {
+    const recovery = new Blob([JSON.stringify({ title: titleRef.current, document: editor.getJSON(), savedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(recovery); const link = document.createElement("a"); link.href = url; link.download = "smarties-chapter-recovery.json"; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const formattingMore = () => { setSidebarTab("type"); setSidebarOpen(true); };
 
   return <section className={`rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} aria-label="Chapter writing editor">
     <header className="editor-topbar">
-      <div className="editor-topbar-context"><button type="button" className="editor-back-link" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}>← Studio</button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
+      <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}>← <span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
-        {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}
-        {toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
-        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite">{saveError ? "Not saved" : status}</span>
-        <button type="button" className="editor-top-action" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Edit" : "Preview"}</button>
-        <button type="button" className="editor-top-action" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus" : "Focus"}</button>
-        <button type="button" className="editor-top-action editor-format-toggle" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}>Formatting</button>
+        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status}</span>
+        <button type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}>Formatting</button>
         <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
-        {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" type="submit" disabled={dirty || !!saveError}>Publish</button></form>}
+        <details className="editor-overflow"><summary aria-label="More chapter actions">•••</summary><div className="editor-overflow-menu">
+          {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
+          <button type="button" className="editor-top-action" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Return to writing" : "Preview chapter"}</button>
+          <button type="button" className="editor-top-action" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus mode" : "Focus mode"}</button>
+          {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" type="submit" disabled={dirty || !!saveError}>Publish saved draft</button></form>}
+          <button type="button" className="editor-top-action" onClick={downloadRecovery}>Download recovery copy</button>
+        </div></details>
       </div>
     </header>
-    {saveError && <p className="editor-save-error" role="alert">{saveError} Your editor contents have been kept. You can correct the formatting or retry the save.</p>}
+    {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
     <div className="editor-workspace">
       <main className="editor-writing-column">
-        <div className="rich-editor-heading"><label htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/><div className="editor-stats"><span>{wordCount.toLocaleString()} words</span><span>{Math.max(1, Math.ceil(wordCount / 220))} min read</span><span>·</span><span>Saved automatically as a private draft</span></div></div>
-        <p className="editor-context-hint">{isSelectionEmpty ? "At the cursor: text styles affect new typing; paragraph actions affect this block." : "Formatting controls apply to the selected text or its containing block."}</p>
+        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" placeholder="Untitled chapter" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
+        {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
+          {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"))}
+          <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
+          {toolbarButton("Link", setLink, editor.isActive("link"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
+        </div>}
         {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><EditorContent editor={editor}/></div>}
-        {chapterId && <p className="editor-publish-hint">Publishing applies the saved draft to the published chapter. Until then, readers keep seeing the current published version.</p>}
+        <footer className="editor-writing-footer"><span>{status}</span><details><summary>Chapter details</summary><span>{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read · private draft</span></details></footer>
       </main>
       <aside className="editor-format-sidebar" aria-label="Formatting controls" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
         <div className="editor-sidebar-heading"><span className="eyebrow">Format</span><button type="button" className="editor-sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close formatting panel">Close</button></div>
         <div className="editor-sidebar-tabs" role="tablist" aria-label="Formatting sections">{tabs.map((tab) => <button key={tab.id} id={`editor-tab-${tab.id}`} type="button" role="tab" aria-selected={sidebarTab === tab.id} aria-controls="editor-sidebar-panel" onClick={() => setSidebarTab(tab.id)}>{tab.label}</button>)}</div>
         <div id="editor-sidebar-panel" role="tabpanel" aria-labelledby={`editor-tab-${sidebarTab}`} className="editor-sidebar-panel">
-          <p className="editor-sidebar-help">{isSelectionEmpty ? "At the cursor, inline styles carry into new text. Block styles change the current paragraph." : "Changes apply to your selection or its containing block."}</p>
           {sidebarTab === "text" && <>
             <label className="editor-control">Paragraph style<select aria-label="Paragraph style" value={headingValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="quote">Blockquote</option></select></label>
             <div className="editor-control-group" aria-label="Inline formatting">{toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Strike", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}</div>
