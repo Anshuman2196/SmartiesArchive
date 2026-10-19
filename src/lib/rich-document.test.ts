@@ -90,6 +90,33 @@ test("null node attrs use safe TipTap defaults and survive save reload and previ
   if (reloaded.type === "rich") assert.deepEqual(validateRichDocument(reloaded.document, owner, work).document, saved.document);
 });
 
+test("recovery documents with an omitted empty paragraph content round-trip without losing the trailing blank block", () => {
+  const recovered = { type: "doc", content: [
+    { type: "heading", attrs: { level: 1, textAlign: null, indent: 0 }, content: [{ type: "text", text: "11:38 PM — GROUP CHAT" }] },
+    { type: "literaryBlock", attrs: { treatment: "dialogue", indent: 0 }, content: Array.from({ length: 2 }, (_, index) => ({ type: "paragraph", attrs: { indent: 0, textAlign: null }, content: [{ type: "text", text: `Message ${index + 1}` }] })) },
+    { type: "paragraph", attrs: { indent: 0, textAlign: null } },
+  ] };
+  const saved = validateRichDocument(recovered, owner, work);
+  assert.deepEqual(saved.document.content.at(-1), { type: "paragraph", attrs: { indent: 0 }, content: [] });
+  assert.match(saved.plainText, /11:38 PM — GROUP CHAT/);
+  assert.match(saved.plainText, /Message 2/);
+
+  const serialized = JSON.stringify(toRichContent(saved.document));
+  const reloaded = normalizeReaderContent(JSON.parse(serialized), saved.plainText, owner, work);
+  assert.equal(reloaded.type, "rich");
+  if (reloaded.type !== "rich") return;
+  assert.deepEqual(validateRichDocument(reloaded.document, owner, work).document, saved.document);
+  const previewDocument = validateRichDocument(reloaded.document, owner, work).document;
+  const publishedDocument = validateRichDocument(previewDocument, owner, work).document;
+  assert.deepEqual(publishedDocument, saved.document);
+});
+
+test("required structural containers still reject an omitted content array", () => {
+  for (const type of ["bulletList", "orderedList", "listItem", "blockquote", "codeBlock", "literaryBlock"]) {
+    assertRejectedBy({ type: "doc", content: [{ type, attrs: type === "literaryBlock" ? { treatment: "dialogue" } : undefined }] }, "missing_node_content");
+  }
+});
+
 test("legacy non-object node attrs normalize to defaults without losing the chapter text", () => {
   const legacyPayload = { type: "doc", content: [{ type: "paragraph", attrs: ["old editor metadata"], content: [{ type: "text", text: "this paragraph must survive unchanged 🙂" }] }] };
   const normalized = validateRichDocument(legacyPayload, owner, work);

@@ -157,8 +157,13 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     if (current.content !== undefined) {
       if (!Array.isArray(current.content) || current.content.length > 2000) reject("invalid_content_array", path, nodeType, "content");
       output.content = current.content.map((child, index) => walk(child, depth + 1, `${path}.content[${index}]`));
+    } else if (["paragraph", "heading"].includes(nodeType)) {
+      // ProseMirror/TipTap JSON may omit `content` on an empty text block.
+      // Canonicalize it to [] so a trailing blank line survives validation,
+      // save/reload, preview, and publish without weakening container checks.
+      output.content = [];
     }
-    if (["doc", "paragraph", "heading", "bulletList", "orderedList", "listItem", "blockquote", "codeBlock", "literaryBlock"].includes(nodeType) && !Array.isArray(current.content)) reject("missing_node_content", path, nodeType, "content");
+    if (["doc", "bulletList", "orderedList", "listItem", "blockquote", "codeBlock", "literaryBlock"].includes(nodeType) && !Array.isArray(current.content)) reject("missing_node_content", path, nodeType, "content");
     const children = output.content ?? [];
     if (nodeType === "doc" && children.some((child) => !blockNodes.has(child.type))) reject("invalid_document_child", path, nodeType, "content");
     if (["paragraph", "heading", "codeBlock"].includes(nodeType) && children.some((child) => !inlineNodes.has(child.type))) reject("invalid_inline_child", path, nodeType, "content");
