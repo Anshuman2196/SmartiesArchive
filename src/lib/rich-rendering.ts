@@ -20,6 +20,6 @@ export function richNodeTag(node: RichNode): string | null {
 }
 
 export function richMarkTag(type: string): string | null {
-  const tags: Record<string, string> = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", highlight: "mark", textStyle: "span", link: "a", superscript: "sup", subscript: "sub" };
+  const tags: Record<string, string> = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", highlight: "mark", textStyle: "span", link: "a", superscript: "sup", subscript: "sub", spoiler: "span" };
   return tags[type] ?? null;
 }

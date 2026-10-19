@@ -1,6 +1,6 @@
 "use client";
 
-import { Node, Extension, mergeAttributes } from "@tiptap/core";
+import { Node, Mark, Extension, mergeAttributes } from "@tiptap/core";
 import Image from "next/image";
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -36,6 +36,12 @@ function ImageBlockView({ node }: { node: { attrs: Record<string, string | numbe
   return <NodeViewWrapper className="editor-image-node" contentEditable={false}>{source ? <Image src={source} width={1200} height={900} unoptimized alt={String(attrs.alt ?? "")}/> : <span className="editor-image-missing">Image preview unavailable</span>}{attrs.caption ? <small>{String(attrs.caption)}</small> : null}</NodeViewWrapper>;
 }
 
+const spoilerMark = Mark.create({
+  name: "spoiler", inclusive: false,
+  parseHTML() { return [{ tag: "span[data-spoiler]" }, { tag: "span.spoiler-mark" }]; },
+  renderHTML({ HTMLAttributes }) { return ["span", mergeAttributes(HTMLAttributes, { "data-spoiler": "true", class: "spoiler-mark" }), 0]; },
+});
+
 const literaryBlock = Node.create({
   name: "literaryBlock", group: "block", content: "block+", defining: true,
   addAttributes() { return { treatment: { default: "narration" } }; },
@@ -62,7 +68,7 @@ const paragraphIndent = Extension.create({
 const extensions = [
   StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
   Highlight.configure({ multicolor: true }), TextStyleKit.configure({ lineHeight: false }), TextAlign.configure({ types: ["heading", "paragraph"] }),
-  Superscript, Subscript, Placeholder.configure({ placeholder: "Begin the scene…" }), literaryBlock, imageNode, paragraphIndent,
+  Superscript, Subscript, Placeholder.configure({ placeholder: "Begin the scene…" }), literaryBlock, imageNode, spoilerMark, paragraphIndent,
 ];
 
 const emojiGroups: Record<string, string[]> = {
@@ -188,7 +194,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
           {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"))}
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
-          {toolbarButton("Link", setLink, editor.isActive("link"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
+          {toolbarButton("Link", setLink, editor.isActive("link"))}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
         </div>}
         {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><EditorContent editor={editor}/></div>}
         <footer className="editor-writing-footer"><span>{status}</span><details><summary>Chapter details</summary><span>{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read · private draft</span></details></footer>
@@ -200,6 +206,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           {sidebarTab === "text" && <>
             <label className="editor-control">Paragraph style<select aria-label="Paragraph style" value={headingValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="quote">Blockquote</option></select></label>
             <div className="editor-control-group" aria-label="Inline formatting">{toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Strike", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}</div>
+            <div className="editor-control-group" aria-label="Spoiler formatting">{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}</div>
             <div className="editor-control-group">{toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}</div>
           </>}
           {sidebarTab === "type" && <>

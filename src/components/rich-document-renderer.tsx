@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { RichDocument, RichNode } from "@/lib/rich-document";
 import { isSecureMediaUrl } from "@/lib/reader-state";
 import { richMarkTag, richNodeTag } from "@/lib/rich-rendering";
+import { SpoilerReveal } from "@/components/spoiler-reveal";
 
 const safeHref = (href: unknown) => typeof href === "string" && !/[\\\u0000-\u001f]/.test(href) && (href.startsWith("/") && !href.startsWith("//") || /^(https?:|mailto:)/i.test(href));
 
@@ -11,6 +12,7 @@ function renderMarks(children: ReactNode, marks: RichNode["marks"]) {
     if (!mark) return child;
     const tag = richMarkTag(mark.type);
     if (!tag) return child;
+    if (mark.type === "spoiler") return createElement(SpoilerReveal, null, child);
     if (mark.type === "link" && safeHref(mark.attrs?.href)) return createElement(tag, { href: mark.attrs?.href as string }, child);
     if (mark.type === "highlight") return createElement(tag, { style: { backgroundColor: typeof mark.attrs?.color === "string" ? mark.attrs.color : undefined } }, child);
     if (mark.type === "textStyle") {

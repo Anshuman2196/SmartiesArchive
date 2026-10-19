@@ -7,7 +7,7 @@ export type RichNode = { type: string; attrs?: Record<string, unknown>; text?: s
 export type RichDocument = { type: "doc"; content: RichNode[] };
 
 const allowedNodes = new Set(["doc", "paragraph", "heading", "text", "bulletList", "orderedList", "listItem", "blockquote", "horizontalRule", "codeBlock", "hardBreak", "literaryBlock", "imageBlock"]);
-const allowedMarks = new Set(["bold", "italic", "underline", "strike", "code", "highlight", "textStyle", "link", "superscript", "subscript"]);
+const allowedMarks = new Set(["bold", "italic", "underline", "strike", "code", "highlight", "textStyle", "link", "superscript", "subscript", "spoiler"]);
 const blockNodes = new Set(["paragraph", "heading", "bulletList", "orderedList", "blockquote", "horizontalRule", "codeBlock", "literaryBlock", "imageBlock"]);
 const inlineNodes = new Set(["text", "hardBreak"]);
 const textStyleSchema = z.object({ color: z.string().regex(/^#[\da-f]{3}(?:[\da-f]{3})?$/i).nullable().optional(), backgroundColor: z.string().regex(/^#[\da-f]{3}(?:[\da-f]{3})?$/i).nullable().optional(), fontFamily: z.enum(["Georgia", "Palatino", "Arial", "Verdana", "Courier New"]).nullable().optional(), fontSize: z.string().regex(/^(1[2-9]|[2-4]\d)px$/).nullable().optional() }).strict();
@@ -122,7 +122,7 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     }
 
     if (current.marks !== undefined) {
-      if (!Array.isArray(current.marks) || current.marks.length > 10) reject("invalid_marks_array", path, nodeType, "marks");
+      if (!Array.isArray(current.marks) || current.marks.length > 12) reject("invalid_marks_array", path, nodeType, "marks");
       if (nodeType !== "text") reject("marks_on_non_text_node", path, nodeType, "marks");
       output.marks = current.marks.map((raw, markIndex) => {
         const markPath = `${path}.marks[${markIndex}]`;

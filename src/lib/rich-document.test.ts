@@ -180,7 +180,7 @@ test("all editor node and mark types survive save, reload, preview data, and pub
       { type: "bold" }, { type: "italic" }, { type: "underline" }, { type: "strike" }, { type: "code" },
       { type: "highlight", attrs: { color: "#d4f36a" } },
       { type: "textStyle", attrs: { color: "#4169e1", backgroundColor: "#151a28", fontFamily: "Georgia", fontSize: "22px" } },
-      { type: "link", attrs: { href: "/work/story/chapter/next" } }, { type: "superscript" }, { type: "subscript" },
+      { type: "link", attrs: { href: "/work/story/chapter/next" } }, { type: "superscript" }, { type: "subscript" }, { type: "spoiler" },
     ] }, { type: "hardBreak" }, { type: "text", text: "after the break" }] },
     { type: "heading", attrs: { level: 1, textAlign: null, indent: 0 }, content: [{ type: "text", text: "Heading" }] },
     { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "bullet" }] }] }] },
@@ -207,7 +207,7 @@ test("all editor node and mark types survive save, reload, preview data, and pub
 test("reader renderer maps every supported document node and mark to a semantic element", () => {
   const nodeTags: Record<string, string> = { doc: "div", paragraph: "p", heading: "h2", text: "span", bulletList: "ul", orderedList: "ol", listItem: "li", blockquote: "blockquote", horizontalRule: "hr", codeBlock: "pre", hardBreak: "br", literaryBlock: "section", imageBlock: "figure" };
   for (const [type, tag] of Object.entries(nodeTags)) assert.equal(richNodeTag({ type, attrs: type === "heading" ? { level: 2 } : undefined }), tag, `node ${type}`);
-  const markTags: Record<string, string> = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", highlight: "mark", textStyle: "span", link: "a", superscript: "sup", subscript: "sub" };
+  const markTags: Record<string, string> = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", highlight: "mark", textStyle: "span", link: "a", superscript: "sup", subscript: "sub", spoiler: "span" };
   for (const [type, tag] of Object.entries(markTags)) assert.equal(richMarkTag(type), tag, `mark ${type}`);
 });
 
