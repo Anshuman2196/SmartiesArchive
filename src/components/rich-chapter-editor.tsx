@@ -10,6 +10,7 @@ import { TextStyleKit } from "@tiptap/extension-text-style";
 import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import Placeholder from "@tiptap/extension-placeholder";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
@@ -84,9 +85,12 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [chapterId, setChapterId] = useState(initialChapterId);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt ?? "");
   const [status, setStatus] = useState("Unsaved draft");
+  const [saveError, setSaveError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [documentRevision, setDocumentRevision] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState("text");
   const [preview, setPreview] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);
   const [media, setMedia] = useState<Array<{ src: string; previewSrc: string; name: string }>>([]);
@@ -101,22 +105,27 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const documentRef = useRef<RichDocument>(initialDocument);
   const titleRef = useRef(initialTitle);
   const busy = useRef(false);
+  const router = useRouter();
 
-  const editor = useEditor({ extensions, content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setStatus("Unsaved changes"); } });
+  const editor = useEditor({ extensions, content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); } });
   const save = useCallback(async () => {
-    if (!dirty || busy.current) return;
+    if (!dirty) return true;
+    if (busy.current) return false;
     const revision = documentRevision;
     busy.current = true; setStatus("Saving draft…");
     const result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt);
     busy.current = false;
-    if (!result.ok) { setStatus(result.message ?? "Draft could not be saved."); return; }
+    if (!result.ok) { setSaveError(result.message ?? "Draft could not be saved. Your writing is still here. Retry when ready."); setStatus("Not saved"); return false; }
     if (result.chapterId) setChapterId(result.chapterId);
     if (result.updatedAt) setUpdatedAt(result.updatedAt);
-    if (revision === documentRevision) { setDirty(false); setStatus("Saved"); }
-    else setStatus("Unsaved changes");
+    setSaveError("");
+    if (revision === documentRevision) { setDirty(false); setStatus("Saved"); return true; }
+    setStatus("Unsaved changes");
+    return false;
   }, [chapterId, dirty, documentRevision, updatedAt, workId]);
 
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, save]);
+  useEffect(() => { if (window.matchMedia("(min-width: 1051px)").matches) setSidebarOpen(true); }, []);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
 
   const wordCount = plainTextFromRichDocument(documentRef.current).trim().split(/\s+/).filter(Boolean).length;
@@ -143,32 +152,69 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
   const toolbarButton = (label: string, command: () => void, active = false, disabled = false) => <button type="button" className="editor-tool-button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{label}</button>;
 
-  return <section className={`rich-editor ${focusMode ? "is-focused" : ""}`} aria-label="Chapter writing editor">
-    <div className="rich-editor-heading"><div><label htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setStatus("Unsaved changes"); }}/></div><div className="editor-stats"><span>{wordCount.toLocaleString()} words</span><span>{Math.max(1, Math.ceil(wordCount / 220))} min read</span><span aria-live="polite" role="status">{status}</span></div></div>
-    <div className="editor-toolbar" role="toolbar" aria-label="Text formatting">
-      {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
-      <select aria-label="Paragraph style" value={editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : editor.isActive("blockquote") ? "quote" : "p"} onChange={(event) => { const value = event.target.value; if (value === "quote") editor.chain().focus().setBlockquote().run(); else if (value === "p") editor.chain().focus().setParagraph().run(); else editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) as 1 | 2 | 3 }).run(); }}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="quote">Blockquote</option></select>
-      {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Strike", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}
-      {toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}
-      <details className="editor-more"><summary aria-label="More formatting">More</summary><div className="editor-more-menu">
-        <label>Typeface<select aria-label="Font family" defaultValue="Georgia" onChange={(event) => editor.chain().focus().setFontFamily(event.target.value).run()}><option>Georgia</option><option>Palatino</option><option>Arial</option><option>Verdana</option><option>Courier New</option></select></label>
-        <label>Text size<select aria-label="Font size" defaultValue="18px" onChange={(event) => event.target.value ? editor.chain().focus().setFontSize(event.target.value).run() : editor.chain().focus().unsetFontSize().run()}><option value="12px">12 px</option><option value="14px">14 px</option><option value="16px">16 px</option><option value="18px">18 px</option><option value="22px">22 px</option><option value="28px">28 px</option><option value="36px">36 px</option><option value="">Default size</option></select></label>
-        <label>Text color<input aria-label="Text color" type="color" defaultValue="#f1eadb" onChange={(event) => editor.chain().focus().setColor(event.target.value).run()}/></label>
-        <label>Highlight<input aria-label="Highlight color" type="color" defaultValue="#d4f36a" onChange={(event) => editor.chain().focus().toggleHighlight({ color: event.target.value }).run()}/></label>
-        {toolbarButton("Align left", () => editor.chain().focus().setTextAlign("left").run())}{toolbarButton("Align center", () => editor.chain().focus().setTextAlign("center").run())}{toolbarButton("Align right", () => editor.chain().focus().setTextAlign("right").run())}{toolbarButton("Justify", () => editor.chain().focus().setTextAlign("justify").run())}
-        {toolbarButton("Indent", () => changeIndent(1))}{toolbarButton("Outdent", () => changeIndent(-1))}{toolbarButton("Superscript", () => editor.chain().focus().toggleSuperscript().run(), editor.isActive("superscript"))}{toolbarButton("Subscript", () => editor.chain().focus().toggleSubscript().run(), editor.isActive("subscript"))}
-        {toolbarButton("Insert divider", () => editor.chain().focus().setHorizontalRule().run())}{toolbarButton("Insert code block", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock"))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Clear formatting", () => editor.chain().focus().unsetAllMarks().clearNodes().run())}
-        <label>Literary style<select aria-label="Literary text style" value={treatmentValue} onChange={(event) => { setActiveTreatment(event.target.value); applyTreatment(event.target.value); }}>{literaryTreatments.map((treatment) => <option key={treatment} value={treatment}>{treatmentLabel(treatment)}</option>)}</select></label>
-      </div></details>
-      {toolbarButton("Insert image", () => { setMediaOpen((open) => !open); setMediaError(""); })}{toolbarButton("Emoji", () => setEmojiOpen((open) => !open))}
-      <button type="button" className="editor-tool-button editor-mode-toggle" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus" : "Focus mode"}</button>
-      <button type="button" className="editor-tool-button" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Edit" : "Preview"}</button>
-      <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>Save draft</button>
+  const textStyle = editor.getAttributes("textStyle") as Record<string, string | null>;
+  const headingValue = editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : editor.isActive("blockquote") ? "quote" : "p";
+  const changeBlock = (value: string) => { if (value === "quote") editor.chain().focus().setBlockquote().run(); else if (value === "p") editor.chain().focus().setParagraph().run(); else editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) as 1 | 2 | 3 }).run(); };
+  const setTextColor = (value: string) => editor.chain().focus().setColor(value).run();
+  const isSelectionEmpty = editor.state.selection.empty;
+  const tabs = [{ id: "text", label: "Text" }, { id: "type", label: "Typography" }, { id: "insert", label: "Insert" }, { id: "literary", label: "Literary" }, { id: "document", label: "Document" }];
+
+  return <section className={`rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} aria-label="Chapter writing editor">
+    <header className="editor-topbar">
+      <div className="editor-topbar-context"><button type="button" className="editor-back-link" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}>← Studio</button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
+      <div className="editor-topbar-actions">
+        {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}
+        {toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
+        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite">{saveError ? "Not saved" : status}</span>
+        <button type="button" className="editor-top-action" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Edit" : "Preview"}</button>
+        <button type="button" className="editor-top-action" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus" : "Focus"}</button>
+        <button type="button" className="editor-top-action editor-format-toggle" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}>Formatting</button>
+        <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
+        {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" type="submit" disabled={dirty || !!saveError}>Publish</button></form>}
+      </div>
+    </header>
+    {saveError && <p className="editor-save-error" role="alert">{saveError} Your editor contents have been kept. You can correct the formatting or retry the save.</p>}
+    <div className="editor-workspace">
+      <main className="editor-writing-column">
+        <div className="rich-editor-heading"><label htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/><div className="editor-stats"><span>{wordCount.toLocaleString()} words</span><span>{Math.max(1, Math.ceil(wordCount / 220))} min read</span><span>·</span><span>Saved automatically as a private draft</span></div></div>
+        <p className="editor-context-hint">{isSelectionEmpty ? "At the cursor: text styles affect new typing; paragraph actions affect this block." : "Formatting controls apply to the selected text or its containing block."}</p>
+        {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><EditorContent editor={editor}/></div>}
+        {chapterId && <p className="editor-publish-hint">Publishing applies the saved draft to the published chapter. Until then, readers keep seeing the current published version.</p>}
+      </main>
+      <aside className="editor-format-sidebar" aria-label="Formatting controls" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
+        <div className="editor-sidebar-heading"><span className="eyebrow">Format</span><button type="button" className="editor-sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close formatting panel">Close</button></div>
+        <div className="editor-sidebar-tabs" role="tablist" aria-label="Formatting sections">{tabs.map((tab) => <button key={tab.id} id={`editor-tab-${tab.id}`} type="button" role="tab" aria-selected={sidebarTab === tab.id} aria-controls="editor-sidebar-panel" onClick={() => setSidebarTab(tab.id)}>{tab.label}</button>)}</div>
+        <div id="editor-sidebar-panel" role="tabpanel" aria-labelledby={`editor-tab-${sidebarTab}`} className="editor-sidebar-panel">
+          <p className="editor-sidebar-help">{isSelectionEmpty ? "At the cursor, inline styles carry into new text. Block styles change the current paragraph." : "Changes apply to your selection or its containing block."}</p>
+          {sidebarTab === "text" && <>
+            <label className="editor-control">Paragraph style<select aria-label="Paragraph style" value={headingValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="quote">Blockquote</option></select></label>
+            <div className="editor-control-group" aria-label="Inline formatting">{toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Strike", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}</div>
+            <div className="editor-control-group">{toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}</div>
+          </>}
+          {sidebarTab === "type" && <>
+            <label className="editor-control">Typeface<select aria-label="Font family" value={textStyle.fontFamily ?? ""} onChange={(event) => event.target.value ? editor.chain().focus().setFontFamily(event.target.value).run() : editor.chain().focus().unsetFontFamily().run()}><option value="">Story default</option><option>Georgia</option><option>Palatino</option><option>Arial</option><option>Verdana</option><option>Courier New</option></select></label>
+            <label className="editor-control">Text size<select aria-label="Font size" value={textStyle.fontSize ?? ""} onChange={(event) => event.target.value ? editor.chain().focus().setFontSize(event.target.value).run() : editor.chain().focus().unsetFontSize().run()}><option value="">Story default</option><option value="12px">12 px</option><option value="14px">14 px</option><option value="16px">16 px</option><option value="18px">18 px</option><option value="22px">22 px</option><option value="28px">28 px</option><option value="36px">36 px</option></select></label>
+            <label className="editor-control">Text color<input aria-label="Text color" type="color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/></label>
+            <label className="editor-control">Highlight color<input aria-label="Highlight color" type="color" value={String(editor.getAttributes("highlight").color ?? "#d4f36a")} onChange={(event) => editor.chain().focus().toggleHighlight({ color: event.target.value }).run()}/></label>
+            <div className="editor-control-group" aria-label="Paragraph alignment">{toolbarButton("Align left", () => editor.chain().focus().setTextAlign("left").run(), editor.getAttributes(activeBlock).textAlign === "left")}{toolbarButton("Align center", () => editor.chain().focus().setTextAlign("center").run(), editor.getAttributes(activeBlock).textAlign === "center")}{toolbarButton("Align right", () => editor.chain().focus().setTextAlign("right").run(), editor.getAttributes(activeBlock).textAlign === "right")}{toolbarButton("Justify", () => editor.chain().focus().setTextAlign("justify").run(), editor.getAttributes(activeBlock).textAlign === "justify")}</div>
+            <div className="editor-control-group">{toolbarButton("Indent", () => changeIndent(1))}{toolbarButton("Outdent", () => changeIndent(-1))}{toolbarButton("Superscript", () => editor.chain().focus().toggleSuperscript().run(), editor.isActive("superscript"))}{toolbarButton("Subscript", () => editor.chain().focus().toggleSubscript().run(), editor.isActive("subscript"))}</div>
+          </>}
+          {sidebarTab === "insert" && <>
+            <div className="editor-control-group editor-insert-actions">{toolbarButton("Insert image", () => { setMediaOpen((open) => !open); setMediaError(""); })}{toolbarButton("Insert emoji", () => setEmojiOpen((open) => !open))}</div>
+            {mediaOpen && <div className="editor-popover" role="region" aria-label="Insert image"><div className="editor-popover-head"><strong>Images for this story</strong><button type="button" aria-label="Close image picker" onClick={() => setMediaOpen(false)}>Close</button></div><label className="pill primary upload-image-button">Upload an image<input ref={uploadRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void upload(event.target.files?.[0])}/></label><button type="button" className="pill" onClick={() => void openMedia()}>Choose uploaded image</button><p className="field-hint">JPEG, PNG, WebP, or GIF. Maximum 8 MB.</p>{mediaError && <p role="status">{mediaError}</p>}<div className="media-picker-grid">{media.map((item) => <button type="button" key={item.src} onClick={() => insertMedia(item)}><Image src={item.previewSrc} width={200} height={120} unoptimized alt=""/><span>{item.name}</span></button>)}</div>{imageNotice && <p role="status">{imageNotice}</p>}</div>}
+            {emojiOpen && <div className="editor-popover emoji-popover" role="region" aria-label="Emoji picker"><div className="editor-popover-head"><strong>Insert an emoji</strong><button type="button" onClick={() => setEmojiOpen(false)}>Close</button></div><label className="sr-only" htmlFor="emoji-search">Search emoji</label><input id="emoji-search" placeholder="Search emoji by name" value={emojiSearch} onChange={(event) => setEmojiSearch(event.target.value)}/><div className="emoji-categories" role="group" aria-label="Emoji categories">{Object.keys(emojiGroups).map((category) => <button type="button" key={category} aria-pressed={emojiCategory === category} onClick={() => setEmojiCategory(category)}>{category}</button>)}</div><div className="emoji-grid">{emojiGroups[emojiCategory].map((emoji, index) => ({ emoji, terms: emojiTerms[emojiCategory]?.[index] ?? "" })).filter(({ emoji, terms }) => !emojiSearch || `${emoji} ${terms} ${emojiCategory}`.toLowerCase().includes(emojiSearch.trim().toLowerCase())).map(({ emoji, terms }) => <button key={emoji} type="button" aria-label={`Insert ${terms.split(" ")[0] ?? "emoji"}`} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></div>}
+            {selectedImage && <div className="image-inspector" aria-label="Selected image settings"><strong>Image settings</strong><label>Alternative text<input value={String(editor.getAttributes("imageBlock").alt ?? "")} maxLength={300} onChange={(event) => updateImage("alt", event.target.value)}/></label><label>Caption<input value={String(editor.getAttributes("imageBlock").caption ?? "")} maxLength={500} onChange={(event) => updateImage("caption", event.target.value)}/></label><label>Width<input type="range" min="15" max="100" value={Number(editor.getAttributes("imageBlock").width ?? 100)} onChange={(event) => updateImage("width", Number(event.target.value))}/></label><label>Alignment<select value={String(editor.getAttributes("imageBlock").align ?? "center")} onChange={(event) => updateImage("align", event.target.value)}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>{toolbarButton("Remove selected image", () => editor.chain().focus().deleteSelection().run())}</div>}
+          </>}
+          {sidebarTab === "literary" && <>
+            <label className="editor-control">Literary style<select aria-label="Literary text style" value={treatmentValue} onChange={(event) => { setActiveTreatment(event.target.value); applyTreatment(event.target.value); }}>{literaryTreatments.map((treatment) => <option key={treatment} value={treatment}>{treatmentLabel(treatment)}</option>)}</select></label>
+            <p className="editor-sidebar-help">Wrap the current paragraph in a reusable literary treatment. Whispers use subdued type; other treatments keep readable contrast.</p>
+          </>}
+          {sidebarTab === "document" && <>
+            <div className="editor-control-group">{toolbarButton("Insert divider", () => editor.chain().focus().setHorizontalRule().run())}{toolbarButton("Insert code block", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock"))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Clear formatting", () => editor.chain().focus().unsetAllMarks().clearNodes().run())}</div>
+            <p className="editor-document-stats">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</p>
+          </>}
+        </div>
+      </aside>
     </div>
-    {mediaOpen && <div className="editor-popover" role="region" aria-label="Insert image"><div className="editor-popover-head"><strong>Images for this story</strong><button type="button" aria-label="Close image picker" onClick={() => setMediaOpen(false)}>Close</button></div><label className="pill primary upload-image-button">Upload an image<input ref={uploadRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void upload(event.target.files?.[0])}/></label><button type="button" className="pill" onClick={() => void openMedia()}>Choose uploaded image</button><p className="field-hint">JPEG, PNG, WebP, or GIF. Maximum 8 MB.</p>{mediaError && <p role="status">{mediaError}</p>}<div className="media-picker-grid">{media.map((item) => <button type="button" key={item.src} onClick={() => insertMedia(item)}><Image src={item.previewSrc} width={200} height={120} unoptimized alt=""/><span>{item.name}</span></button>)}</div>{imageNotice && <p role="status">{imageNotice}</p>}</div>}
-    {emojiOpen && <div className="editor-popover emoji-popover" role="region" aria-label="Emoji picker"><div className="editor-popover-head"><strong>Insert an emoji</strong><button type="button" onClick={() => setEmojiOpen(false)}>Close</button></div><label className="sr-only" htmlFor="emoji-search">Search emoji</label><input id="emoji-search" placeholder="Search or browse" value={emojiSearch} onChange={(event) => setEmojiSearch(event.target.value)}/><div className="emoji-categories" role="group" aria-label="Emoji categories">{Object.keys(emojiGroups).map((category) => <button type="button" key={category} aria-pressed={emojiCategory === category} onClick={() => setEmojiCategory(category)}>{category}</button>)}</div><div className="emoji-grid">{emojiGroups[emojiCategory].map((emoji, index) => ({ emoji, terms: emojiTerms[emojiCategory]?.[index] ?? "" })).filter(({ emoji, terms }) => !emojiSearch || `${emoji} ${terms} ${emojiCategory}`.toLowerCase().includes(emojiSearch.trim().toLowerCase())).map(({ emoji, terms }) => <button key={emoji} type="button" aria-label={`Insert ${terms.split(" ")[0] ?? "emoji"}`} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></div>}
-    {selectedImage && <div className="image-inspector" aria-label="Selected image settings"><strong>Image settings</strong><label>Alternative text<input value={String(editor.getAttributes("imageBlock").alt ?? "")} maxLength={300} onChange={(event) => updateImage("alt", event.target.value)}/></label><label>Caption<input value={String(editor.getAttributes("imageBlock").caption ?? "")} maxLength={500} onChange={(event) => updateImage("caption", event.target.value)}/></label><label>Width<input type="range" min="15" max="100" value={Number(editor.getAttributes("imageBlock").width ?? 100)} onChange={(event) => updateImage("width", Number(event.target.value))}/></label><label>Alignment<select value={String(editor.getAttributes("imageBlock").align ?? "center")} onChange={(event) => updateImage("align", event.target.value)}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>{toolbarButton("Remove selected image", () => editor.chain().focus().deleteSelection().run())}</div>}
-    {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><EditorContent editor={editor}/></div>}
-    {chapterId && <form action={publishChapter} className="rich-publish-row"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill primary" type="submit" disabled={dirty}>Publish chapter</button><span className="field-hint">Save the draft before publishing. Published readers see the last published snapshot until then.</span></form>}
   </section>;
 }

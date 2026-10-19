@@ -11,6 +11,7 @@ type Chapter = { id: string; title: string; body: string; format: ChapterFormat;
 const statusCopy: Record<string, { message: string; error?: boolean }> = {
   save_error: { message: "We couldn't save that change. Please try again.", error: true },
   invalid_chapter: { message: "Check the chapter title and its format-specific content.", error: true },
+  invalid_chapter_format: { message: "This chapter's draft formatting could not be verified, so it was not published. Your current published chapter remains unchanged; reopen the draft and correct its formatting before retrying.", error: true },
   conflict: { message: "This story changed in another session. Reload the page before saving again.", error: true },
   not_found: { message: "That story or chapter is no longer available.", error: true },
   no_published_chapters: { message: "Publish at least one chapter before publishing the story.", error: true },

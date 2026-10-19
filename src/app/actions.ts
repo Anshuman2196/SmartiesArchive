@@ -8,7 +8,7 @@ import { friendlyAuthError, safeNextPath } from "@/lib/auth-feedback";
 import { buildChapterContent } from "@/lib/chapter-content";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { validateRichDocument } from "@/lib/rich-document";
+import { RichDocumentValidationError, validateRichDocument } from "@/lib/rich-document";
 import { storyImageExtension, validStoryImageHeader } from "@/lib/image-validation";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -249,7 +249,20 @@ export async function saveChapter(form: FormData) {
 export async function publishChapter(form: FormData) {
   const workId = value(form, "workId"), chapterId = value(form, "chapterId");
   if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
-  const { supabase } = await requireOwnedWork(workId);
+  const { supabase, user } = await requireOwnedWork(workId);
+  const [{ data: chapter }, { data: draft }] = await Promise.all([
+    supabase.from("chapters").select("format,content,body").eq("id", chapterId).eq("work_id", workId).maybeSingle(),
+    supabase.from("chapter_drafts").select("format,content,body").eq("chapter_id", chapterId).eq("work_id", workId).maybeSingle(),
+  ]);
+  const publication = draft ?? chapter;
+  if (!chapter || !publication) redirect(`/studio/${workId}?status=not_found`);
+  if (publication.format === "prose" && typeof publication.content === "object" && publication.content !== null && (publication.content as { type?: string }).type === "rich") {
+    try { validateRichDocument((publication.content as { document?: unknown }).document, user.id, workId); }
+    catch (error) {
+      if (error instanceof RichDocumentValidationError) console.warn("[rich-document-validation]", error.diagnostic);
+      redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter_format`);
+    }
+  }
   const { data, error } = await supabase.rpc("publish_chapter", { p_work_id: workId, p_chapter_id: chapterId });
   if (error || !data) redirect(`/studio/${workId}?status=save_error`);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`); revalidatePath("/library");
@@ -407,5 +420,11 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
     if (result.error || !result.data) return { ok: false, message: "This chapter changed before the save completed. Reload and try again." };
     revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
     return { ok: true, chapterId, updatedAt: result.data.updated_at };
-  } catch (error) { return { ok: false, message: error instanceof Error ? error.message : "The chapter could not be saved." }; }
+  } catch (error) {
+    if (error instanceof RichDocumentValidationError) {
+      console.warn("[rich-document-validation]", error.diagnostic);
+      return { ok: false, message: "Some formatting needs attention before this draft can be saved. Your writing is still open in the editor; adjust it or retry." };
+    }
+    return { ok: false, message: "The chapter could not be saved. Your writing is still open in the editor; please retry." };
+  }
 }
