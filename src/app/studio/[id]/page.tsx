@@ -4,6 +4,7 @@ import { ActionForm, ActionSubmit, ChapterComposer, ConfirmSubmit, WorkMetadataF
 import { createClient } from "@/lib/supabase/server";
 import { deleteChapter, deleteWork, duplicateChapter, publishChapter, publishWork, reorderChapter, unpublishChapter, unpublishWork } from "@/app/actions";
 import type { ChapterFormat } from "@/lib/chapter-content";
+import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 
 type Chapter = { id: string; title: string; body: string; format: ChapterFormat; content: unknown; position: number; state: "draft" | "published"; updated_at: string };
 
@@ -14,6 +15,7 @@ const statusCopy: Record<string, { message: string; error?: boolean }> = {
   not_found: { message: "That story or chapter is no longer available.", error: true },
   no_published_chapters: { message: "Publish at least one chapter before publishing the story.", error: true },
   invalid_work: { message: "Check the story details. Titles and tags must fit the requirements, and cover links must use HTTPS.", error: true },
+  cover_upload_error: { message: "The work was created, but its cover image could not be uploaded. You can retry from Story details.", error: true },
   metadata_draft: { message: "Details saved as a private draft. Readers will keep seeing the published version until you publish these changes." },
   metadata_saved: { message: "Story details saved." },
   chapter_created: { message: "Chapter draft created." },
@@ -48,6 +50,12 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
   if (query.chapter && !selected) notFound();
   const selectedDraft = selected ? chapterDrafts.get(selected.id) : undefined;
   const effectiveWork = workDraft ?? work;
+  const coverPreview = await signStoryMediaUrl(supabase, effectiveWork.cover_url);
+  let editorContent = selectedDraft?.content ?? selected?.content;
+  if (typeof editorContent === "object" && editorContent !== null && (editorContent as { type?: string }).type === "rich") {
+    const rich = editorContent as { type: "rich"; document: unknown };
+    editorContent = { ...rich, document: await signRichDocument(rich.document, supabase) };
+  }
   const publishedCount = chapters.filter((chapter) => chapter.state === "published").length;
   const message = query.status ? statusCopy[query.status] : undefined;
 
@@ -57,11 +65,11 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
     {message && <p className={`notice ${message.error ? "auth-error" : ""}`} role={message.error ? "alert" : "status"}>{message.message}</p>}
     {work.state === "published" && workDraft && <div className="revision-callout"><div><span className="eyebrow">Unpublished changes</span><p>Published readers still see the existing story details.</p></div><ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story changes</ActionSubmit></ActionForm></div>}
     <div className="studio-grid">
-      <section className="studio-panel"><div className="panel-heading"><span className="eyebrow">Story details</span><h2 className="serif">Shape its shelf.</h2></div><WorkMetadataForm work={{ id, ...effectiveWork, expectedUpdatedAt: workDraft?.updated_at ?? work.updated_at }}/>
+      <section className="studio-panel"><div className="panel-heading"><span className="eyebrow">Story details</span><h2 className="serif">Shape its shelf.</h2></div><WorkMetadataForm work={{ id, ...effectiveWork, expectedUpdatedAt: workDraft?.updated_at ?? work.updated_at }} previewCoverUrl={coverPreview ?? undefined}/>
         <details className="danger-zone"><summary>Delete story</summary><p>Deleting this story removes its chapters, any pending chapter edits, bookmarks, and reading progress.</p><ActionForm action={deleteWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Permanently delete this story and its chapters, bookmarks, and reading progress? This cannot be undone.">Delete story permanently</ConfirmSubmit></ActionForm></details>
       </section>
       <section className="studio-panel chapter-studio"><div className="panel-heading"><span className="eyebrow">Chapter desk</span><h2 className="serif">Build the reading path.</h2></div>
-        {selected ? <div className="chapter-editor-panel"><div className="chapter-edit-title"><div><span className="tag">{selected.state === "published" ? selectedDraft ? "Published Â· draft revision" : "Published snapshot" : "Draft"}</span><h3 className="serif">{selectedDraft?.title ?? selected.title}</h3></div><Link className="text-action" href={`/studio/${id}`}>Close editor</Link></div><ChapterComposer workId={id} chapterId={selected.id} expectedUpdatedAt={selectedDraft?.updated_at ?? selected.updated_at} title={selectedDraft?.title ?? selected.title} body={selectedDraft?.body ?? selected.body} format={selectedDraft?.format ?? selected.format} isRevision={selected.state === "published"}/></div> : <ChapterComposer workId={id}/>}
+        {selected ? <div className="chapter-editor-panel"><div className="chapter-edit-title"><div><span className="tag">{selected.state === "published" ? selectedDraft ? "Published Â· draft revision" : "Published snapshot" : "Draft"}</span><h3 className="serif">{selectedDraft?.title ?? selected.title}</h3></div><Link className="text-action" href={`/studio/${id}`}>Close editor</Link></div><ChapterComposer key={selected.id} workId={id} chapterId={selected.id} expectedUpdatedAt={selectedDraft?.updated_at ?? selected.updated_at} title={selectedDraft?.title ?? selected.title} body={selectedDraft?.body ?? selected.body} format={selectedDraft?.format ?? selected.format} content={editorContent} isRevision={selected.state === "published"}/></div> : <ChapterComposer key="new" workId={id}/>}
         <div className="managed-chapters"><div className="managed-heading"><h3 className="serif">Your chapters</h3><span>{chapters.length} total</span></div>{chapters.length ? <ol className="managed-list">{chapters.map((chapter, index) => {
           const draft = chapterDrafts.get(chapter.id);
           return <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div className="managed-chapter-main"><Link className="chapter-title" href={`/studio/${id}?chapter=${chapter.id}`}>{draft?.title ?? chapter.title}</Link><span className="chapter-meta">{chapter.state === "published" ? draft ? "Published Â· has unpublished revision" : "Published" : "Draft"} Â· {draft?.format ?? chapter.format}</span></div><div className="chapter-row-actions"><Link className="text-action" href={`/work/${id}/chapter/${chapter.id}`}>{chapter.state === "published" ? "Read published version" : "Preview draft"}</Link><ActionForm action={reorderChapter}><input type="hidden" name="workId" value={id}/><input type="hidden" name="chapterId" value={chapter.id}/><input type="hidden" name="direction" value="up"/><ActionSubmit className="icon-action" ariaLabel={`Move ${chapter.title} up`}>â†‘</ActionSubmit></ActionForm><ActionForm action={reorderChapter}><input type="hidden" name="workId" value={id}/><input type="hidden" name="chapterId" value={chapter.id}/><input type="hidden" name="direction" value="down"/><ActionSubmit className="icon-action" ariaLabel={`Move ${chapter.title} down`}>â†“</ActionSubmit></ActionForm>

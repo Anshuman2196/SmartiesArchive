@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
+import { signRichDocument } from "@/lib/story-media";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number };
@@ -25,6 +26,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
   let work = (await supabase.from("works").select("id,title,author_id").eq("id", id).maybeSingle()).data;
   if (!work && viaUnlistedLink) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
   if (!work) notFound();
+  let content = normalizeReaderContent(chapter.content, chapter.body, work.author_id, id);
+  if (content.type === "rich") content = { ...content, document: await signRichDocument(content.document, supabase) as typeof content.document };
   const isOwner = user?.id === work.author_id;
   const listResult = viaUnlistedLink
     ? await supabase.rpc("read_unlisted_chapters", { p_work_id: id })
@@ -34,6 +37,6 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio →</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} chapterTitle={chapter.title} content={normalizeReaderContent(chapter.content, chapter.body)} chapters={chapters} authenticated={!!user} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
+    <ReaderExperience workId={id} chapterId={chapterId} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
   </>;
 }

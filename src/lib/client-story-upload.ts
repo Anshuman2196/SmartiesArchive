@@ -1,0 +1,34 @@
+"use client";
+
+import { finishStoryMediaUpload, prepareStoryMediaUpload } from "@/app/actions";
+
+const supportedTypes = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
+export async function uploadStoryMediaFile(workId: string, file: File, onProgress?: (percent: number) => void) {
+  if (!supportedTypes.has(file.type) || file.size < 1 || file.size > 8 * 1024 * 1024) {
+    return { ok: false as const, message: "Choose a JPEG, PNG, WebP, or GIF image under 8 MB." };
+  }
+  const header = Array.from(new Uint8Array(await file.slice(0, 12).arrayBuffer()));
+  const prepared = await prepareStoryMediaUpload(workId, file.name, file.type, file.size, header);
+  if (!prepared.ok || !prepared.path || !prepared.token) return { ok: false as const, message: prepared.message ?? "The secure upload could not be prepared." };
+  const path = prepared.path;
+  const token = prepared.token;
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!baseUrl || !anonKey) return { ok: false as const, message: "Image storage is not configured for this deployment." };
+  const uploaded = await new Promise<boolean>((resolve) => {
+    const request = new XMLHttpRequest();
+    request.open("PUT", `${baseUrl.replace(/\/$/, "")}/storage/v1/object/upload/sign/story-media/${path.split("/").map(encodeURIComponent).join("/")}?token=${encodeURIComponent(token)}`);
+    request.setRequestHeader("apikey", anonKey);
+    request.setRequestHeader("Authorization", `Bearer ${anonKey}`);
+    request.setRequestHeader("Content-Type", file.type);
+    request.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(Math.round(event.loaded / event.total * 100)); };
+    request.onload = () => resolve(request.status >= 200 && request.status < 300);
+    request.onerror = () => resolve(false);
+    request.onabort = () => resolve(false);
+    request.send(file);
+  });
+  if (!uploaded) return { ok: false as const, message: "The image upload failed. Check your connection and try again." };
+  onProgress?.(100);
+  return finishStoryMediaUpload(workId, path);
+}

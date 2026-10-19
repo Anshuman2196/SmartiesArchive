@@ -7,6 +7,9 @@ import { chapterSchema, loginSchema, recoverySchema, registrationSchema, workEdi
 import { friendlyAuthError, safeNextPath } from "@/lib/auth-feedback";
 import { buildChapterContent } from "@/lib/chapter-content";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { validateRichDocument } from "@/lib/rich-document";
+import { storyImageExtension, validStoryImageHeader } from "@/lib/image-validation";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const siteOrigin = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -90,16 +93,28 @@ export async function signOut(_previous: AuthActionState): Promise<AuthActionSta
   redirect("/");
 }
 
-export async function createWork(form: FormData) {
+export async function createWorkRecord(form: FormData): Promise<{ ok: boolean; workId?: string; message?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/auth");
+  if (!user) return { ok: false, message: "Sign in before creating a story." };
   const parsed = workSchema.safeParse({ title: value(form, "title"), summary: value(form, "summary"), visibility: value(form, "visibility") });
-  if (parsed.success === false) return redirect("/studio?status=invalid_work");
+  if (parsed.success === false) return { ok: false, message: "Add a title and check the work details before saving." };
   const { data, error } = await supabase.from("works").insert({ author_id: user.id, ...parsed.data }).select("id").single();
-  if (error || !data) redirect("/studio?status=save_error");
+  if (error || !data) return { ok: false, message: "The story could not be created. Try again." };
   revalidatePath("/studio");
-  redirect(`/studio/${data.id}`);
+  return { ok: true, workId: data.id };
+}
+
+export async function setWorkCover(workId: string, coverUrl: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    const { supabase, user } = await requireOwnedWorkForAction(workId);
+    const allowed = coverUrl === "" || new RegExp(`^storage://story-media/${user.id}/${workId}/[a-f0-9-]{36}\\.(?:png|jpe?g|webp|gif)$`, "i").test(coverUrl);
+    if (!allowed) return { ok: false, message: "The cover reference could not be verified." };
+    const { error } = await supabase.from("works").update({ cover_url: coverUrl }).eq("id", workId).eq("author_id", user.id);
+    if (error) return { ok: false, message: "The cover could not be saved." };
+    revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath("/studio");
+    return { ok: true };
+  } catch { return { ok: false, message: "The cover could not be saved." }; }
 }
 
 export async function createChapter(form: FormData) {
@@ -140,11 +155,13 @@ export async function saveWorkMetadata(form: FormData) {
   const workId = value(form, "workId");
   const parsed = workEditSchema.safeParse(metadataFrom(form));
   if (!parsed.success) redirect(`/studio/${workId}?status=invalid_work`);
-  if (parsed.data.coverUrl) {
-    try { if (new URL(parsed.data.coverUrl).protocol !== "https:") return redirect(`/studio/${workId}?status=invalid_work`); }
-    catch { return redirect(`/studio/${workId}?status=invalid_work`); }
-  }
   const { supabase, user, work } = await requireOwnedWork(workId);
+  if (parsed.data.coverUrl) {
+    const uploadedPath = new RegExp(`^storage://story-media/${user.id}/${workId}/[a-f0-9-]{36}\\.(?:png|jpe?g|webp|gif)$`, "i").test(parsed.data.coverUrl);
+    let secureUrl = false;
+    try { secureUrl = new URL(parsed.data.coverUrl).protocol === "https:"; } catch { /* Storage references are checked separately. */ }
+    if (!uploadedPath && !secureUrl) redirect(`/studio/${workId}?status=invalid_work`);
+  }
   const fields = { title: parsed.data.title, summary: parsed.data.summary, visibility: parsed.data.visibility, cover_url: parsed.data.coverUrl, tags: parsed.data.tags, content_warnings: parsed.data.contentWarnings };
   const { data: draft } = await supabase.from("work_drafts").select("updated_at").eq("work_id", workId).maybeSingle();
   if (work.state === "published" || draft) {
@@ -313,4 +330,82 @@ export async function saveReadingProgress(workId: string, chapterId: string, pro
     const { error } = await supabase.from("reading_progress").upsert({ user_id: user.id, work_id: workId, chapter_id: chapterId, progress }, { onConflict: "user_id,work_id" });
     return !error;
   } catch { return false; }
+}
+
+const storyMediaBucket = "story-media";
+
+async function requireOwnedWorkForAction(workId: string) {
+  if (!z.uuid().safeParse(workId).success) throw new Error("This story could not be found.");
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sign in to edit this story.");
+  const { data } = await supabase.from("works").select("id").eq("id", workId).eq("author_id", user.id).maybeSingle();
+  if (!data) throw new Error("This story is no longer available.");
+  return { supabase, user };
+}
+
+export async function prepareStoryMediaUpload(workId: string, fileName: string, mimeType: string, fileSize: number, headerBytes: number[]): Promise<{ ok: boolean; path?: string; token?: string; message?: string }> {
+  try {
+    const { supabase, user } = await requireOwnedWorkForAction(workId);
+    if (!Array.isArray(headerBytes) || !validStoryImageHeader(mimeType, fileSize, headerBytes)) return { ok: false, message: "Choose a valid JPEG, PNG, WebP, or GIF image under 8 MB." };
+    void fileName;
+    const path = `${user.id}/${workId}/${randomUUID()}.${storyImageExtension(mimeType)}`;
+    const { data, error } = await supabase.storage.from(storyMediaBucket).createSignedUploadUrl(path, { upsert: false });
+    if (error || !data?.token) return { ok: false, message: "The secure upload could not be prepared." };
+    return { ok: true, path, token: data.token };
+  } catch { return { ok: false, message: "Sign in and try uploading this image again." }; }
+}
+
+export async function finishStoryMediaUpload(workId: string, path: string): Promise<{ ok: boolean; src?: string; previewSrc?: string; message?: string }> {
+  try {
+    const { supabase, user } = await requireOwnedWorkForAction(workId);
+    const expectedPrefix = `${user.id}/${workId}/`;
+    if (!path.startsWith(expectedPrefix) || !new RegExp(`^${user.id}/${workId}/[a-f0-9-]{36}\\.(?:png|jpe?g|webp|gif)$`, "i").test(path)) return { ok: false, message: "The uploaded image could not be verified." };
+    const { data, error } = await supabase.storage.from(storyMediaBucket).createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) return { ok: false, message: "The image uploaded, but its preview could not be prepared." };
+    return { ok: true, src: `storage://${storyMediaBucket}/${path}`, previewSrc: data.signedUrl };
+  } catch { return { ok: false, message: "The image could not be verified." }; }
+}
+
+export async function listWorkMedia(workId: string): Promise<Array<{ src: string; previewSrc: string; name: string }>> {
+  const { supabase, user } = await requireOwnedWork(workId);
+  const folder = `${user.id}/${workId}`;
+  const { data } = await supabase.storage.from(storyMediaBucket).list(folder, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+  const items = await Promise.all((data ?? []).filter((item) => /\.(png|jpe?g|webp|gif)$/i.test(item.name)).map(async (item) => {
+    const src = `storage://${storyMediaBucket}/${folder}/${item.name}`;
+    const { data: signed } = await supabase.storage.from(storyMediaBucket).createSignedUrl(`${folder}/${item.name}`, 3600);
+    return signed?.signedUrl ? { src, previewSrc: signed.signedUrl, name: item.name } : null;
+  }));
+  return items.filter((item): item is NonNullable<typeof item> => !!item);
+}
+
+export async function saveRichChapter(workId: string, chapterId: string | undefined, title: string, input: unknown, expectedUpdatedAt: string): Promise<{ ok: boolean; chapterId?: string; updatedAt?: string; message?: string }> {
+  try {
+    const { supabase, user } = await requireOwnedWorkForAction(workId);
+    const parsedTitle = z.string().trim().min(1).max(120).safeParse(title);
+    if (!parsedTitle.success) return { ok: false, message: "Add a chapter title of 120 characters or fewer." };
+    const { document, plainText } = validateRichDocument(input, user.id, workId);
+    if (!chapterId) {
+      const { data, error } = await supabase.from("chapters").insert({ work_id: workId, title: parsedTitle.data, body: plainText, format: "prose", content: { type: "rich", document }, state: "draft" }).select("id,updated_at").single();
+      if (error || !data) return { ok: false, message: "The chapter draft could not be saved." };
+      revalidatePath(`/studio/${workId}`);
+      return { ok: true, chapterId: data.id, updatedAt: data.updated_at };
+    }
+    if (!z.uuid().safeParse(chapterId).success || !Number.isFinite(Date.parse(expectedUpdatedAt))) return { ok: false, message: "Reload this chapter before saving." };
+    const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at").eq("id", chapterId).eq("work_id", workId).maybeSingle();
+    if (!chapter) return { ok: false, message: "This chapter is no longer available." };
+    const { data: draft } = await supabase.from("chapter_drafts").select("updated_at").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
+    const staged = chapter.state === "published" || !!draft;
+    const currentVersion = draft?.updated_at ?? chapter.updated_at;
+    if (currentVersion !== expectedUpdatedAt) return { ok: false, message: "This chapter changed in another session. Reload before saving." };
+    const fields = { title: parsedTitle.data, body: plainText, format: "prose", content: { type: "rich", document } };
+    const result = staged
+      ? draft
+        ? await supabase.from("chapter_drafts").update({ ...fields, updated_at: new Date().toISOString() }).eq("work_id", workId).eq("chapter_id", chapterId).eq("updated_at", currentVersion).select("updated_at").single()
+        : await supabase.from("chapter_drafts").insert({ work_id: workId, chapter_id: chapterId, ...fields }).select("updated_at").single()
+      : await supabase.from("chapters").update(fields).eq("id", chapterId).eq("work_id", workId).eq("state", "draft").eq("updated_at", currentVersion).select("updated_at").single();
+    if (result.error || !result.data) return { ok: false, message: "This chapter changed before the save completed. Reload and try again." };
+    revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
+    return { ok: true, chapterId, updatedAt: result.data.updated_at };
+  } catch (error) { return { ok: false, message: error instanceof Error ? error.message : "The chapter could not be saved." }; }
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookmarkButton, ResumeLink, ShareButton } from "@/components/reader-experience";
 import { isSecureMediaUrl } from "@/lib/reader-state";
+import { signStoryMediaUrl } from "@/lib/story-media";
 import { createClient } from "@/lib/supabase/server";
 
 type Chapter = { id: string; title: string; position: number; state: "draft" | "published"; format?: string };
@@ -23,6 +24,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     viaShareLink = !!work;
   }
   if (!work) notFound();
+  const coverUrl = await signStoryMediaUrl(supabase, work.cover_url);
   const chaptersResult = viaShareLink
     ? await supabase.rpc("read_unlisted_chapters", { p_work_id: id })
     : await supabase.from("chapters").select("id,title,position,state,format").eq("work_id", id).order("position");
@@ -40,7 +42,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const resumeId = progress?.chapter_id && published.some((chapter) => chapter.id === progress.chapter_id) ? progress.chapter_id : undefined;
 
   return <main className="shell story-page">
-    <div className="story-cover-wrap">{isSecureMediaUrl(work.cover_url) ? <Image className="story-cover" src={work.cover_url} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <div className="story-cover story-cover-placeholder" aria-label="No cover art"><span className="eyebrow">Smarties Archive</span><span className="serif">{work.title}</span></div>}</div>
+    <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <div className="story-cover story-cover-placeholder" aria-label="No cover art"><span className="eyebrow">Smarties Archive</span><span className="serif">{work.title}</span></div>}</div>
     <div className="story-detail">
       <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private work" : work.visibility === "unlisted" ? "Shared by link" : "From the public archive"}</span><h1 className="serif">{work.title}</h1>
         {author && <p className="story-byline">By <Link href={`/author/${author.username}`}>{author.display_name}</Link></p>}

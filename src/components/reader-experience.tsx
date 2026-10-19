@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
+import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 
@@ -21,6 +22,7 @@ function Chat({ messages }: { messages: Array<{ speaker: string; text: string }>
 }
 
 function Content({ content }: { content: ReaderContent }) {
+  if (content.type === "rich") return <div className="prose-content rich-reader"><RichDocumentRenderer document={content.document}/></div>;
   if (content.type === "prose") return <div className="prose-content">{content.text.split(/\n{2,}/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>;
   if (content.type === "image") return <Media url={content.url} alt={content.alt}/>;
   if (content.type === "comic") return <div className="comic-panels">{content.panels.map((panel, index) => <Media key={`${panel.url}-${index}`} url={panel.url} alt={panel.alt}/>)}</div>;

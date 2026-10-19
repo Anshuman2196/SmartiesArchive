@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateRichDocument, type RichDocument } from "./rich-document.ts";
 
 export const chapterFormats = ["prose", "image", "comic", "chat", "mixed"] as const;
 export type ChapterFormat = (typeof chapterFormats)[number];
@@ -17,7 +18,7 @@ const readerContentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("mixed"), blocks: z.array(mixedItem).min(1).max(200) }),
 ]);
 
-export type ReaderContent = z.infer<typeof readerContentSchema>;
+export type ReaderContent = z.infer<typeof readerContentSchema> | { type: "rich"; document: RichDocument };
 
 const validLines = (source: string) => source.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 
@@ -51,7 +52,11 @@ export function buildChapterContent(format: ChapterFormat, source: string, alt =
   return { body: source, content };
 }
 
-export function normalizeReaderContent(value: unknown, body: string): ReaderContent {
+export function normalizeReaderContent(value: unknown, body: string, ownerId?: string, workId?: string): ReaderContent {
+  if (typeof value === "object" && value !== null && (value as { type?: string }).type === "rich" && ownerId && workId) {
+    try { return { type: "rich", document: validateRichDocument((value as { document?: unknown }).document, ownerId, workId).document }; }
+    catch { return { type: "prose", text: body }; }
+  }
   const parsed = readerContentSchema.safeParse(value);
   return parsed.success ? parsed.data : { type: "prose", text: body };
 }
