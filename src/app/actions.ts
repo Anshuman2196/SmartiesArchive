@@ -209,7 +209,12 @@ export async function deleteWork(form: FormData) {
   const workId = value(form, "workId");
   const { supabase, user } = await requireOwnedWork(workId);
   const { data, error } = await supabase.from("works").delete().eq("id", workId).eq("author_id", user.id).select("id").maybeSingle();
-  if (error || !data) redirect(`/studio/${workId}?status=save_error`);
+  if (error) {
+    // Keep diagnostics useful while excluding database messages and content.
+    console.warn("[studio-delete] work delete rejected", { code: error.code ?? "unknown" });
+    redirect(`/studio/${workId}?status=delete_failed`);
+  }
+  if (!data) redirect(`/studio/${workId}?status=delete_not_found`);
   revalidatePath("/studio"); revalidatePath("/library");
   redirect("/studio?status=work_deleted");
 }
@@ -284,7 +289,11 @@ export async function deleteChapter(form: FormData) {
   if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
   const { supabase } = await requireOwnedWork(workId);
   const { data, error } = await supabase.from("chapters").delete().eq("id", chapterId).eq("work_id", workId).select("id").maybeSingle();
-  if (error || !data) redirect(`/studio/${workId}?status=save_error`);
+  if (error) {
+    console.warn("[studio-delete] chapter delete rejected", { code: error.code ?? "unknown" });
+    redirect(`/studio/${workId}?status=delete_failed`);
+  }
+  if (!data) redirect(`/studio/${workId}?status=delete_not_found`);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath("/library");
   redirect(`/studio/${workId}?status=chapter_deleted`);
 }

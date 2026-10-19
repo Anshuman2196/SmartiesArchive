@@ -14,6 +14,8 @@ const statusCopy: Record<string, { message: string; error?: boolean }> = {
   invalid_chapter_format: { message: "This chapter's draft formatting could not be verified, so it was not published. Your current published chapter remains unchanged; reopen the draft and correct its formatting before retrying.", error: true },
   conflict: { message: "This story changed in another session. Reload the page before saving again.", error: true },
   not_found: { message: "That story or chapter is no longer available.", error: true },
+  delete_failed: { message: "The delete request was rejected. Your story and chapters are still saved; refresh and try again. If it keeps failing, share the safe error code from the server log with support.", error: true },
+  delete_not_found: { message: "Nothing was deleted because that item could not be found or is no longer yours to manage. Refresh the page and try again.", error: true },
   no_published_chapters: { message: "Publish at least one chapter before publishing the story.", error: true },
   invalid_work: { message: "Check the story details. Titles and tags must fit the requirements, and cover links must use HTTPS.", error: true },
   cover_upload_error: { message: "The work was created, but its cover image could not be uploaded. You can retry from Story details.", error: true },
