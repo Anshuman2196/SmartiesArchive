@@ -90,8 +90,16 @@ test("null node attrs use safe TipTap defaults and survive save reload and previ
   if (reloaded.type === "rich") assert.deepEqual(validateRichDocument(reloaded.document, owner, work).document, saved.document);
 });
 
-test("non-null malformed node attrs remain rejected", () => {
-  assertRejectedBy({ type: "doc", content: [{ type: "paragraph", attrs: ["invalid"], content: [{ type: "text", text: "still preserved" }] }] }, "invalid_attrs_object");
+test("legacy non-object node attrs normalize to defaults without losing the chapter text", () => {
+  const legacyPayload = { type: "doc", content: [{ type: "paragraph", attrs: ["old editor metadata"], content: [{ type: "text", text: "this paragraph must survive unchanged 🙂" }] }] };
+  const normalized = validateRichDocument(legacyPayload, owner, work);
+  assert.equal(normalized.plainText, "this paragraph must survive unchanged 🙂");
+  assert.deepEqual(normalized.document.content[0].attrs, undefined);
+  const saved = JSON.parse(JSON.stringify(toRichContent(normalized.document)));
+  const reloaded = normalizeReaderContent(saved, normalized.plainText, owner, work);
+  assert.equal(reloaded.type, "rich");
+  if (reloaded.type === "rich") assert.deepEqual(validateRichDocument(reloaded.document, owner, work).document, normalized.document);
+  assertRejectedBy({ type: "doc", content: [{ type: "heading", attrs: { level: 99 }, content: [{ type: "text", text: "bad level" }] }] }, "invalid_heading_level");
 });
 
 test("malformed mark attributes return a safe rule and path without retaining text", () => {

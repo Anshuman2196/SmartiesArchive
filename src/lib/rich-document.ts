@@ -86,8 +86,10 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
 
     let attrs: Record<string, unknown> = {};
     if (current.attrs !== undefined && current.attrs !== null) {
-      if (typeof current.attrs !== "object" || Array.isArray(current.attrs)) reject("invalid_attrs_object", path, nodeType, "attrs");
-      attrs = current.attrs as Record<string, unknown>;
+      // Older/editor-normalized payloads can carry a non-object attrs container.
+      // It has no named schema attributes to preserve; use node defaults, then
+      // validate every meaningful attribute below (images still require a safe src).
+      if (typeof current.attrs === "object" && !Array.isArray(current.attrs)) attrs = current.attrs as Record<string, unknown>;
     }
     const headingLevel = attrs.level ?? 1;
     const literaryTreatment = attrs.treatment ?? "narration";
