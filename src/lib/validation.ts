@@ -7,6 +7,9 @@ export const registrationSchema = z.object({
   displayName: z.string().trim().min(1).max(60),
 });
 
+export const loginSchema = z.object({ email: z.email().max(254), password: z.string().min(1).max(128) });
+export const recoverySchema = z.object({ email: z.email().max(254) });
+
 export const workSchema = z.object({
   title: z.string().trim().min(1).max(120),
   summary: z.string().trim().max(2000),

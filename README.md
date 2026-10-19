@@ -32,6 +32,16 @@ This increment does not yet implement TipTap or the requested rich-text/manga/ch
 
 When email confirmation is enabled, a new member must confirm their email before signing in. Registration is public; no admin approval is built into this app.
 
+## Authentication routes and email links
+
+The app adapts to the Supabase project's confirmation setting using the signup response: a returned session signs the new member in and sends them to Creator Studio (or a validated local `next` path); no session displays the check-your-email state and offers a confirmation resend. The checked-in local `supabase/config.toml` enables email confirmations. A hosted Supabase project's Auth settings are managed separately and cannot be inferred from repository files.
+
+Supabase email links use the PKCE authorization-code flow handled by `/auth/callback`. The callback exchanges the one-time code for the session and immediately redirects to an allowlisted local destination; errors are represented by fixed status codes, never reflected provider text or callback tokens. Password recovery returns through the same callback with `/auth/reset` as the local destination, where the signed-in recovery session can update the password.
+
+In **Supabase Dashboard → Authentication → URL Configuration**, set Site URL to the deployment's exact HTTPS origin and add `https://your-deployment-domain/auth/callback` to Redirect URLs (also add the local callback URL for local development). For Vercel preview URLs, add the preview callback pattern or each exact preview callback URL using Supabase's Redirect URL rules. The confirmation email template must preserve Supabase's verification URL (`{{ .ConfirmationURL }}`); Supabase then redirects to this app's callback. Password recovery must also allow that callback destination. Set `NEXT_PUBLIC_SITE_URL` to the matching origin in each deployment environment.
+
+The header resolves the current user on the server for initial render and hard refresh. Sign-in, sign-up, callback, and sign-out transitions navigate through server responses so the header is rendered with the refreshed cookie-backed session; no custom token storage or browser auth subscription is used. Creator Studio and individual work editing routes check the session on the server, and database RLS remains the authority for content access.
+
 ## Database and access model
 
 The initial migration creates `profiles`, `works`, and `chapters`, publication and visibility enums, indexes, a profile-on-signup trigger, and row-level security policies. The second migration makes API grants explicit, adds author/chapter indexes, and maintains `updated_at`. The third tightens unlisted work access: public table queries cannot enumerate unlisted rows; the server resolves a direct unlisted URL through narrowly scoped database functions that require its random work UUID. Use a new forward migration for future schema changes; do not edit an already-applied migration in a shared environment. Do not disable RLS. The application uses the user's Supabase session and anon/publishable key; authorization is enforced in PostgreSQL and in each Creator Studio server action.

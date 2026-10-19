@@ -1,9 +1,23 @@
-import Link from "next/link";
-import { signIn, register } from "@/app/actions";
+import { redirect } from "next/navigation";
+import { AuthForm } from "@/components/auth-form";
+import { authStatusMessage, safeNextPath } from "@/lib/auth-feedback";
+import { createClient } from "@/lib/supabase/server";
 
-export default async function AuthPage({ searchParams }: { searchParams: Promise<{ error?: string; message?: string }> }) {
+type AuthMode = "login" | "signup" | "recover";
+
+export default async function AuthPage({ searchParams }: { searchParams: Promise<{ mode?: string; next?: string; status?: string | string[]; error?: string; message?: string }> }) {
   const params = await searchParams;
-  return <main className="shell"><div className="form-wrap"><span className="eyebrow">Your next chapter</span><h1 className="serif">Make yourself at home.</h1><p className="muted">Join a community built around the stories that stay with us.</p>{params.error && <p role="alert" className="notice">{params.error}</p>}{params.message && <p role="status" className="notice">{params.message}</p>}
-    <form action={register}><h2 className="serif">Create an account</h2><div className="field"><label htmlFor="displayName">Name</label><input id="displayName" name="displayName" required maxLength={60} autoComplete="name" /></div><div className="field"><label htmlFor="username">Username</label><input id="username" name="username" required minLength={3} maxLength={24} pattern="[A-Za-z0-9_]+" autoComplete="username" /></div><div className="field"><label htmlFor="email">Email</label><input id="email" name="email" type="email" required maxLength={254} autoComplete="email" /></div><div className="field"><label htmlFor="password">Password <span className="muted">(10 characters minimum)</span></label><input id="password" name="password" type="password" required minLength={10} maxLength={128} autoComplete="new-password" /></div><button className="pill primary" type="submit">Join Smarties Archive</button></form>
-    <hr style={{borderColor:"var(--line)",margin:"28px 0"}}/><form action={signIn}><h2 className="serif">Welcome back</h2><div className="field"><label htmlFor="login-email">Email</label><input id="login-email" name="email" type="email" required autoComplete="email" /></div><div className="field"><label htmlFor="login-password">Password</label><input id="login-password" name="password" type="password" required autoComplete="current-password" /></div><button className="pill" type="submit">Sign in</button></form><p className="muted" style={{fontSize:12,marginTop:24}}>By joining, you agree to be kind to one another and the stories we share.</p><Link href="/" className="muted">← Back to the archive</Link></div></main>;
+  const mode: AuthMode = params.mode === "signup" || params.mode === "recover" ? params.mode : "login";
+  const next = safeNextPath(params.next);
+  const statusMessage = authStatusMessage(params.status);
+  if (mode !== "recover") {
+    let authenticated = false;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      authenticated = !!user;
+    } catch { /* Render the signed-out form if Supabase is unavailable. */ }
+    if (authenticated && !statusMessage) redirect(next);
+  }
+  return <AuthForm mode={mode} statusMessage={statusMessage} next={next}/>;
 }
