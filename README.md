@@ -50,4 +50,10 @@ The TypeScript tests cover input schema boundaries. The pgTAP tests create two f
 
 ## Deployment
 
-Deploy on a Node-compatible host such as Vercel. Configure the three public environment variables for each environment. Apply migrations to a development/staging project first and verify the pgTAP suite there before planning a production migration. Review `supabase db push --dry-run` and database backups before applying to production; this task has not connected to or modified any remote database. Add the production `/auth/callback` URL to Supabase's redirect allow list, configure custom SMTP and domain settings, enforce HTTPS, and review Auth rate limits and allowed signup policies before opening registration. Keep the Supabase service-role secret out of frontend and server runtime configuration for this slice.
+Deploy on a Node-compatible host such as Vercel. In **Project Settings → Environment Variables**, configure these exact names for every environment where the app should run (Production, Preview, and Development as needed):
+
+- `NEXT_PUBLIC_SUPABASE_URL`: the Supabase project's Project URL.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: the project's publishable/anon key.
+- `NEXT_PUBLIC_SITE_URL`: the app's exact public origin, including `https://` in production (no trailing slash).
+
+The URL and anon key names are used by both the server client and session middleware; there is no separate browser Supabase client in this increment. Do not add a service-role key. After changing Vercel environment variables, trigger a new deployment because existing deployments do not pick up changed build environment values. Apply migrations to a development/staging project first and verify the pgTAP suite there before planning a production migration. Review `supabase db push --dry-run` and database backups before applying to production; this task has not connected to or modified any remote database. Add the production `/auth/callback` URL to Supabase's redirect allow list, configure custom SMTP and domain settings, enforce HTTPS, and review Auth rate limits and allowed signup policies before opening registration.
