@@ -30,6 +30,9 @@ export function safeRichDocumentErrorMessage(error: RichDocumentValidationError)
   const where = block ? ` near item ${Number(block) + 1}` : "";
   if (error.diagnostic.rule === "empty_document") return "Add some chapter text before saving. Your current draft is still in the editor.";
   if (field) return `Check the ${field}${where}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
+  if (error.diagnostic.rule === "invalid_text_style_attrs" && error.diagnostic.attribute && /^[a-z][a-zA-Z0-9_]{0,31}$/.test(error.diagnostic.attribute)) {
+    return `The text style field “${error.diagnostic.attribute}” is not supported${where}. Your text remains open; download a recovery copy before trying again.`;
+  }
   const reasons: Record<string, string> = {
     invalid_document_root: "The document structure is incomplete.", document_size_limit: "The document is larger than the supported save limit.",
     invalid_node_shape: "An element has an incomplete structure.", unsupported_node: "An element uses a format this editor cannot save.",
@@ -140,7 +143,11 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
         }
         if (mark.type === "textStyle") {
           const parsedAttrs = textStyleSchema.safeParse(mark.attrs ?? {});
-          if (!parsedAttrs.success) reject("invalid_text_style_attrs", markPath, nodeType, Object.keys((mark.attrs ?? {}) as object)[0] ?? "attrs", mark.type);
+          if (!parsedAttrs.success) {
+            const issue = parsedAttrs.error.issues[0];
+            const issueField = typeof issue?.path[0] === "string" ? issue.path[0] : issue?.code === "unrecognized_keys" ? issue.keys[0] : undefined;
+            reject("invalid_text_style_attrs", markPath, nodeType, issueField ?? "attrs", mark.type);
+          }
           const normalized = Object.fromEntries(Object.entries(parsedAttrs.data).filter(([, value]) => value != null));
           return { type: "textStyle", ...(Object.keys(normalized).length ? { attrs: normalized } : {}) };
         }

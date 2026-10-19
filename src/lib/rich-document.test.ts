@@ -112,6 +112,19 @@ test("malformed mark attributes return a safe rule and path without retaining te
   });
 });
 
+test("unsupported text-style diagnostics identify the exact attribute, not the first valid one", () => {
+  const input = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "private sentence", marks: [{ type: "textStyle", attrs: { color: "#4169e1", lineHeight: "1.5" } }] }] }] };
+  assert.throws(() => validateRichDocument(input, owner, work), (error: unknown) => {
+    const diagnostic = (error as { diagnostic: { attribute?: string; rule: string } }).diagnostic;
+    assert.equal(diagnostic.rule, "invalid_text_style_attrs");
+    assert.equal(diagnostic.attribute, "lineHeight");
+    const message = safeRichDocumentErrorMessage(error as Parameters<typeof safeRichDocumentErrorMessage>[0]);
+    assert.match(message, /text style field “lineHeight” is not supported/);
+    assert.doesNotMatch(message, /private sentence|#4169e1|1\.5/);
+    return true;
+  });
+});
+
 test("validation feedback identifies a safe formatting target without revealing chapter text", () => {
   let caught: unknown;
   try { validateRichDocument({ type: "doc", content: [{ type: "imageBlock", attrs: { src: asset, alt: "private image description", caption: "private caption", width: 101 } }] }, owner, work); }
