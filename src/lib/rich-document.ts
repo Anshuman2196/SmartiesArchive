@@ -30,7 +30,22 @@ export function safeRichDocumentErrorMessage(error: RichDocumentValidationError)
   const where = block ? ` near item ${Number(block) + 1}` : "";
   if (error.diagnostic.rule === "empty_document") return "Add some chapter text before saving. Your current draft is still in the editor.";
   if (field) return `Check the ${field}${where}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
-  return `One chapter element${where} could not be saved. Your full document is still open; download a recovery copy or retry.`;
+  const reasons: Record<string, string> = {
+    invalid_document_root: "The document structure is incomplete.", document_size_limit: "The document is larger than the supported save limit.",
+    invalid_node_shape: "An element has an incomplete structure.", unsupported_node: "An element uses a format this editor cannot save.",
+    invalid_text_node: "A text element is not valid.", text_on_non_text_node: "An element has text in an unsupported place.",
+    invalid_attrs_object: "An element has invalid formatting settings.", invalid_marks_array: "A text element has too many formatting styles.",
+    marks_on_non_text_node: "A text style is attached to an element that cannot use text formatting.", invalid_mark_shape: "A text style has incomplete settings.",
+    unsupported_mark: "A text style is not supported by this editor.", invalid_text_style_attrs: "A text style setting is not supported.",
+    invalid_content_array: "An element's nested content is malformed.", missing_node_content: "An element is missing its content structure.",
+    invalid_document_child: "The document contains an unsupported top-level element.", invalid_inline_child: "A text block contains a block element where text is expected.",
+    invalid_list_child: "A list contains an invalid item.", invalid_list_item_child: "A list item contains an unsupported element.",
+    invalid_block_child: "A literary block contains an unsupported element.", content_on_leaf_node: "A standalone element contains unexpected nested content.",
+    plain_text_size_limit: "The chapter exceeds the supported text length.",
+  };
+  const reason = reasons[error.diagnostic.rule] ?? "One chapter element could not be saved.";
+  const reference = `${error.diagnostic.rule}${where}`;
+  return `${reason} Your full document is still open. Download a recovery copy before trying again. (Reference: ${reference})`;
 }
 function reject(rule: string, path: string, nodeType?: string, attribute?: string, markType?: string): never {
   throw new RichDocumentValidationError({ rule, path, ...(nodeType ? { nodeType } : {}), ...(attribute ? { attribute } : {}), ...(markType ? { markType } : {}) });
