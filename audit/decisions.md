@@ -37,3 +37,5 @@
 - Batch manga uploads are capped at 100 pages and retain each image as an image; no conversion or PDF generation is performed.
 - Reviews are chapter-level, not story-level, with one review per member per chapter.
 - The current project remains intentionally small; no external search service or pagination infrastructure was introduced.
+- Library cards use one outer link instead of nested title/author links so the entire card is clickable and keyboard-accessible.
+- Library posters use signed story-media cover URLs when available, with a title placeholder fallback; descriptions are clamped to three lines.

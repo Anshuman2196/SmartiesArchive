@@ -246,3 +246,10 @@ Cover only the flows that matter to this group:
 - [ ] Upload, reorder, caption, save, and read a real image-only manga chapter.
 - [ ] Run mobile checks at 320px, 375px, and 768px.
 - [~] Perform a clean production build with no concurrent Next processes. Tests, lint, and typecheck pass; the build remained at optimization because unrelated Next workers were already running.
+
+## 2026-10-21 library card follow-up
+
+- [x] Added cover/poster thumbnails with a styled fallback when no cover exists.
+- [x] Added visible tag chips and tag count metadata.
+- [x] Clamped long descriptions to three lines with overflow hidden.
+- [x] Made the entire story card a single keyboard-accessible link.
