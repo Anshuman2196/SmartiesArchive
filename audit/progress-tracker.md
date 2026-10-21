@@ -230,3 +230,23 @@ Cover only the flows that matter to this group:
 - [x] Added 50 MB PDF signature/size validation while preserving the 8 MB image limit.
 - [x] Added custom PDF.js rendering with lazy visible-page loading, zoom, page controls, keyboard navigation, and download/open fallback.
 - [ ] Apply `supabase/migrations/202610210006_pdf_chapters.sql` to the configured Supabase project and test with a real PDF chapter.
+
+## 2026-10-21 implementation update
+
+- [x] Admin foundation and protected dashboard — `53da2c4`
+- [x] Mobile navigation and accessibility foundations — `b9821cf`
+- [x] Editor formatting shortcuts and shortcut help — `de98db1`
+- [x] Library tags, filters, search, and sorting — `8c00fae`
+- [x] Chapter-level ratings and reviews — `373e9a0`
+- [x] Custom PDF.js manga reader — `2a61813`
+- [x] Batch image-only manga panel authoring — `4e0f800`
+- [x] Admin navigation link for authorized members — `6703b10`
+
+## Remaining verification
+
+- [ ] Apply and run the admin, review, and PDF migrations in the configured Supabase project.
+- [ ] Bootstrap the first admin in `admin_users`.
+- [ ] Upload and read a real PDF chapter.
+- [ ] Upload, reorder, caption, save, and read a real image-only manga chapter.
+- [ ] Run mobile checks at 320px, 375px, and 768px.
+- [ ] Perform a clean production build with no concurrent Next processes.
