@@ -15,6 +15,8 @@ export type LibraryWork = {
   id: string;
   title: string;
   summary: string;
+  cover_url: string | null;
+  coverPreviewUrl?: string | null;
   created_at: string;
   updated_at: string;
   tags: string[];

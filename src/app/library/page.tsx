@@ -1,5 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import { signStoryMediaUrl } from "@/lib/story-media";
+import styles from "./library-card.module.css";
 import {
   getLibraryOptions,
   hasActiveLibraryFilters,
@@ -36,12 +39,13 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     const supabase = await createClient();
     const { data } = await supabase
       .from("works")
-      .select("id,title,summary,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
+      .select("id,title,summary,cover_url,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
       .eq("visibility", "public")
       .eq("state", "published")
       .order("created_at", { ascending: false })
       .limit(100);
-    allWorks = (data ?? []) as unknown as LibraryWork[];
+    const works = (data ?? []) as unknown as LibraryWork[];
+    allWorks = await Promise.all(works.map(async (work) => ({ ...work, coverPreviewUrl: await signStoryMediaUrl(supabase, work.cover_url) })));
   } catch {
     configured = false;
   }
@@ -97,12 +101,14 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="card"><h2 className="serif">A little quiet on these shelves.</h2><p>Published public stories will find their home here. Be the first to add yours.</p><Link href="/auth" className="pill primary">Write the first story</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="card"><h2 className="serif">Nothing matches these filters.</h2><p>Try a different author, tag, content note, or search phrase.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    <div className="cards">{filteredWorks.map((work) => <article className="card" key={work.id}>
-      <div className="actions" style={{ justifyContent: "space-between", marginBottom: 12 }}><span className="tag">Story</span>{work.tags[0] && <span className="muted">{work.tags[0]}</span>}</div>
-      <Link href={`/work/${work.id}`}><h3>{work.title}</h3></Link>
-      <p>{work.summary || "A new story begins here."}</p>
-      {work.tags.length > 0 && <div className="actions" aria-label={`Tags for ${work.title}`}>{work.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div>}
-      <span className="byline">By <Link href={`/author/${work.profiles?.username}`}>{work.profiles?.display_name ?? "A reader"}</Link></span>
-    </article>)}</div>
+    <div className="cards">{filteredWorks.map((work) => <Link className={`card ${styles.card}`} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
+      <div className={styles.poster} aria-hidden="true">{work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" width={240} height={320} unoptimized/> : <span className={styles.posterPlaceholder}>{work.title}</span>}</div>
+      <div className={styles.body}><div className="actions" style={{ justifyContent: "space-between", margin: 0 }}><span className="tag">Story</span><span className="muted">{work.tags.length} {work.tags.length === 1 ? "tag" : "tags"}</span></div>
+        <h3 className={styles.title}>{work.title}</h3>
+        <p className={styles.summary}>{work.summary || "A new story begins here."}</p>
+        {work.tags.length > 0 && <div className={styles.tags} aria-label={`Tags for ${work.title}`}>{work.tags.map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}</div>}
+        <span className="byline">By {work.profiles?.display_name ?? "A reader"}</span>
+      </div>
+    </Link>)}</div>
   </main>;
 }
