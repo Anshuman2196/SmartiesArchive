@@ -58,7 +58,7 @@
 
 ## 2026-10-21 — Publishing readiness and media cleanup
 
-- The Creator Studio publish checklist is advisory for missing covers and missing content warnings, but identifies the absence of a published chapter and empty chapter content as blockers. The existing database RPC remains the final server-side publication gate.
+- The Creator Studio publish checklist is advisory for missing covers, missing content warnings, unpublished chapters, and incomplete content. The absence of a published chapter remains the only hard publication gate in the existing database RPC.
 - The checklist evaluates the effective chapter content, including unpublished chapter drafts and revisions, so the author sees the state that would actually be published.
 - Media cleanup scans works, work drafts, chapters, and chapter drafts before deleting an object. If any reference scan fails, cleanup stops rather than risking a live media reference.
 - Work deletion removes the work row first, then deletes only objects in the authenticated owner's UUID folder. A migration widens the existing storage delete policy only to that owner folder so orphan cleanup still works after the work row is gone.
