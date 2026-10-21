@@ -1,21 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChapterReviews } from "@/components/chapter-reviews";
+import { Suspense } from "react";
+import { ChapterReviewsLoader } from "@/components/chapter-reviews-loader";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
-import { getChapterReviews } from "@/lib/chapter-reviews";
 import { createClient } from "@/lib/supabase/server";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number };
+type Work = { id: string; title: string; author_id: string };
 
 export default async function ChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const { id, chapterId } = await params;
   const supabase = await createClient();
-  const [{ data: { user } }, { data: visibleChapter }] = await Promise.all([
+  const [{ data: { user } }, { data: visibleChapter }, { data: visibleWork }] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("chapters").select("id,title,body,position,work_id,format,content,state,updated_at").eq("id", chapterId).eq("work_id", id).maybeSingle(),
+    supabase.from("works").select("id,title,author_id").eq("id", id).maybeSingle(),
   ]);
   let chapter = visibleChapter as Chapter | null;
   let viaUnlistedLink = false;
@@ -25,26 +27,38 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
     viaUnlistedLink = !!chapter;
   }
   if (!chapter) notFound();
-  let work = (await supabase.from("works").select("id,title,author_id").eq("id", id).maybeSingle()).data;
+  let work = visibleWork as Work | null;
   if (!work && viaUnlistedLink) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
   if (!work) notFound();
-  let content = normalizeReaderContent(chapter.content, chapter.body, work.author_id, id);
-  if (content.type === "rich") content = { ...content, document: await signRichDocument(content.document, supabase) as typeof content.document };
-  if (content.type === "pdf") {
-    const signedUrl = await signStoryMediaUrl(supabase, content.url);
-    if (signedUrl) content = { ...content, url: signedUrl };
-  }
   const isOwner = user?.id === work.author_id;
-  const listResult = viaUnlistedLink
-    ? await supabase.rpc("read_unlisted_chapters", { p_work_id: id })
-    : await supabase.from("chapters").select("id,title,position").eq("work_id", id).order("position");
+  const contentPromise = (async () => {
+    let nextContent = normalizeReaderContent(chapter.content, chapter.body, work.author_id, id);
+    if (nextContent.type === "rich") nextContent = { ...nextContent, document: await signRichDocument(nextContent.document, supabase) as typeof nextContent.document };
+    if (nextContent.type === "pdf") {
+      const signedUrl = await signStoryMediaUrl(supabase, nextContent.url);
+      if (signedUrl) nextContent = { ...nextContent, url: signedUrl };
+    }
+    return nextContent;
+  })();
+  const listResultPromise = viaUnlistedLink
+    ? supabase.rpc("read_unlisted_chapters", { p_work_id: id })
+    : supabase.from("chapters").select("id,title,position").eq("work_id", id).order("position");
+  const savedPromise = user
+    ? supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()
+    : Promise.resolve({ data: null });
+  const [content, listResult, savedResult] = await Promise.all([
+    contentPromise,
+    listResultPromise,
+    savedPromise,
+  ]);
   const chapters = (listResult.data ?? []) as ChapterLink[];
-  const saved = user ? (await supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()).data : null;
-  const reviews = await getChapterReviews(supabase, id, chapterId);
+  const saved = savedResult.data;
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio →</Link></div>}
     <ReaderExperience workId={id} chapterId={chapterId} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
-    <ChapterReviews workId={id} chapterId={chapterId} reviews={reviews} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
+    <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
+      <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
+    </Suspense>
   </>;
 }

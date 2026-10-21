@@ -25,21 +25,24 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     viaShareLink = !!work;
   }
   if (!work) notFound();
-  const coverUrl = await signStoryMediaUrl(supabase, work.cover_url);
-  const chaptersResult = viaShareLink
-    ? await supabase.rpc("read_unlisted_chapters", { p_work_id: id })
-    : await supabase.from("chapters").select("id,title,position,state,format").eq("work_id", id).order("position");
-  const { data: author } = await supabase.from("profiles").select("username,display_name,bio").eq("id", work.author_id).maybeSingle();
+  const [coverUrl, chaptersResult, { data: author }] = await Promise.all([
+    signStoryMediaUrl(supabase, work.cover_url),
+    viaShareLink
+      ? supabase.rpc("read_unlisted_chapters", { p_work_id: id })
+      : supabase.from("chapters").select("id,title,position,state,format").eq("work_id", id).order("position"),
+    supabase.from("profiles").select("username,display_name,bio").eq("id", work.author_id).maybeSingle(),
+  ]);
   const chapters = (chaptersResult.data ?? []) as Chapter[];
   const isOwner = session.user?.id === work.author_id;
   const published = chapters.filter((chapter) => chapter.state === "published");
-  const reviewSummaries = await getChapterReviewSummaries(supabase, published.map((chapter) => chapter.id));
-  const [{ data: bookmark }, { data: progress }] = session.user && !isOwner
-    ? await Promise.all([
+  const reviewSummariesPromise = getChapterReviewSummaries(supabase, published.map((chapter) => chapter.id));
+  const bookmarkAndProgressPromise = session.user && !isOwner
+    ? Promise.all([
       supabase.from("user_bookmarks").select("work_id").eq("work_id", work.id).eq("user_id", session.user.id).maybeSingle(),
       supabase.from("reading_progress").select("chapter_id,progress").eq("work_id", work.id).eq("user_id", session.user.id).maybeSingle(),
     ])
-    : [{ data: null }, { data: null }];
+    : Promise.resolve([{ data: null }, { data: null }] as const);
+  const [reviewSummaries, [{ data: bookmark }, { data: progress }]] = await Promise.all([reviewSummariesPromise, bookmarkAndProgressPromise]);
   const first = published[0];
   const resumeId = progress?.chapter_id && published.some((chapter) => chapter.id === progress.chapter_id) ? progress.chapter_id : undefined;
 
