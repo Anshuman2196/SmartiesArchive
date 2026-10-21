@@ -1,0 +1,46 @@
+.page { padding-top: 58px; }
+.intro { display: flex; align-items: end; justify-content: space-between; gap: 28px; padding-bottom: 30px; border-bottom: 1px solid var(--line); }
+.intro h1 { font-size: clamp(42px, 6vw, 68px); font-weight: 400; line-height: 1.02; letter-spacing: -1.8px; margin: 12px 0 10px; }
+.intro p { max-width: 560px; color: var(--muted); line-height: 1.7; margin: 0; }
+.intro > .pill { flex: 0 0 auto; }
+.section { margin-top: 46px; }
+.sectionHeading { margin-bottom: 18px; }
+.sectionHeading h2 { font-size: 34px; font-weight: 400; margin: 8px 0 5px; }
+.sectionHeading p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.card { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; min-width: 0; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; transition: border-color .2s, transform .2s; }
+.card:hover { border-color: #d4f36a55; transform: translateY(-2px); }
+.poster { position: relative; width: 96px; aspect-ratio: 3 / 4; overflow: hidden; background: linear-gradient(155deg, #3b493e, #1d241f); border: 1px solid var(--line); }
+.posterImage { object-fit: cover; }
+.posterPlaceholder { display: block; padding: 10px; color: var(--cream); font: 18px/1.08 Georgia, serif; overflow-wrap: anywhere; }
+.cardBody { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.cardType { color: var(--lime); font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.card h3 { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; font-weight: 400; margin: 8px 0 6px; }
+.summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 1.55; margin: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.meta { color: #b1b8ae; font-size: 11px; margin-top: auto; padding-top: 12px; }
+.progressWrap { width: 100%; margin-top: 12px; }
+.progressTrack { height: 4px; overflow: hidden; background: #ffffff1c; border-radius: 999px; }
+.progressTrack span { display: block; height: 100%; background: var(--lime); border-radius: inherit; }
+.progressText { display: block; color: var(--muted); font-size: 10px; margin-top: 5px; }
+.empty { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; border: 1px dashed var(--line); color: var(--muted); font-size: 13px; line-height: 1.6; }
+.empty p { margin: 0; }
+
+@media (max-width: 760px) {
+  .page { padding-top: 38px; }
+  .intro { display: block; }
+  .intro > .pill { margin-top: 20px; }
+  .grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 420px) {
+  .card { grid-template-columns: 78px minmax(0, 1fr); gap: 12px; padding: 11px; }
+  .poster { width: 78px; }
+  .card h3 { font-size: 19px; }
+  .empty { display: block; }
+  .empty .text-action { display: inline-block; margin-top: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

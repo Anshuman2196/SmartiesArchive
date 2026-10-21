@@ -349,6 +349,7 @@ export async function toggleBookmark(workId: string, saved: boolean): Promise<{ 
       : await supabase.from("user_bookmarks").delete().eq("user_id", user.id).eq("work_id", workId);
     if (result.error) return { ok: false, saved: !saved, message: "We couldn't update your bookmark. Please try again." };
     revalidatePath(`/work/${workId}`);
+    revalidatePath("/shelf");
     return { ok: true, saved, message: "" };
   } catch { return { ok: false, saved: !saved, message: "We couldn't update your bookmark. Please try again." }; }
 }
@@ -360,6 +361,7 @@ export async function saveReadingProgress(workId: string, chapterId: string, pro
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
     const { error } = await supabase.from("reading_progress").upsert({ user_id: user.id, work_id: workId, chapter_id: chapterId, progress }, { onConflict: "user_id,work_id" });
+    if (!error) revalidatePath("/shelf");
     return !error;
   } catch { return false; }
 }
@@ -388,7 +390,7 @@ async function removeStoryMediaObjects(supabase: Awaited<ReturnType<typeof creat
   const folder = `${userId}/${workId}`;
   const { data, error } = await supabase.storage.from(storyMediaBucket).list(folder, { limit: 1000 });
   if (error) {
-    console.warn("[story-media-cleanup] list rejected", { code: error.code ?? "unknown" });
+    console.warn("[story-media-cleanup] list rejected", { message: error.message });
     return;
   }
   const removable = (data ?? [])
@@ -397,7 +399,7 @@ async function removeStoryMediaObjects(supabase: Awaited<ReturnType<typeof creat
     .filter((objectName) => !keep.has(objectName));
   if (!removable.length) return;
   const { error: removeError } = await supabase.storage.from(storyMediaBucket).remove(removable);
-  if (removeError) console.warn("[story-media-cleanup] remove rejected", { code: removeError.code ?? "unknown" });
+  if (removeError) console.warn("[story-media-cleanup] remove rejected", { message: removeError.message });
 }
 
 async function removeAllStoryMedia(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, workId: string) {
@@ -412,7 +414,7 @@ async function cleanupUnreferencedStoryMedia(supabase: Awaited<ReturnType<typeof
     supabase.from("chapter_drafts").select("content").eq("work_id", workId),
   ]);
   if (workResult.error || workDraftResult.error || chaptersResult.error || chapterDraftsResult.error) {
-    console.warn("[story-media-cleanup] reference scan rejected", { code: workResult.error?.code ?? workDraftResult.error?.code ?? chaptersResult.error?.code ?? chapterDraftsResult.error?.code ?? "unknown" });
+    console.warn("[story-media-cleanup] reference scan rejected", { message: workResult.error?.message ?? workDraftResult.error?.message ?? chaptersResult.error?.message ?? chapterDraftsResult.error?.message ?? "unknown" });
     return;
   }
   const references = new Set<string>();
