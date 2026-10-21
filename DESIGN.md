@@ -40,6 +40,7 @@ One accent carries the interface. Story covers retain their own colors. On the g
 - Story details: cover, title, synopsis, tags, warnings, then the reading action and chapter programme.
 - Shelf and forms use open lists and plain fields. Panels exist only when they contain an interaction.
 - The reader opens with content and keeps its saved settings behind a single control. The studio starts new stories with a title; optional setup and chapter operations expand on demand.
+- Publication checks expand when something blocks release. The admin desk opens on stories and keeps chapter and member tables behind section headings.
 - No arrow glyphs on ordinary links. Directional symbols remain where they describe pagination or reader movement.
 
 ## Interaction

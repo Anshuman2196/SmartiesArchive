@@ -38,11 +38,6 @@ function ManagedForm({ action, children, className }: { action: ServerFormAction
   return <form className={className} action={submit} onChange={() => setDirty(true)} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
 }
 
-export function ConfirmSubmit({ children, phrase }: { children: ReactNode; phrase: string }) {
-  const ask = (event: React.MouseEvent<HTMLButtonElement>) => { if (!window.confirm(phrase)) event.preventDefault(); };
-  return <button type="submit" className="danger-button" onClick={ask}>{children}</button>;
-}
-
 type EditableWork = { id: string; title: string; summary: string; visibility: string; cover_url: string; tags: string[]; content_warnings: string[]; expectedUpdatedAt: string };
 
 function CoverAssetPicker({ workId, initialValue, initialPreview }: { workId: string; initialValue: string; initialPreview?: string }) {

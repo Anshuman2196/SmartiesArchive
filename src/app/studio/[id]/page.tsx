@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { MoreHorizontal } from "lucide-react";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import { notFound, redirect } from "next/navigation";
-import { ActionForm, ActionSubmit, ChapterComposer, ConfirmSubmit, WorkMetadataForm } from "@/components/studio-forms";
+import { ActionForm, ActionSubmit, ChapterComposer, WorkMetadataForm } from "@/components/studio-forms";
 import { PublishChecklist } from "@/components/publish-checklist";
 import { createClient } from "@/lib/supabase/server";
 import { deleteChapter, deleteWork, duplicateChapter, publishChapter, publishWork, reorderChapter, unpublishChapter, unpublishWork } from "@/app/actions";

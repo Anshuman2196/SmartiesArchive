@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { adminUnpublishChapter, adminUnpublishWork } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
+import { ConfirmSubmit } from "@/components/confirm-submit";
 import styles from "./page.module.css";
 
 type Count = { count: number };
@@ -52,8 +53,8 @@ function StatusMessage({ status }: { status?: string }) {
   return <p className={`notice ${styles.status}`} role="status">{message}</p>;
 }
 
-function TableSection({ title, children }: { title: string; children: ReactNode }) {
-  return <section className={styles.section}><h2>{title}</h2>{children}</section>;
+function TableSection({ title, count, children, defaultOpen = false }: { title: string; count: number; children: ReactNode; defaultOpen?: boolean }) {
+  return <details className={styles.section} open={defaultOpen}><summary><h2>{title}</h2><span>{count} {count === 1 ? "record" : "records"}</span></summary>{children}</details>;
 }
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
@@ -84,7 +85,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   return <main className={`shell ${styles.page}`}>
     <header className={styles.intro}>
       <div><span className="eyebrow">Private moderation</span><h1>Admin desk</h1><p>A small control room for the archive. Moderation actions only change publication visibility.</p></div>
-      <span className={styles.badge}>{memberCount ?? 0} members</span>
     </header>
     <StatusMessage status={status}/>
 
@@ -95,15 +95,15 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <div className={styles.stat}><span>Chapters</span><strong>{chapterCount ?? 0}</strong></div>
     </section>
 
-    <TableSection title="Stories">
-      {works.length === 0 ? <div className={styles.empty}>No stories have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Story</th><th>Author</th><th>Access</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{works.map((work) => <tr key={work.id}><td><span className={styles.title}>{work.title}</span><span className={styles.meta}>{countFrom(work.chapters)} {countFrom(work.chapters) === 1 ? "chapter" : "chapters"}</span></td><td>{work.profiles?.display_name ?? "Unknown"}<span className={styles.meta}>@{work.profiles?.username ?? "unknown"}</span></td><td><span className={styles.badge}>{work.visibility}</span></td><td><span className={styles.badge}>{work.state}</span></td><td>{formatDate(work.updated_at)}</td><td>{work.state === "published" && <form action={adminUnpublishWork}><input type="hidden" name="workId" value={work.id}/><button type="submit" className={styles.danger}>Hide story</button></form>}</td></tr>)}</tbody></table></div>}
+    <TableSection title="Stories" count={works.length} defaultOpen>
+      {works.length === 0 ? <div className={styles.empty}>No stories have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Story</th><th>Author</th><th>Access</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{works.map((work) => <tr key={work.id}><td><span className={styles.title}>{work.title}</span><span className={styles.meta}>{countFrom(work.chapters)} {countFrom(work.chapters) === 1 ? "chapter" : "chapters"}</span></td><td>{work.profiles?.display_name ?? "Unknown"}<span className={styles.meta}>@{work.profiles?.username ?? "unknown"}</span></td><td><span className={styles.badge}>{work.visibility}</span></td><td><span className={styles.badge}>{work.state}</span></td><td>{formatDate(work.updated_at)}</td><td>{work.state === "published" && <form action={adminUnpublishWork}><input type="hidden" name="workId" value={work.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${work.title} from readers? The author's content will be kept.`}>Hide story</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
     </TableSection>
 
-    <TableSection title="Chapters">
-      {chapters.length === 0 ? <div className={styles.empty}>No chapters have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Chapter</th><th>Story</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{chapters.map((chapter) => <tr key={chapter.id}><td className={styles.title}>{chapter.title}</td><td>{chapter.works?.title ?? "Unknown story"}</td><td><span className={styles.badge}>{chapter.state}</span></td><td>{formatDate(chapter.updated_at)}</td><td>{chapter.state === "published" && <form action={adminUnpublishChapter}><input type="hidden" name="workId" value={chapter.work_id}/><input type="hidden" name="chapterId" value={chapter.id}/><button type="submit" className={styles.danger}>Hide chapter</button></form>}</td></tr>)}</tbody></table></div>}
+    <TableSection title="Chapters" count={chapters.length}>
+      {chapters.length === 0 ? <div className={styles.empty}>No chapters have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Chapter</th><th>Story</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{chapters.map((chapter) => <tr key={chapter.id}><td className={styles.title}>{chapter.title}</td><td>{chapter.works?.title ?? "Unknown story"}</td><td><span className={styles.badge}>{chapter.state}</span></td><td>{formatDate(chapter.updated_at)}</td><td>{chapter.state === "published" && <form action={adminUnpublishChapter}><input type="hidden" name="workId" value={chapter.work_id}/><input type="hidden" name="chapterId" value={chapter.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${chapter.title} from readers? The author's draft will be kept.`}>Hide chapter</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
     </TableSection>
 
-    <TableSection title="Members">
+    <TableSection title="Members" count={members.length}>
       {members.length === 0 ? <div className={styles.empty}>No member profiles are available.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Member</th><th>Stories</th><th>Joined</th></tr></thead><tbody>{members.map((member) => <tr key={member.id}><td><span className={styles.title}>{member.display_name}</span><span className={styles.meta}>@{member.username}</span></td><td>{countFrom(member.works)}</td><td>{formatDate(member.created_at)}</td></tr>)}</tbody></table></div>}
     </TableSection>
   </main>;
