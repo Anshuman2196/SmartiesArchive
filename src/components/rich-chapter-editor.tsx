@@ -11,11 +11,13 @@ import { TextStyleKit } from "@tiptap/extension-text-style";
 import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Fragment, Slice } from "@tiptap/pm/model";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
-import { literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
+import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
+import { normalizeChapterPaste } from "@/lib/chapter-paste";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { createEditorShortcutExtension, detectShortcutPlatform, editorShortcutDefinitions, formatShortcut, type EditorShortcutCallbacks, type EditorShortcutDefinition, type ShortcutPlatform } from "@/lib/editor-shortcuts";
 import styles from "./rich-chapter-editor.module.css";
@@ -108,6 +110,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [saveError, setSaveError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [documentRevision, setDocumentRevision] = useState(0);
+  const [saveFinished, setSaveFinished] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -128,6 +131,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentRef = useRef<RichDocument>(initialDocument);
   const titleRef = useRef(initialTitle);
+  const revisionRef = useRef(0);
   const busy = useRef(false);
   const shortcutCallbacksRef = useRef<EditorShortcutCallbacks>({});
   const editorRootRef = useRef<HTMLElement>(null);
@@ -145,11 +149,31 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const router = useRouter();
 
   const shortcutExtension = useMemo(() => createEditorShortcutExtension(shortcutCallbacksRef), []);
-  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, editorProps: { attributes: { role: "textbox", "aria-label": "Chapter content", "aria-multiline": "true", "aria-describedby": "rich-editor-content-help" } }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
+  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, editorProps: {
+    attributes: { role: "textbox", "aria-label": "Chapter content", "aria-multiline": "true", "aria-describedby": "rich-editor-content-help" },
+    handlePaste(view, event) {
+      const text = event.clipboardData?.getData("text/plain");
+      if (!text || text.length < 400 || view.state.selection.$from.parent.type.name === "codeBlock") return false;
+      const paragraphs = normalizeChapterPaste(text);
+      if (!paragraphs.length) return true;
+      const nodes = paragraphs.map((paragraph) => view.state.schema.nodes.paragraph.create(null, view.state.schema.text(paragraph)));
+      const transaction = view.state.tr.replaceSelection(new Slice(Fragment.fromArray(nodes), 0, 0)).scrollIntoView();
+      const candidate = transaction.doc.toJSON() as RichDocument;
+      let nodeCount = 0;
+      const countNodes = (node: RichDocument | RichDocument["content"][number]): void => { nodeCount += 1; for (const child of node.content ?? []) countNodes(child); };
+      countNodes(candidate);
+      if (plainTextFromRichDocument(candidate).length > chapterContentLimits.text || JSON.stringify(candidate).length > chapterContentLimits.json || nodeCount > chapterContentLimits.nodes || candidate.content.length > chapterContentLimits.children) {
+        setSaveError("This paste exceeds the chapter limit. Paste a shorter section or start another chapter.");
+        return true;
+      }
+      view.dispatch(transaction);
+      return true;
+    },
+  }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
   const save = useCallback(async () => {
     if (!dirty) return true;
     if (busy.current) return false;
-    const revision = documentRevision;
+    const revision = revisionRef.current;
     busy.current = true; setStatus("Saving draft…");
     let result: Awaited<ReturnType<typeof saveRichChapter>>;
     try { result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt); }
@@ -159,12 +183,13 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     if (result.chapterId) setChapterId(result.chapterId);
     if (result.updatedAt) setUpdatedAt(result.updatedAt);
     setSaveError("");
-    if (revision === documentRevision) { setDirty(false); setStatus("Saved"); return true; }
+    if (revision === revisionRef.current) { setDirty(false); setStatus("Saved"); return true; }
     setStatus("Unsaved changes");
+    setSaveFinished((value) => value + 1);
     return false;
-  }, [chapterId, dirty, documentRevision, updatedAt, workId]);
+  }, [chapterId, dirty, updatedAt, workId]);
 
-  useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, save]);
+  useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, saveFinished, save]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
   useEffect(() => { setShortcutPlatform(detectShortcutPlatform()); }, []);
   const restoreFocus = useCallback((target: HTMLElement | null, fallback: HTMLElement | null = null) => {
@@ -345,7 +370,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     </div>}
     <div className="editor-workspace">
       <main className="editor-writing-column">
-        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" placeholder="Untitled chapter" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
+        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" placeholder="Untitled chapter" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
         {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
           {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"))}
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>

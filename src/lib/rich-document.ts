@@ -5,6 +5,7 @@ export type LiteraryTreatment = (typeof literaryTreatments)[number];
 
 export type RichNode = { type: string; attrs?: Record<string, unknown>; text?: string; marks?: Array<{ type: string; attrs?: Record<string, unknown> }>; content?: RichNode[] };
 export type RichDocument = { type: "doc"; content: RichNode[] };
+export const chapterContentLimits = { text: 100_000, json: 750_000, nodes: 12_000, children: 6000 } as const;
 
 const allowedNodes = new Set(["doc", "paragraph", "heading", "text", "bulletList", "orderedList", "listItem", "blockquote", "horizontalRule", "codeBlock", "hardBreak", "literaryBlock", "imageBlock"]);
 const allowedMarks = new Set(["bold", "italic", "underline", "strike", "code", "highlight", "textStyle", "link", "superscript", "subscript", "spoiler"]);
@@ -68,16 +69,16 @@ export function plainTextFromRichDocument(document: RichDocument): string {
     if (["paragraph", "heading", "literaryBlock", "blockquote", "listItem"].includes(node.type)) output.push("\n\n");
   };
   walk(document);
-  return output.join("").trim().slice(0, 100_000);
+  return output.join("").trim();
 }
 
 export function validateRichDocument(input: unknown, ownerId: string, workId: string): { document: RichDocument; plainText: string } {
   const parsed = z.record(z.string(), z.unknown()).safeParse(input);
   if (!parsed.success || parsed.data.type !== "doc" || !Array.isArray(parsed.data.content)) reject("invalid_document_root", "doc");
-  if (JSON.stringify(input).length > 250_000) reject("document_size_limit", "doc");
+  if (JSON.stringify(input).length > chapterContentLimits.json) reject("document_size_limit", "doc");
   let nodeCount = 0;
   const walk = (node: unknown, depth: number, path: string): RichNode => {
-    if (depth > 40 || ++nodeCount > 6000 || typeof node !== "object" || node === null || Array.isArray(node)) reject("invalid_node_shape", path);
+    if (depth > 40 || ++nodeCount > chapterContentLimits.nodes || typeof node !== "object" || node === null || Array.isArray(node)) reject("invalid_node_shape", path);
     const current = node as Record<string, unknown>;
     if (typeof current.type !== "string" || !allowedNodes.has(current.type)) reject("unsupported_node", path, typeof current.type === "string" ? current.type : undefined);
     const nodeType = current.type;
@@ -155,7 +156,7 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
       });
     }
     if (current.content !== undefined) {
-      if (!Array.isArray(current.content) || current.content.length > 2000) reject("invalid_content_array", path, nodeType, "content");
+      if (!Array.isArray(current.content) || current.content.length > chapterContentLimits.children) reject("invalid_content_array", path, nodeType, "content");
       output.content = current.content.map((child, index) => walk(child, depth + 1, `${path}.content[${index}]`));
     } else if (["paragraph", "heading"].includes(nodeType)) {
       // ProseMirror/TipTap JSON may omit `content` on an empty text block.
@@ -176,7 +177,7 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
   const document = walk(input, 0, "doc") as RichDocument;
   const plainText = plainTextFromRichDocument(document);
   if (!plainText.trim()) reject("empty_document", "doc");
-  if (plainText.length > 100_000) reject("plain_text_size_limit", "doc");
+  if (plainText.length > chapterContentLimits.text) reject("plain_text_size_limit", "doc");
   return { document, plainText };
 }
 
