@@ -371,9 +371,13 @@ async function requireOwnedWorkForAction(workId: string) {
 export async function prepareStoryMediaUpload(workId: string, fileName: string, mimeType: string, fileSize: number, headerBytes: number[]): Promise<{ ok: boolean; path?: string; token?: string; message?: string }> {
   try {
     const { supabase, user } = await requireOwnedWorkForAction(workId);
-    if (!Array.isArray(headerBytes) || !validStoryImageHeader(mimeType, fileSize, headerBytes)) return { ok: false, message: "Choose a valid JPEG, PNG, WebP, or GIF image under 8 MB." };
+    const isImage = mimeType.startsWith("image/");
+    const valid = Array.isArray(headerBytes) && (isImage ? validStoryImageHeader(mimeType, fileSize, headerBytes) : validStoryPdfHeader(mimeType, fileSize, headerBytes));
+    if (!valid) return { ok: false, message: isImage ? "Choose a valid JPEG, PNG, WebP, or GIF image under 8 MB." : "Choose a valid PDF under 50 MB." };
     void fileName;
-    const path = `${user.id}/${workId}/${randomUUID()}.${storyImageExtension(mimeType)}`;
+    const extension = storyMediaExtension(mimeType);
+    if (!extension) return { ok: false, message: "That file type is not supported." };
+    const path = `${user.id}/${workId}/${randomUUID()}.${extension}`;
     const { data, error } = await supabase.storage.from(storyMediaBucket).createSignedUploadUrl(path, { upsert: false });
     if (error || !data?.token) return { ok: false, message: "The secure upload could not be prepared." };
     return { ok: true, path, token: data.token };
