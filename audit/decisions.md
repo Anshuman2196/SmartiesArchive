@@ -56,6 +56,21 @@
 - No broad cross-request cache was added yet. Signed media URLs are bearer URLs tied to authorization and expire; caching them across users could reuse a private URL incorrectly. Browser/module caching and request batching are safer first steps for this 20-user project.
 - A cache can be considered later for public, non-sensitive library metadata with a short revalidation window and explicit invalidation after publishing, once hosted latency is measured.
 
+## 2026-10-21 — Personal shelf
+
+- The shelf lives at `/shelf` and is only exposed in navigation for authenticated members.
+- It reads the existing `user_bookmarks` and `reading_progress` rows; no new table or Discord integration is needed for this small private project.
+- Progress below 100% is shown as currently reading; progress at 100% is shown as recently finished. Bookmarks are kept as a separate section, so a story can appear in more than one section.
+- Shelf works and chapter titles are loaded only for the current user's saved IDs, and cover references are signed in one batch using the existing private media helper.
+- A missing session gets a sign-in state; no saved rows get an empty state; query/storage failures get a retry state.
+
+## 2026-10-21 — Reader completion and media interaction
+
+- The chapter reader keeps the story title and author visible in the sticky reader header and exposes story details, contents, bookmark, share, and settings actions together.
+- Chapter completion is inferred at 95% scroll progress, while reaching the document end records 100% so the existing shelf can classify the chapter as finished.
+- Authenticated progress flushes use a reader-only endpoint with `navigator.sendBeacon` and a keepalive `fetch` fallback on pagehide, visibility changes, cleanup, and chapter navigation. Guest progress remains local-only.
+- Inline images and comic panels open in a custom accessible viewer with Escape/Tab handling, focus return, bounded zoom, and native fullscreen when supported. The browser-native PDF viewer remains unused.
+
 ## 2026-10-21 — Publishing readiness and media cleanup
 
 - The Creator Studio publish checklist is advisory for missing covers, missing content warnings, unpublished chapters, and incomplete content. The absence of a published chapter remains the only hard publication gate in the existing database RPC.

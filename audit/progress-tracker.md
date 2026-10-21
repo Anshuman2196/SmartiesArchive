@@ -65,13 +65,13 @@ These requests are now explicitly included in the plan:
 - [x] Guest progress in local storage
 - [x] Authenticated reading progress in Supabase
 - [x] Story bookmarks in Supabase
-- [~] Progress save is debounced and can be lost during navigation
+- [x] Progress save is debounced with pagehide, visibility-change, navigation, and keepalive flushes
 - [~] Warnings are shown on story details but not enforced on direct chapter links
-- [~] Bookmarking has no shelf or bookmarks page
-- [ ] Chapter completion state and “continue” action
-- [ ] Reader action bar for contents, bookmark, share, settings, and story details
-- [ ] Story title and author context in the chapter reader
-- [ ] Image zoom/fullscreen for comics and illustrations
+- [x] Personal `/shelf` page groups bookmarked, currently-reading, and recently-finished stories with auth and empty states — `9228ce8`
+- [x] Chapter completion state and “continue” action
+- [x] Reader action bar for contents, bookmark, share, settings, and story details
+- [x] Story title and author context in the chapter reader
+- [x] Image zoom/fullscreen for comics and illustrations
 
 ### Library and discovery
 
@@ -173,11 +173,12 @@ These requests are now explicitly included in the plan:
 - [x] Added accessible editor drawer semantics, focus return, Escape handling, overflow-menu keyboard navigation, and editor naming — `3bbb895`
 - [x] Added mobile reader contents disclosure, semantic reading-preference groups, reset control, visible values, and larger touch targets — `2313d82`
 - [x] Kept stories without covers valid in library filter/test fixtures — `a490118`
+- [x] Added persistent story/author context and the reader action bar — `3f1205d`
+- [x] Added an accessible zoom/fullscreen viewer for inline images and comic panels — `b478041`
+- [x] Added chapter completion, continue actions, and robust authenticated progress flushing — `5511561`
 
-## Next UI work
+## Remaining UI verification
 
-- [ ] Add persistent story title/author context to the chapter reader
-- [ ] Add image zoom/fullscreen for comics and inline illustrations
 - [ ] Run real-device checks at 320px, 375px, and 768px widths
 - [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
 
@@ -188,6 +189,13 @@ These requests are now explicitly included in the plan:
 - [x] Stream chapter reviews below the reader with a Suspense boundary so review/profile queries do not block the chapter shell — `ffac6a6`
 - [x] Add a regression test for batched signed media requests — `34cfe4e`
 - [ ] Measure real hosted latency after the Supabase migrations/project configuration are available
+
+## 2026-10-21 shelf follow-up
+
+- [x] Added the authenticated `/shelf` route using existing bookmark and reading-progress tables — `9228ce8`
+- [x] Added bookmarked, currently-reading, and recently-finished sections with progress details, posters, tags, and mobile-friendly cards.
+- [x] Added signed-in-only desktop and mobile navigation links for My shelf.
+- [x] Revalidated the shelf after bookmark and reading-progress updates.
 
 ## 2026-10-21 publishing follow-up
 
