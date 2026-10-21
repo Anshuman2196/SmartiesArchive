@@ -64,9 +64,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} contentWarnings={work.content_warnings ?? []} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
-    <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
-      <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
-    </Suspense>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} contentWarnings={work.content_warnings ?? []} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+      <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
+        <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
+      </Suspense>
+    </ReaderExperience>
   </>;
 }

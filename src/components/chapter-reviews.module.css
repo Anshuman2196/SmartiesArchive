@@ -1,0 +1,248 @@
+.section {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-top: clamp(54px, 7vw, 96px);
+  padding-bottom: clamp(80px, 10vw, 136px);
+  border-top: 1px solid var(--line);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.62fr) minmax(0, 1.38fr);
+  gap: clamp(36px, 6vw, 88px);
+  align-items: start;
+}
+
+.intro h2 {
+  max-width: 11ch;
+  margin: 14px 0 24px;
+  color: var(--cream);
+  font: 800 clamp(30px, 3.5vw, 46px)/0.98 Arial, Helvetica, sans-serif;
+  letter-spacing: -0.055em;
+  text-transform: uppercase;
+}
+
+.aggregate {
+  display: grid;
+  grid-template-columns: 22px auto;
+  gap: 0 9px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.aggregate svg {
+  width: 20px;
+  height: 20px;
+  color: var(--lime);
+}
+
+.aggregate strong {
+  color: var(--cream);
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.aggregate span {
+  grid-column: 2;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.signIn,
+.empty {
+  max-width: 36ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.signIn a {
+  color: var(--cream);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.signIn a:hover,
+.reviewByline a:hover {
+  color: var(--lime);
+}
+
+.list {
+  border-top: 1px solid var(--line);
+}
+
+.empty {
+  padding: 28px 0;
+}
+
+.review {
+  padding: 22px 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.reviewTop,
+.reviewByline,
+.reviewMeta,
+.ownActions {
+  display: flex;
+  align-items: center;
+}
+
+.reviewTop {
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.reviewByline {
+  min-width: 0;
+  gap: 13px;
+  flex-wrap: wrap;
+}
+
+.reviewByline strong {
+  color: var(--cream);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reviewByline time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.reviewMeta {
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--muted);
+}
+
+.stars svg {
+  width: 15px;
+  height: 15px;
+}
+
+.stars svg[data-filled="true"] {
+  color: var(--lime);
+}
+
+.ownActions {
+  gap: 2px;
+}
+
+.reviewBody {
+  max-width: 68ch;
+  margin: 13px 0 0;
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.composeDialog {
+  width: min(520px, calc(100vw - 32px));
+  max-width: 520px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form [data-slot="field-group"] {
+  gap: 24px;
+}
+
+.optional {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.ratingGroup {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+}
+
+.ratingChoice {
+  position: relative;
+}
+
+.ratingChoice label {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.ratingChoice label svg {
+  width: 26px;
+  height: 26px;
+}
+
+.ratingChoice[data-filled="true"] label,
+.ratingChoice label:hover {
+  color: var(--lime);
+}
+
+.ratingChoice:focus-within label {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 34px;
+  }
+
+  .intro h2 {
+    max-width: none;
+    margin-bottom: 18px;
+  }
+
+  .aggregate {
+    margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reviewTop {
+    display: grid;
+    gap: 10px;
+  }
+
+  .reviewByline {
+    display: grid;
+    gap: 4px;
+  }
+
+  .reviewMeta {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .stars svg {
+    width: 13px;
+    height: 13px;
+  }
+}

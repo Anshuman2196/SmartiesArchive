@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { PdfReader } from "@/components/pdf-reader";
@@ -79,7 +79,7 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0 }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -217,7 +217,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
     </section>
   </main>;
 
-  return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
+  return <><main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
     <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">
       <div className={styles.readerContext} aria-label="Current story">
         <span className={styles.readerContextTitle}>{storyTitle}</span>
@@ -264,5 +264,5 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}>← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details →</Link>}</nav>
       </div>
     </div>
-  </main>;
+  </main>{children}</>;
 }
