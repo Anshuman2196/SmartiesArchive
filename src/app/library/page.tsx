@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
-import { signStoryMediaUrl } from "@/lib/story-media";
+import { signStoryMediaUrls } from "@/lib/story-media";
 import styles from "./library-card.module.css";
 import {
   getLibraryOptions,
@@ -45,7 +45,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       .order("created_at", { ascending: false })
       .limit(100);
     const works = (data ?? []) as unknown as LibraryWork[];
-    allWorks = await Promise.all(works.map(async (work) => ({ ...work, coverPreviewUrl: await signStoryMediaUrl(supabase, work.cover_url) })));
+    const coverUrls = await signStoryMediaUrls(supabase, works.map((work) => work.cover_url));
+    allWorks = works.map((work) => ({ ...work, coverPreviewUrl: work.cover_url ? coverUrls.get(work.cover_url) ?? null : null }));
   } catch {
     configured = false;
   }
