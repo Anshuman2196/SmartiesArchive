@@ -1,0 +1,160 @@
+.mediaFigure {
+  position: relative;
+}
+
+.mediaButton {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: zoom-in;
+}
+
+.mediaButton:focus-visible,
+.dialogButton:focus-visible,
+.dialog:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 4px;
+}
+
+.mediaButton img {
+  width: 100%;
+}
+
+.zoomHint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--page-ink) 22%, transparent);
+  background: color-mix(in srgb, var(--page-bg) 88%, transparent);
+  color: var(--page-ink);
+  font: 10px Arial, sans-serif;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.mediaButton:hover .zoomHint,
+.mediaButton:focus-visible .zoomHint {
+  opacity: 1;
+}
+
+.dialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: #050706e8;
+}
+
+.dialog {
+  width: min(1100px, 100%);
+  height: min(92dvh, 900px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--page-ink) 24%, transparent);
+  background: var(--page-bg);
+  color: var(--page-ink);
+}
+
+.dialog:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+}
+
+.dialogHeader,
+.dialogControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--page-ink) 15%, transparent);
+}
+
+.dialogHeader {
+  justify-content: space-between;
+}
+
+.dialogHeader p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--page-ink);
+  font: 13px/1.35 Georgia, serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialogControls {
+  justify-content: center;
+  border-top: 1px solid color-mix(in srgb, var(--page-ink) 15%, transparent);
+  border-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.dialogButton {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 11px;
+  border: 1px solid color-mix(in srgb, var(--page-ink) 20%, transparent);
+  background: transparent;
+  color: var(--page-ink);
+  font: 11px Arial, sans-serif;
+  cursor: pointer;
+}
+
+.dialogButton:hover:not(:disabled) {
+  border-color: var(--lime);
+}
+
+.dialogButton:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.viewport {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 24px;
+  background: color-mix(in srgb, var(--page-bg) 80%, #000 20%);
+}
+
+.zoomedImage {
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  transform-origin: center center;
+  transition: transform .15s ease;
+}
+
+@media (max-width: 560px) {
+  .dialogBackdrop {
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+  }
+
+  .viewport {
+    padding: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoomHint,
+  .zoomedImage {
+    transition: none;
+  }
+}

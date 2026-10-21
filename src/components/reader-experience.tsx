@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { PdfReader } from "@/components/pdf-reader";
+import { ReaderMedia } from "@/components/reader-media";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 import styles from "./reader-experience.module.css";
@@ -16,7 +16,7 @@ const defaults = defaultReaderPreferences;
 
 function Media({ url, alt }: { url: string; alt: string }) {
   if (!isSecureMediaUrl(url)) return null;
-  return <figure className="reader-media"><Image src={url} alt={alt || "Story illustration"} width={1440} height={1000} unoptimized sizes="(max-width: 760px) 100vw, 900px"/><figcaption>{alt || "Story illustration"}</figcaption></figure>;
+  return <ReaderMedia url={url} alt={alt || "Story illustration"}/>;
 }
 
 function Chat({ messages }: { messages: Array<{ speaker: string; text: string }> }) {
