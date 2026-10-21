@@ -1,9 +1,11 @@
 ﻿import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ActionForm, ActionSubmit, ChapterComposer, ConfirmSubmit, WorkMetadataForm } from "@/components/studio-forms";
+import { PublishChecklist } from "@/components/publish-checklist";
 import { createClient } from "@/lib/supabase/server";
 import { deleteChapter, deleteWork, duplicateChapter, publishChapter, publishWork, reorderChapter, unpublishChapter, unpublishWork } from "@/app/actions";
 import type { ChapterFormat } from "@/lib/chapter-content";
+import { getPublishChecklist } from "@/lib/publishing-checklist";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 
 type Chapter = { id: string; title: string; body: string; format: ChapterFormat; content: unknown; position: number; state: "draft" | "published"; updated_at: string };
@@ -60,12 +62,23 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
     editorContent = { ...rich, document: await signRichDocument(rich.document, supabase) };
   }
   const publishedCount = chapters.filter((chapter) => chapter.state === "published").length;
+  const checklist = getPublishChecklist({
+    coverUrl: effectiveWork.cover_url,
+    contentWarnings: effectiveWork.content_warnings,
+    chapters: chapters.map((chapter) => ({
+      title: chapter.title,
+      state: chapter.state,
+      body: chapterDrafts.get(chapter.id)?.body ?? chapter.body,
+      hasDraft: chapterDrafts.has(chapter.id),
+    })),
+  });
   const message = query.status ? statusCopy[query.status] : undefined;
 
   return <main className="shell studio-page">
     <div className="studio-topline"><div><Link href="/studio" className="byline">← Your studio</Link><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${work.visibility}` : `Draft · ${work.visibility}`}</span></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story</ActionSubmit></ActionForm>}</div></div>
     <header className="studio-head"><span className="eyebrow">Creator studio</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></header>
     {message && <p className={`notice ${message.error ? "auth-error" : ""}`} role={message.error ? "alert" : "status"}>{message.message}</p>}
+    <PublishChecklist items={checklist}/>
     {work.state === "published" && workDraft && <div className="revision-callout"><div><span className="eyebrow">Unpublished changes</span><p>Published readers still see the existing story details.</p></div><ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story changes</ActionSubmit></ActionForm></div>}
     <div className="studio-grid">
       <section className="studio-panel"><div className="panel-heading"><span className="eyebrow">Story details</span><h2 className="serif">Shape its shelf.</h2></div><WorkMetadataForm work={{ id, ...effectiveWork, expectedUpdatedAt: workDraft?.updated_at ?? work.updated_at }} previewCoverUrl={coverPreview ?? undefined}/>
