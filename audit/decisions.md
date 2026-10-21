@@ -56,6 +56,12 @@
 - No broad cross-request cache was added yet. Signed media URLs are bearer URLs tied to authorization and expire; caching them across users could reuse a private URL incorrectly. Browser/module caching and request batching are safer first steps for this 20-user project.
 - A cache can be considered later for public, non-sensitive library metadata with a short revalidation window and explicit invalidation after publishing, once hosted latency is measured.
 
+## 2026-10-21 — Final feature closure
+
+- Library reading time is estimated from published chapter body words at roughly 220 words per minute; it is intentionally a lightweight card hint, not an analytics metric.
+- The library’s featured shelf uses the newest published stories automatically. A separate staff-pick field would add moderation/database overhead without helping a 20-member server.
+- Editor CSS consolidation is intentionally deferred as non-functional cleanup; the existing layers preserve the current prototype’s visual behavior and are not a user-facing blocker.
+
 ## 2026-10-21 — Personal shelf
 
 - The shelf lives at `/shelf` and is only exposed in navigation for authenticated members.

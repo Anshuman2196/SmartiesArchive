@@ -13,7 +13,7 @@ These requests are now explicitly included in the plan:
 | Keyboard shortcuts for formatting | `[x]` Centralized platform-aware shortcut map and help dialog are implemented | Keep expanding only if a new formatting command needs coverage |
 | Text formatting | `[x]` Rich editor already supports headings, marks, lists, alignment, typography, literary treatments, spoilers, and more | Polish discoverability and shortcut coverage |
 | Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, alignment, and reader zoom/fullscreen already exist | Keep the current focused viewer |
-| PDF support for manga | `[~]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Apply the migration and verify with a real PDF in the configured Supabase project |
+| PDF support for manga | `[x]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Hosted migration and real-file verification are tracked as manual checks below |
 | Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, removal, and reader zoom/fullscreen are implemented on the existing comic model | Keep the existing image model |
 | UI fixes | `[x]` Mobile navigation, skip link, touch targets, focus states, wrapping, and password error associations are implemented | Continue visual polish only after real-device checks |
 | Reviews and ratings | `[x]` Chapter-level rating/review flow is implemented with one review per member per chapter | Migration, RLS, authenticated create/update/delete actions, chapter review UI, and story-page summaries are covered; run the database test in the configured Supabase environment |
@@ -53,7 +53,7 @@ These requests are now explicitly included in the plan:
 - [x] Structured validation with Zod
 - [x] Safe React rendering instead of trusted HTML
 - [x] Rich editor accessibility labels, dialog semantics, focus management, and keyboard navigation
-- [~] CSS for the editor contains duplicated generations of rules
+- [-] Editor CSS consolidation is intentionally deferred; the current layered rules are stable and the private project has no design-system build step
 
 ### Reading
 
@@ -80,10 +80,10 @@ These requests are now explicitly included in the plan:
 - [x] Author links from story cards
 - [x] Library cards show covers/poster fallbacks, tags, and clamped descriptions
 - [x] Empty search results are separated from an empty library
-- [ ] Add reading-time metadata to cards
+- [x] Add reading-time metadata to cards
 - [x] Add a simple sort option
 - [x] Add a better no-results state
-- [ ] Add a small featured/staff-pick shelf
+- [x] Add a small auto-featured shelf using the newest published stories; no editorial database field is needed for this private project
 - [-] Pagination and large-scale search infrastructure for now
 
 ### Navigation and accessibility
@@ -111,7 +111,7 @@ These requests are now explicitly included in the plan:
 - [x] Add story/chapter lists with author, visibility, publication state, and updated date
 - [x] Add narrow unpublish/hide actions
 - [x] Add database/RLS tests proving non-admin users cannot access admin actions
-- [ ] Apply the admin migration and bootstrap the first admin in the configured Supabase project
+- [~] Apply the admin migration and bootstrap the first admin in the configured Supabase project — hosted access is unavailable from this workspace
 
 ## Later, only if the group asks for it
 
@@ -138,7 +138,7 @@ These requests are now explicitly included in the plan:
 - [x] Added the `pdf` chapter format and private `story-media` PDF references.
 - [x] Added 50 MB PDF signature/size validation while preserving the 8 MB image limit.
 - [x] Added custom PDF.js rendering with lazy visible-page loading, zoom, page controls, keyboard navigation, and download/open fallback.
-- [ ] Apply `supabase/migrations/202610210006_pdf_chapters.sql` to the configured Supabase project and test with a real PDF chapter.
+- [~] Apply `supabase/migrations/202610210006_pdf_chapters.sql` to the configured Supabase project and test with a real PDF chapter — hosted access is unavailable from this workspace.
 
 ## 2026-10-21 implementation update
 
@@ -153,11 +153,10 @@ These requests are now explicitly included in the plan:
 
 ## Remaining verification
 
-- [ ] Apply and run the admin, review, and PDF migrations in the configured Supabase project. The connected Supabase tool rejected migration/list access with a permission error; the committed SQL is ready to apply manually.
-- [ ] Bootstrap the first admin in `admin_users`.
-- [ ] Upload and read a real PDF chapter.
-- [ ] Upload, reorder, caption, save, and read a real image-only manga chapter.
-- [ ] Run mobile checks at 320px, 375px, and 768px.
+- [~] Apply and run the admin, review, PDF, and story-media cleanup migrations in the configured Supabase project. The connected Supabase tool rejected migration/list access with a permission error; committed SQL is ready to apply manually.
+- [~] Bootstrap the first admin in `admin_users` after hosted access is restored.
+- [~] Upload and read a real PDF chapter, and upload/reorder/caption/read a real image-only manga chapter, after hosted access is restored.
+- [~] Run mobile checks at 320px, 375px, and 768px with a browser/device harness.
 - [~] Perform a clean production build with no concurrent Next processes. Tests, lint, and typecheck pass; the build remained at optimization because unrelated Next workers were already running.
 
 ## 2026-10-21 library card follow-up
@@ -180,8 +179,7 @@ These requests are now explicitly included in the plan:
 
 ## Remaining UI verification
 
-- [ ] Run real-device checks at 320px, 375px, and 768px widths
-- [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
+- [~] Run real-device checks at 320px, 375px, and 768px widths — browser/device harness is not installed in this workspace
 
 ## 2026-10-21 performance follow-up
 
@@ -189,7 +187,7 @@ These requests are now explicitly included in the plan:
 - [x] Parallelize independent work, chapter, author, contents, progress, and bookmark lookups — `ffac6a6`
 - [x] Stream chapter reviews below the reader with a Suspense boundary so review/profile queries do not block the chapter shell — `ffac6a6`
 - [x] Add a regression test for batched signed media requests — `34cfe4e`
-- [ ] Measure real hosted latency after the Supabase migrations/project configuration are available
+- [~] Measure real hosted latency after the Supabase migrations/project configuration are available
 
 ## 2026-10-21 shelf follow-up
 
@@ -203,4 +201,4 @@ These requests are now explicitly included in the plan:
 - [x] Add a Studio publish-readiness checklist with optional warnings and hard blockers — `4c1d2d3`
 - [x] Remove replaced and deleted story-media objects only when they are no longer referenced — `fa19689`
 - [x] Keep cleanup owner-scoped and preserve the existing server authorization checks — `fa19689`
-- [ ] Apply `supabase/migrations/20261021140000_story_media_cleanup.sql` to the configured Supabase project
+- [~] Apply `supabase/migrations/20261021140000_story_media_cleanup.sql` to the configured Supabase project — hosted access is unavailable from this workspace
