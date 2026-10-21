@@ -11,12 +11,24 @@ import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { createEditorShortcutExtension, detectShortcutPlatform, editorShortcutDefinitions, formatShortcut, type EditorShortcutCallbacks, type EditorShortcutDefinition, type ShortcutPlatform } from "@/lib/editor-shortcuts";
+import styles from "./rich-chapter-editor.module.css";
+
+const focusableSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "[tabindex]:not([tabindex=\"-1\"])",
+].join(",");
+
+const getFocusableElements = (container: HTMLElement) => Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => !element.hasAttribute("aria-hidden") && element.offsetParent !== null);
 
 const imageNode = Node.create({
   name: "imageBlock", group: "block", atom: true, selectable: true, draggable: true,
@@ -97,6 +109,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [documentRevision, setDocumentRevision] = useState(0);
   const [focusMode, setFocusMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState("text");
   const [selectionActive, setSelectionActive] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -116,11 +129,22 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const titleRef = useRef(initialTitle);
   const busy = useRef(false);
   const shortcutCallbacksRef = useRef<EditorShortcutCallbacks>({});
+  const editorRootRef = useRef<HTMLElement>(null);
+  const formatToggleRef = useRef<HTMLButtonElement>(null);
+  const formatCloseRef = useRef<HTMLButtonElement>(null);
+  const sidebarReturnFocusRef = useRef<HTMLElement | null>(null);
+  const overflowTriggerRef = useRef<HTMLButtonElement>(null);
+  const overflowMenuRef = useRef<HTMLDivElement>(null);
+  const overflowReturnFocusRef = useRef<HTMLElement | null>(null);
   const shortcutHelpCloseRef = useRef<HTMLButtonElement>(null);
+  const shortcutHelpReturnFocusRef = useRef<HTMLElement | null>(null);
+  const sidebarWasOpenRef = useRef(false);
+  const overflowWasOpenRef = useRef(false);
+  const shortcutHelpWasOpenRef = useRef(false);
   const router = useRouter();
 
   const shortcutExtension = useMemo(() => createEditorShortcutExtension(shortcutCallbacksRef), []);
-  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
+  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, editorProps: { attributes: { role: "textbox", "aria-label": "Chapter content", "aria-multiline": "true", "aria-describedby": "rich-editor-content-help" } }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
   const save = useCallback(async () => {
     if (!dirty) return true;
     if (busy.current) return false;
@@ -142,7 +166,57 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, save]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
   useEffect(() => { setShortcutPlatform(detectShortcutPlatform()); }, []);
-  useEffect(() => { if (shortcutHelpOpen) shortcutHelpCloseRef.current?.focus(); }, [shortcutHelpOpen]);
+  const restoreFocus = useCallback((target: HTMLElement | null, fallback: HTMLElement | null = null) => {
+    window.requestAnimationFrame(() => {
+      if (target?.isConnected) target.focus();
+      else if (fallback?.isConnected) fallback.focus();
+      else editor?.commands.focus();
+    });
+  }, [editor]);
+  useEffect(() => {
+    if (sidebarOpen) {
+      sidebarWasOpenRef.current = true;
+      window.requestAnimationFrame(() => formatCloseRef.current?.focus());
+      return;
+    }
+    if (!sidebarWasOpenRef.current) return;
+    sidebarWasOpenRef.current = false;
+    restoreFocus(sidebarReturnFocusRef.current, formatToggleRef.current);
+    sidebarReturnFocusRef.current = null;
+  }, [restoreFocus, sidebarOpen]);
+  useEffect(() => {
+    if (overflowOpen) {
+      overflowWasOpenRef.current = true;
+      window.requestAnimationFrame(() => {
+        const firstItem = overflowMenuRef.current ? getFocusableElements(overflowMenuRef.current)[0] : null;
+        firstItem?.focus();
+      });
+      return;
+    }
+    if (!overflowWasOpenRef.current) return;
+    overflowWasOpenRef.current = false;
+    restoreFocus(overflowReturnFocusRef.current, overflowTriggerRef.current);
+    overflowReturnFocusRef.current = null;
+  }, [overflowOpen, restoreFocus]);
+  useEffect(() => {
+    if (shortcutHelpOpen) {
+      shortcutHelpWasOpenRef.current = true;
+      window.requestAnimationFrame(() => shortcutHelpCloseRef.current?.focus());
+      return;
+    }
+    if (!shortcutHelpWasOpenRef.current) return;
+    shortcutHelpWasOpenRef.current = false;
+    restoreFocus(shortcutHelpReturnFocusRef.current, formatToggleRef.current);
+    shortcutHelpReturnFocusRef.current = null;
+  }, [restoreFocus, shortcutHelpOpen]);
+  useEffect(() => {
+    if (!overflowOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof window.Node && !overflowMenuRef.current?.parentElement?.contains(event.target)) setOverflowOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [overflowOpen]);
 
   const wordCount = plainTextFromRichDocument(documentRef.current).trim().split(/\s+/).filter(Boolean).length;
   const activeBlock = editor?.isActive("heading") ? "heading" : editor?.isActive("literaryBlock") ? "literaryBlock" : "paragraph";
@@ -160,7 +234,30 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   };
   const loadMedia = async () => { const list = await listWorkMedia(workId).catch(() => []); setMedia(list); if (!list.length) setMediaError("No uploaded images yet."); };
   const openMedia = () => { setMediaError(""); setMediaOpen((open) => !open); void loadMedia(); };
-  const openImagePicker = () => { setSidebarTab("insert"); setSidebarOpen(true); setMediaError(""); setMediaOpen(true); void loadMedia(); };
+  const openSidebar = () => {
+    if (!sidebarOpen) {
+      const activeElement = document.activeElement;
+      sidebarReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : formatToggleRef.current;
+    }
+    setSidebarOpen(true);
+  };
+  const closeSidebar = () => setSidebarOpen(false);
+  const openOverflow = () => {
+    if (!overflowOpen) {
+      const activeElement = document.activeElement;
+      overflowReturnFocusRef.current = activeElement instanceof HTMLElement ? activeElement : overflowTriggerRef.current;
+    }
+    setOverflowOpen(true);
+  };
+  const closeOverflow = () => setOverflowOpen(false);
+  const openShortcutHelp = (returnFocus?: HTMLElement | null) => {
+    if (!shortcutHelpOpen) {
+      const activeElement = document.activeElement;
+      shortcutHelpReturnFocusRef.current = returnFocus ?? (activeElement instanceof HTMLElement ? activeElement : formatToggleRef.current);
+    }
+    setShortcutHelpOpen(true);
+  };
+  const openImagePicker = () => { setSidebarTab("insert"); openSidebar(); setMediaError(""); setMediaOpen(true); void loadMedia(); };
   const insertEmoji = (emoji: string) => { editor?.chain().focus().insertContent(emoji).run(); setEmojiOpen(false); setEmojiSearch(""); };
   const setLink = () => { if (!editor) return; const href = window.prompt("Enter a website URL or internal story path (for example, /work/…):", editor.getAttributes("link").href ?? "https://"); if (href === null) return; if (!href) editor.chain().focus().unsetLink().run(); else editor.chain().focus().setLink({ href }).run(); };
   const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().focus().updateAttributes("imageBlock", { [key]: value }).run();
@@ -171,15 +268,25 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     onIndent: () => changeIndent(1),
     onOutdent: () => changeIndent(-1),
     onInsertImage: openImagePicker,
-    onInsertEmoji: () => { setSidebarTab("insert"); setSidebarOpen(true); setEmojiOpen(true); setEmojiSearch(""); },
+    onInsertEmoji: () => { setSidebarTab("insert"); openSidebar(); setEmojiOpen(true); setEmojiSearch(""); },
     onSave: () => { void save(); },
     onTogglePreview: () => setPreview((open) => !open),
     onToggleFocusMode: () => setFocusMode((focused) => !focused),
-    onOpenHelp: () => setShortcutHelpOpen(true),
+    onOpenHelp: () => openShortcutHelp(),
   };
   const selectedImage = editor.isActive("imageBlock");
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
   const toolbarButton = (label: string, command: () => void, active = false, disabled = false) => <button type="button" className="editor-tool-button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{label}</button>;
+  const menuButton = (label: string, command: () => void, disabled = false) => <button type="button" role="menuitem" className="editor-top-action" aria-label={label} disabled={disabled} onClick={() => { command(); closeOverflow(); }}>{label}</button>;
+  const handleOverflowKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = overflowMenuRef.current ? getFocusableElements(overflowMenuRef.current) : [];
+    if (event.key === "Escape") { event.preventDefault(); closeOverflow(); return; }
+    if (!items.length || !["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (currentIndex + (event.key === "ArrowUp" ? -1 : 1) + items.length) % items.length;
+    items[nextIndex]?.focus();
+  };
 
   const textStyle = editor.getAttributes("textStyle") as Record<string, string | null>;
   const headingValue = editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : editor.isActive("blockquote") ? "quote" : "p";
@@ -190,31 +297,44 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     const recovery = new Blob([JSON.stringify({ title: titleRef.current, document: editor.getJSON(), savedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(recovery); const link = document.createElement("a"); link.href = url; link.download = "smarties-chapter-recovery.json"; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const formattingMore = () => { setSidebarTab("type"); setSidebarOpen(true); };
+  const formattingMore = () => { setSidebarTab("type"); openSidebar(); };
   const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
-  const closeShortcutHelp = () => { setShortcutHelpOpen(false); editor.chain().focus().run(); };
+  const closeShortcutHelp = () => setShortcutHelpOpen(false);
 
-  return <section className={`rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} aria-label="Chapter writing editor">
+  return <section ref={editorRootRef} className={`${styles.editorRoot} rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} role="region" aria-labelledby="rich-editor-label">
+    <h1 id="rich-editor-label" className={styles.visuallyHidden}>Chapter writing editor</h1>
     <header className="editor-topbar">
       <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}>← <span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
         <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status}</span>
-        <button type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(!sidebarOpen)}>Formatting</button>
+        <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()}>Formatting</button>
         <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
-        <details className="editor-overflow"><summary aria-label="More chapter actions">•••</summary><div className="editor-overflow-menu">
-          {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
-          <button type="button" className="editor-top-action" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Return to writing" : "Preview chapter"}</button>
-          <button type="button" className="editor-top-action" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus mode" : "Focus mode"}</button>
-          <button type="button" className="editor-top-action" aria-pressed={shortcutHelpOpen} onClick={() => setShortcutHelpOpen(true)}>Keyboard shortcuts</button>
-          {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" type="submit" disabled={dirty || !!saveError}>Publish saved draft</button></form>}
-          <button type="button" className="editor-top-action" onClick={downloadRecovery}>Download recovery copy</button>
-        </div></details>
+        <div className="editor-overflow">
+          <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()}>•••</button>
+          {overflowOpen && <div ref={overflowMenuRef} id="editor-overflow-menu" className="editor-overflow-menu" role="menu" aria-label="More chapter actions" onKeyDown={handleOverflowKeyDown}>
+            {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
+            {menuButton(preview ? "Return to writing" : "Preview chapter", () => setPreview(!preview))}
+            {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
+            <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
+            {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" role="menuitem" type="submit" disabled={dirty || !!saveError} onClick={closeOverflow}>Publish saved draft</button></form>}
+            {menuButton("Download recovery copy", downloadRecovery)}
+          </div>}
+        </div>
       </div>
     </header>
     {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
-    {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeShortcutHelp(); } }}>
+    {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" aria-describedby="editor-shortcut-help-description" onKeyDown={(event) => {
+      if (event.key === "Escape") { event.preventDefault(); closeShortcutHelp(); return; }
+      if (event.key !== "Tab") return;
+      const focusable = getFocusableElements(event.currentTarget);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }}>
       <div className="editor-popover-head"><strong id="editor-shortcut-help-title">Keyboard shortcuts</strong><button ref={shortcutHelpCloseRef} type="button" onClick={closeShortcutHelp}>Close</button></div>
-      <p className="editor-sidebar-help">Shortcuts work while your cursor is in the chapter editor. Formatting controls such as font, size, and color remain in the Formatting panel.</p>
+      <p id="editor-shortcut-help-description" className="editor-sidebar-help">Shortcuts work while your cursor is in the chapter editor. Formatting controls such as font, size, and color remain in the Formatting panel.</p>
       {shortcutCategories.map((category) => <section key={category} aria-labelledby={`shortcut-category-${category.toLowerCase()}`}>
         <h3 id={`shortcut-category-${category.toLowerCase()}`} className="eyebrow">{category}</h3>
         <div className="editor-sidebar-panel" style={{ gap: 6, paddingTop: 6 }}>
@@ -230,11 +350,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
           {toolbarButton("Link", setLink, editor.isActive("link"))}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
         </div>}
-        {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><EditorContent editor={editor}/></div>}
+        {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
         <footer className="editor-writing-footer"><span>{status}</span><details><summary>Chapter details</summary><span>{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read · private draft</span></details></footer>
       </main>
-      <aside className="editor-format-sidebar" aria-label="Formatting controls" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
-        <div className="editor-sidebar-heading"><span className="eyebrow">Format</span><button type="button" className="editor-sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close formatting panel">Close</button></div>
+      <aside id="editor-format-sidebar" className="editor-format-sidebar" role="dialog" aria-modal="false" aria-labelledby="editor-format-title" aria-hidden={!sidebarOpen} inert={!sidebarOpen} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeSidebar(); } }}>
+        <div className="editor-sidebar-heading"><span id="editor-format-title" className="eyebrow">Formatting controls</span><button ref={formatCloseRef} type="button" className={`${styles.dialogClose} editor-sidebar-close`} onClick={closeSidebar} aria-label="Close formatting panel">Close</button></div>
         <div className="editor-sidebar-tabs" role="tablist" aria-label="Formatting sections">{tabs.map((tab) => <button key={tab.id} id={`editor-tab-${tab.id}`} type="button" role="tab" aria-selected={sidebarTab === tab.id} aria-controls="editor-sidebar-panel" onClick={() => setSidebarTab(tab.id)}>{tab.label}</button>)}</div>
         <div id="editor-sidebar-panel" role="tabpanel" aria-labelledby={`editor-tab-${sidebarTab}`} className="editor-sidebar-panel">
           {sidebarTab === "text" && <>

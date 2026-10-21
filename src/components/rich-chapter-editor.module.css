@@ -1,0 +1,74 @@
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.editorRoot :global(.rich-editor-canvas .tiptap:focus-visible) {
+  outline: 3px solid var(--lime);
+  outline-offset: 8px;
+  border-radius: 3px;
+}
+
+.dialogClose {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 42px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--cream);
+  cursor: pointer;
+}
+
+.dialogClose:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+.overflowTrigger {
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cream);
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.overflowTrigger:hover,
+.overflowTrigger[aria-expanded="true"] {
+  background: var(--panel);
+}
+
+.overflowTrigger:focus-visible {
+  outline: 2px solid var(--lime);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .overflowTrigger {
+    min-width: 38px;
+    min-height: 38px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overflowTrigger {
+    transition: none;
+  }
+}
