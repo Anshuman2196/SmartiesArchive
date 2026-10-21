@@ -19,6 +19,8 @@ const fieldErrors = (error: { flatten(): { fieldErrors: Record<string, string[] 
   Object.entries(error.flatten().fieldErrors).flatMap(([name, messages]) => messages?.[0] ? [[name, messages[0]]] : []),
 );
 
+import { chapterReviewSchema, type ReviewActionState } from "@/lib/chapter-reviews";
+
 export async function register(_previous: AuthActionState, form: FormData): Promise<AuthActionState> {
   const parsed = registrationSchema.safeParse({ email: value(form, "email"), password: value(form, "password"), username: value(form, "username"), displayName: value(form, "displayName") });
   if (parsed.success === false) return { kind: "error", message: "Check the highlighted fields and try again.", fields: fieldErrors(parsed.error) };
@@ -435,5 +437,59 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
       return { ok: false, message: safeRichDocumentErrorMessage(error) };
     }
     return { ok: false, message: "The chapter could not be saved. Your writing is still open in the editor; please retry." };
+  }
+}
+
+export async function saveChapterReview(_previous: ReviewActionState, form: FormData): Promise<ReviewActionState> {
+  const parsed = chapterReviewSchema.safeParse({
+    workId: value(form, "workId"),
+    chapterId: value(form, "chapterId"),
+    rating: value(form, "rating"),
+    body: value(form, "body"),
+  });
+  if (!parsed.success) return { kind: "error", message: "Choose a rating and keep your review under 2,000 characters." };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { kind: "error", message: "Sign in to leave a review." };
+    const { error } = await supabase.from("chapter_reviews").upsert({
+      work_id: parsed.data.workId,
+      chapter_id: parsed.data.chapterId,
+      user_id: user.id,
+      rating: parsed.data.rating,
+      body: parsed.data.body,
+    }, { onConflict: "chapter_id,user_id" });
+    if (error) {
+      console.warn("[chapter-review] save rejected", { code: error.code ?? "unknown" });
+      return { kind: "error", message: "This chapter is not available for reviews right now." };
+    }
+    revalidatePath(`/work/${parsed.data.workId}`);
+    revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
+    return { kind: "success", message: "Review saved." };
+  } catch {
+    return { kind: "error", message: "We couldn't save your review. Please try again." };
+  }
+}
+
+export async function deleteChapterReview(_previous: ReviewActionState, form: FormData): Promise<ReviewActionState> {
+  const parsed = chapterReviewSchema.pick({ workId: true, chapterId: true }).safeParse({
+    workId: value(form, "workId"),
+    chapterId: value(form, "chapterId"),
+  });
+  if (!parsed.success) return { kind: "error", message: "That review could not be found." };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { kind: "error", message: "Sign in to manage your review." };
+    const { error } = await supabase.from("chapter_reviews").delete().eq("work_id", parsed.data.workId).eq("chapter_id", parsed.data.chapterId).eq("user_id", user.id);
+    if (error) {
+      console.warn("[chapter-review] delete rejected", { code: error.code ?? "unknown" });
+      return { kind: "error", message: "We couldn't delete your review. Please try again." };
+    }
+    revalidatePath(`/work/${parsed.data.workId}`);
+    revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
+    return { kind: "success", message: "Review deleted." };
+  } catch {
+    return { kind: "error", message: "We couldn't delete your review. Please try again." };
   }
 }

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookmarkButton, ResumeLink, ShareButton } from "@/components/reader-experience";
+import { getChapterReviewSummaries } from "@/lib/chapter-reviews";
 import { isSecureMediaUrl } from "@/lib/reader-state";
 import { signStoryMediaUrl } from "@/lib/story-media";
 import { createClient } from "@/lib/supabase/server";
@@ -32,6 +33,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const chapters = (chaptersResult.data ?? []) as Chapter[];
   const isOwner = session.user?.id === work.author_id;
   const published = chapters.filter((chapter) => chapter.state === "published");
+  const reviewSummaries = await getChapterReviewSummaries(supabase, published.map((chapter) => chapter.id));
   const [{ data: bookmark }, { data: progress }] = session.user && !isOwner
     ? await Promise.all([
       supabase.from("user_bookmarks").select("work_id").eq("work_id", work.id).eq("user_id", session.user.id).maybeSingle(),
@@ -53,7 +55,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
         <div className="story-actions">{first && <ResumeLink workId={work.id} firstChapterId={first.id} savedChapterId={resumeId} chapterIds={published.map((chapter) => chapter.id)}/>}{isOwner && <Link className="pill" href={`/studio/${work.id}`}>Manage story</Link>}{work.state === "published" && work.visibility !== "private" && <ShareButton/>}{session.user && !isOwner ? <BookmarkButton workId={work.id} initialSaved={!!bookmark}/> : !session.user && work.state === "published" && <Link className="text-action" href={`/auth?mode=login&next=${encodeURIComponent(`/work/${work.id}`)}`}>Sign in to bookmark</Link>}</div>
       </div>
       <section className="story-contents" aria-labelledby="story-contents-title"><div className="section-head"><div><span className="eyebrow">The reading path</span><h2 id="story-contents-title" className="serif">Chapters</h2></div><span className="muted">{published.length} published</span></div>
-        {chapters.length ? <ol className="story-chapter-list">{chapters.map((chapter, index) => <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div><Link href={`/work/${work.id}/chapter/${chapter.id}`} className="chapter-title">{chapter.title}</Link><span className="chapter-meta">{chapter.state}{chapter.format && chapter.format !== "prose" ? ` Â· ${chapter.format}` : ""}</span></div>{isOwner && <Link href={`/studio/${work.id}?chapter=${chapter.id}`} className="chapter-manage">Edit</Link>}</li>)}</ol> : <div className="card empty-chapters"><h3 className="serif">A story gathering its first words.</h3><p className="muted">The author has not published a chapter yet.</p>{isOwner && <Link className="pill primary" href={`/studio/${work.id}`}>Open Creator Studio</Link>}</div>}
+        {chapters.length ? <ol className="story-chapter-list">{chapters.map((chapter, index) => { const summary = reviewSummaries[chapter.id]; return <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div><Link href={`/work/${work.id}/chapter/${chapter.id}`} className="chapter-title">{chapter.title}</Link><span className="chapter-meta">{chapter.state}{chapter.format && chapter.format !== "prose" ? ` · ${chapter.format}` : ""}{summary ? ` · ★ ${summary.average.toFixed(1)} (${summary.count})` : ""}</span></div>{isOwner && <Link href={`/studio/${work.id}?chapter=${chapter.id}`} className="chapter-manage">Edit</Link>}</li>; })}</ol> : <div className="card empty-chapters"><h3 className="serif">A story gathering its first words.</h3><p className="muted">The author has not published a chapter yet.</p>{isOwner && <Link className="pill primary" href={`/studio/${work.id}`}>Open Creator Studio</Link>}</div>}
       </section>
       {work.visibility === "unlisted" && <p className="share-note">This story is shared by link and does not appear in public search.</p>}
     </div>

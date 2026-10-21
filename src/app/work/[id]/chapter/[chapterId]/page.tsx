@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChapterReviews } from "@/components/chapter-reviews";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
+import { getChapterReviews } from "@/lib/chapter-reviews";
 import { createClient } from "@/lib/supabase/server";
 import { signRichDocument } from "@/lib/story-media";
 
@@ -34,9 +36,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
     : await supabase.from("chapters").select("id,title,position").eq("work_id", id).order("position");
   const chapters = (listResult.data ?? []) as ChapterLink[];
   const saved = user ? (await supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()).data : null;
+  const reviews = await getChapterReviews(supabase, id, chapterId);
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio →</Link></div>}
     <ReaderExperience workId={id} chapterId={chapterId} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
+    <ChapterReviews workId={id} chapterId={chapterId} reviews={reviews} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
   </>;
 }
