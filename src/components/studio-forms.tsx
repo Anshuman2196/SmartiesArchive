@@ -2,15 +2,13 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { createChapter, createWorkRecord, saveChapter, saveWorkMetadata } from "@/app/actions";
+import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
 import { RichChapterEditor } from "@/components/rich-chapter-editor";
 import { MangaPanelPicker } from "@/components/manga-panel-picker";
-import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -60,26 +58,6 @@ function CoverAssetPicker({ workId, initialValue, initialPreview }: { workId: st
     setValue(result.src); setPreview(result.previewSrc); setStatus("Cover uploaded. Save work details to apply it.");
   };
   return <div className="cover-asset-picker"><input type="hidden" name="coverUrl" value={value}/>{preview ? <Image className="cover-upload-preview" src={preview} width={600} height={900} unoptimized alt="Selected story cover preview"/> : <div className="cover-upload-empty">Cover preview</div>}<div className="cover-picker-actions"><label className="pill upload-image-button">{busy ? "Uploading…" : value ? "Replace cover" : "Select cover image"}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={busy} onChange={(event) => void choose(event.target.files?.[0])}/></label><button type="button" className="text-action" onClick={() => { setValue(""); setPreview(""); setStatus("Cover removed. Save work details to apply."); }}>Remove cover</button></div><label className="field-hint" htmlFor="edit-work-cover-url">Or use an HTTPS image URL</label><input id="edit-work-cover-url" type="url" inputMode="url" placeholder="https://…" value={value.startsWith("https://") ? value : ""} onChange={(event) => { setValue(event.target.value); setPreview(event.target.value); }}/><p className="field-hint">JPEG, PNG, WebP, or GIF up to 8 MB. Existing cover stays in place until you save.</p>{status && <p role="status" className="field-hint">{status}</p>}</div>;
-}
-
-export function CreateWorkForm() {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [status, setStatus] = useState("");
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); if (pending) return;
-    setPending(true); setStatus("Creating your story…");
-    const result = await createWorkRecord(new FormData(event.currentTarget));
-    if (!result.ok || !result.workId) { setPending(false); setStatus(result.message ?? "The story could not be created."); return; }
-    router.push(`/studio/${result.workId}`); router.refresh();
-  };
-  return <form onSubmit={submit}>
-    <input type="hidden" name="summary" value=""/>
-    <input type="hidden" name="visibility" value="private"/>
-    <FieldGroup><Field><FieldLabel htmlFor="title">Story title</FieldLabel><Input id="title" name="title" required maxLength={120} autoComplete="off" autoFocus/><FieldDescription>Your story starts as a private draft. Add the cover and publishing details later.</FieldDescription></Field></FieldGroup>
-    {status && <p role="status" aria-live="polite" className="field-hint">{status}</p>}
-    <Button className="studio-dialog-submit" type="submit" disabled={pending}>{pending ? "Creating…" : "Create story"}</Button>
-  </form>;
 }
 
 export function WorkMetadataForm({ work, previewCoverUrl }: { work: EditableWork; previewCoverUrl?: string }) {
