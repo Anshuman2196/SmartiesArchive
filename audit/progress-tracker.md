@@ -40,8 +40,8 @@ These requests are now explicitly included in the plan:
 - [x] Story summaries, tags, content warnings, and covers
 - [x] Conflict checks using updated timestamps
 - [x] Private story-media uploads with signed URLs
-- [~] Replaced/deleted media is not automatically cleaned up
-- [ ] Optional publish checklist for missing cover, warnings, or incomplete chapters
+- [x] Replaced/deleted story-media cleanup scans current work and draft references before removal
+- [x] Lightweight publish checklist for missing cover, warnings, unpublished chapters, and incomplete content
 
 ### Writing and content formats
 
@@ -112,94 +112,6 @@ These requests are now explicitly included in the plan:
 - [x] Add narrow unpublish/hide actions
 - [x] Add database/RLS tests proving non-admin users cannot access admin actions
 - [ ] Apply the admin migration and bootstrap the first admin in the configured Supabase project
-
-## Recommended next sequence
-
-### 1. Build the admin page
-
-Keep the first version small:
-
-1. Add an admin flag or small allowlist.
-2. Protect `/admin` and admin server actions on the server.
-3. Show users and stories in two simple tables.
-4. Add unpublish, hide, and delete actions with confirmation.
-5. Add RLS or server-side authorization tests.
-
-### 2. Add the formatting shortcut system
-
-Audit the editor's default TipTap shortcuts, then explicitly add and document shortcuts for:
-
-- Bold, italic, underline, strike, code, highlight, spoiler
-- Heading/paragraph/blockquote changes
-- Bulleted and numbered lists
-- Link insertion/editing
-- Text color and highlight color
-- Text alignment and indent/outdent
-- Superscript and subscript
-- Literary treatments
-- Insert image and emoji
-- Divider, code block, clear formatting
-- Undo, redo, save, preview, focus mode, and open formatting help
-
-Use platform-aware `Mod` shortcuts so the same map works on Windows/Linux and macOS. Avoid overriding browser or screen-reader shortcuts, and provide a visible “Keyboard shortcuts” help panel.
-
-### 3. Make direct reading safe
-
-- Load story warnings on the chapter route.
-- Show a warning gate before the reader content.
-- Preserve the reader's intended chapter after the reader accepts.
-
-### 4. Complete the personal reading loop
-
-- Add `/shelf` or `/library/mine`.
-- Show bookmarked stories, currently reading, and recently finished.
-- Flush progress before chapter navigation and on `pagehide`.
-- Mark a chapter complete near the end of the page.
-
-### 5. Add manga/PDF reading support
-
-- Keep the existing image-only comic format; do not convert images into another format.
-- Add batch upload and drag/drop ordering for manga pages.
-- Add continuous vertical manga reading and page-level progress.
-- Add zoom/fullscreen and a page counter.
-- Add PDF upload validation and a PDF reader surface for manga distributed as PDFs.
-- Decide whether PDFs are whole-chapter assets or one asset per chapter; whole-chapter assets are simpler for this small project.
-
-### 6. Fix the mobile reading flow
-
-- Collapse the global header into a menu.
-- Turn the chapter list into a clear drawer or “Chapters” control.
-- Increase small reader and studio targets to at least roughly 40–44px.
-- Test at 320px and 375px widths.
-
-### 7. Add reviews, ratings, tags, filters, and search improvements
-
-- Add a one-rating-per-user-per-story model.
-- Add optional short reviews with author/admin removal controls.
-- Show average rating and rating count on story pages, but avoid ranking pressure for a small community.
-- Add tag chips and content-warning filters to the library.
-- Add newest/recently-updated sorting.
-- Search title, summary, tags, and author display name.
-- Show separate no-results and no-stories states.
-
-### 8. Polish discovery and content presentation
-
-- Add cover thumbnails to library cards.
-- Add tags and reading time.
-- Separate “no results” from “no stories yet.”
-- Fix corrupted punctuation/arrow characters.
-
-### 9. Add a small smoke-test pass
-
-Cover only the flows that matter to this group:
-
-- Sign in
-- Create and publish a story
-- Open a shared story link
-- Accept a warning and read a chapter
-- Navigate to the next chapter
-- Bookmark and find the story on the shelf
-- Open admin as admin and reject access as a normal user
 
 ## Later, only if the group asks for it
 
@@ -276,3 +188,10 @@ Cover only the flows that matter to this group:
 - [x] Stream chapter reviews below the reader with a Suspense boundary so review/profile queries do not block the chapter shell — `ffac6a6`
 - [x] Add a regression test for batched signed media requests — `34cfe4e`
 - [ ] Measure real hosted latency after the Supabase migrations/project configuration are available
+
+## 2026-10-21 publishing follow-up
+
+- [x] Add a Studio publish-readiness checklist with optional warnings and hard blockers — `4c1d2d3`
+- [x] Remove replaced and deleted story-media objects only when they are no longer referenced — `fa19689`
+- [x] Keep cleanup owner-scoped and preserve the existing server authorization checks — `fa19689`
+- [ ] Apply `supabase/migrations/20261021140000_story_media_cleanup.sql` to the configured Supabase project

@@ -55,3 +55,12 @@
 - Chapter reviews are intentionally streamed after the reader shell with Suspense because they are secondary content and should not delay reading.
 - No broad cross-request cache was added yet. Signed media URLs are bearer URLs tied to authorization and expire; caching them across users could reuse a private URL incorrectly. Browser/module caching and request batching are safer first steps for this 20-user project.
 - A cache can be considered later for public, non-sensitive library metadata with a short revalidation window and explicit invalidation after publishing, once hosted latency is measured.
+
+## 2026-10-21 — Publishing readiness and media cleanup
+
+- The Creator Studio publish checklist is advisory for missing covers and missing content warnings, but identifies the absence of a published chapter and empty chapter content as blockers. The existing database RPC remains the final server-side publication gate.
+- The checklist evaluates the effective chapter content, including unpublished chapter drafts and revisions, so the author sees the state that would actually be published.
+- Media cleanup scans works, work drafts, chapters, and chapter drafts before deleting an object. If any reference scan fails, cleanup stops rather than risking a live media reference.
+- Work deletion removes the work row first, then deletes only objects in the authenticated owner's UUID folder. A migration widens the existing storage delete policy only to that owner folder so orphan cleanup still works after the work row is gone.
+- Cleanup runs after cover replacement, metadata saves, chapter saves, chapter publication, chapter deletion, story publication, and story deletion. It is best-effort and logs only safe storage error codes.
+- The stale recommended-sequence section was removed from the progress tracker; completed work is now represented in the current-state checkboxes and implementation updates.
