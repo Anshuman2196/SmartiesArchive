@@ -1,0 +1,160 @@
+.page {
+  padding-bottom: 80px;
+}
+
+.intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 52px 0 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.intro h1 {
+  margin: 10px 0 0;
+  font: 48px/1.05 Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.intro p {
+  max-width: 480px;
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.status {
+  margin: 20px 0 0;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 24px 0 42px;
+}
+
+.stat {
+  padding: 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.stat strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--lime);
+  font: 30px Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.section {
+  margin-top: 38px;
+}
+
+.section h2 {
+  margin: 0 0 12px;
+  font: 30px Georgia, "Times New Roman", serif;
+  font-weight: 400;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  font-size: 12px;
+}
+
+.table th {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.title {
+  color: var(--cream);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+}
+
+.meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: var(--sage-light);
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.danger {
+  min-height: 36px;
+  padding: 7px 11px;
+  border: 1px solid #d9877880;
+  border-radius: 5px;
+  background: transparent;
+  color: #f2c7bf;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.danger:hover {
+  border-color: #e6a4a4;
+  background: #db887914;
+}
+
+.empty {
+  padding: 24px;
+  color: var(--muted);
+}
+
+@media (max-width: 680px) {
+  .intro {
+    display: block;
+    padding-top: 34px;
+  }
+
+  .intro h1 {
+    font-size: 39px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
