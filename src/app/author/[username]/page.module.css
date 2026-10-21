@@ -1,10 +1,10 @@
 .page{padding-top:58px;padding-bottom:100px}
 .header{max-width:820px;padding-bottom:54px}
-.header h1{margin:16px 0 8px;color:var(--cream);font:900 clamp(56px,7vw,90px)/.9 Arial,Helvetica,sans-serif;letter-spacing:-.075em;text-transform:uppercase;overflow-wrap:anywhere}
+.header h1{margin:16px 0 8px;color:var(--cream);font:900 clamp(56px,7vw,90px)/.9 var(--font-ui);letter-spacing:-.075em;text-transform:uppercase;overflow-wrap:anywhere}
 .handle{margin:0;color:var(--lime);font-size:14px;font-weight:700}
 .bio{max-width:65ch;margin:23px 0 0;color:var(--cream);font-size:16px;line-height:1.65;white-space:pre-wrap}
 .sectionHead{display:flex;align-items:end;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--line)}
-.sectionHead h2{margin:0;color:var(--cream);font:800 clamp(27px,3vw,40px)/1 Arial,Helvetica,sans-serif;letter-spacing:-.055em;text-transform:uppercase}
+.sectionHead h2{margin:0;color:var(--cream);font:800 clamp(27px,3vw,40px)/1 var(--font-ui);letter-spacing:-.055em;text-transform:uppercase}
 .sectionHead span{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap}
 .list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.5vw,34px);padding-top:26px}
 .work{min-width:0}.poster{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--panel)}.poster>img{object-fit:cover;transition:transform .3s}.work:hover .poster>img{transform:scale(1.03)}

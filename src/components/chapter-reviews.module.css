@@ -17,7 +17,7 @@
   max-width: 11ch;
   margin: 14px 0 24px;
   color: var(--cream);
-  font: 800 clamp(30px, 3.5vw, 46px)/0.98 Arial, Helvetica, sans-serif;
+  font: 800 clamp(30px, 3.5vw, 46px)/0.98 var(--font-ui);
   letter-spacing: -0.055em;
   text-transform: uppercase;
 }

@@ -32,7 +32,7 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 22%, transparent);
   background: color-mix(in srgb, var(--page-bg) 88%, transparent);
   color: var(--page-ink);
-  font: 10px Arial, sans-serif;
+  font: 10px var(--font-ui);
   opacity: 0;
   transition: opacity .15s ease;
 }
@@ -86,7 +86,7 @@
   overflow: hidden;
   margin: 0;
   color: var(--page-ink);
-  font: 13px/1.35 Georgia, serif;
+  font: 13px/1.35 var(--font-ui);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -105,7 +105,7 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 20%, transparent);
   background: transparent;
   color: var(--page-ink);
-  font: 11px Arial, sans-serif;
+  font: 11px var(--font-ui);
   cursor: pointer;
 }
 

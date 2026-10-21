@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/archivo";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 import "./refresh.css";

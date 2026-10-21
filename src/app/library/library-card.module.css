@@ -4,7 +4,7 @@
 .posterImage{object-fit:cover;transition:transform .35s ease}
 .card:hover .posterImage{transform:scale(1.025)}
 .body{padding:17px 0 0;min-width:0}
-.title{margin:0 0 11px;font:800 clamp(22px,2.3vw,31px)/1.05 Arial,Helvetica,sans-serif;letter-spacing:-.055em;text-transform:uppercase;overflow-wrap:anywhere}
+.title{margin:0 0 11px;font:800 clamp(22px,2.3vw,31px)/1.05 var(--font-ui);letter-spacing:-.055em;text-transform:uppercase;overflow-wrap:anywhere}
 .summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-width:58ch;margin:0 0 15px;color:var(--muted);font-size:14px;line-height:1.55}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
 .tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px;border:1px solid var(--line);color:var(--cream);font-size:11px;letter-spacing:0;text-transform:none}
