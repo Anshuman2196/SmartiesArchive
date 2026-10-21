@@ -9,6 +9,7 @@ import {
   matchesLibraryFilters,
   parseLibraryFilters,
   sortLibraryWorks,
+  splitFeaturedWorks,
   type LibrarySearchParams,
   type LibraryWork,
 } from "@/lib/library-filters";
@@ -75,6 +76,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const tags = getLibraryOptions(allWorks, "tags");
   const warnings = getLibraryOptions(allWorks, "content_warnings");
   const activeFilters = hasActiveLibraryFilters(filters);
+  const { featuredWorks, remainingWorks } = splitFeaturedWorks(filteredWorks, !activeFilters);
 
   return <main className="shell section">
     <div className="section-head">
@@ -118,16 +120,16 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
     </div>}
 
-    {!activeFilters && configured && filteredWorks.length > 0 && <section className="section" aria-labelledby="featured-stories-title" style={{ padding: "10px 0 24px" }}>
+    {featuredWorks.length > 0 && configured && <section className="section" aria-labelledby="featured-stories-title" style={{ padding: "10px 0 24px" }}>
       <div className="section-head"><div><span className="eyebrow">A place to begin</span><h2 id="featured-stories-title" className="serif">Featured from the archive</h2></div><span className="muted">Freshly published</span></div>
-      <div className="cards">{filteredWorks.slice(0, 3).map((work) => <Link className="card" key={`featured-${work.id}`} href={`/work/${work.id}`} aria-label={`Open featured story: ${work.title}`}><span className="tag">Featured</span><h3 className="serif">{work.title}</h3><p>{work.summary || "A new story begins here."}</p><span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read` : `${work.chapterCount ?? 0} chapters`} · By {work.profiles?.display_name ?? "A reader"}</span></Link>)}</div>
+      <div className="cards">{featuredWorks.map((work) => <Link className="card" key={`featured-${work.id}`} href={`/work/${work.id}`} aria-label={`Open featured story: ${work.title}`}><span className="tag">Featured</span><h3 className="serif">{work.title}</h3><p>{work.summary || "A new story begins here."}</p><span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read` : `${work.chapterCount ?? 0} chapters`} · By {work.profiles?.display_name ?? "A reader"}</span></Link>)}</div>
     </section>}
 
     {!configured && <p className="notice">Connect your Supabase project to open the shelves.</p>}
     {configured && allWorks.length === 0 && <div className="card"><h2 className="serif">A little quiet on these shelves.</h2><p>Published public stories will find their home here. Be the first to add yours.</p><Link href="/auth" className="pill primary">Write the first story</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="card"><h2 className="serif">Nothing matches these filters.</h2><p>Try a different author, tag, content note, or search phrase.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    <div className="cards">{filteredWorks.map((work) => <Link className={`card ${styles.card}`} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
+    {remainingWorks.length > 0 && <div className="cards">{remainingWorks.map((work) => <Link className={`card ${styles.card}`} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
       <div className={styles.poster} aria-hidden="true">{work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" width={240} height={320} unoptimized/> : <span className={styles.posterPlaceholder}>{work.title}</span>}</div>
       <div className={styles.body}><div className="actions" style={{ justifyContent: "space-between", margin: 0 }}><span className="tag">Story</span><span className="muted">{work.tags.length} {work.tags.length === 1 ? "tag" : "tags"}</span></div>
         <h3 className={styles.title}>{work.title}</h3>
@@ -135,6 +137,6 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         {work.tags.length > 0 && <div className={styles.tags} aria-label={`Tags for ${work.title}`}>{work.tags.map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}</div>}
         <span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read · ` : ""}By {work.profiles?.display_name ?? "A reader"}</span>
       </div>
-    </Link>)}</div>
+    </Link>)}</div>}
   </main>;
 }

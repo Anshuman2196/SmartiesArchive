@@ -6,6 +6,7 @@ import {
   matchesLibraryFilters,
   parseLibraryFilters,
   sortLibraryWorks,
+  splitFeaturedWorks,
   type LibraryWork,
 } from "./library-filters.ts";
 
@@ -64,4 +65,12 @@ test("sorts without mutating the source collection", () => {
 test("deduplicates filter options while preserving readable labels", () => {
   const options = getLibraryOptions([...works, { ...works[0], id: "three", tags: [" mystery "] }], "tags");
   assert.deepEqual(options, ["Coming of age", "Mystery", "Slow burn"]);
+});
+
+test("removes featured stories from the main library grid", () => {
+  const { featuredWorks, remainingWorks } = splitFeaturedWorks([...works, { ...works[0], id: "three", title: "Third Story" }, { ...works[1], id: "four", title: "Fourth Story" }], true);
+  assert.deepEqual(featuredWorks.map((work) => work.id), ["one", "two", "three"]);
+  assert.deepEqual(remainingWorks.map((work) => work.id), ["four"]);
+  assert.deepEqual(splitFeaturedWorks(works, false).featuredWorks, []);
+  assert.deepEqual(splitFeaturedWorks(works, false).remainingWorks.map((work) => work.id), ["one", "two"]);
 });

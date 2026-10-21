@@ -88,6 +88,12 @@ export function sortLibraryWorks(works: LibraryWork[], sort: LibrarySort): Libra
   });
 }
 
+export function splitFeaturedWorks(works: LibraryWork[], showFeatured: boolean): { featuredWorks: LibraryWork[]; remainingWorks: LibraryWork[] } {
+  const featuredWorks = showFeatured ? works.slice(0, 3) : [];
+  const featuredIds = new Set(featuredWorks.map((work) => work.id));
+  return { featuredWorks, remainingWorks: works.filter((work) => !featuredIds.has(work.id)) };
+}
+
 export function getLibraryOptions(works: LibraryWork[], field: "tags" | "content_warnings"): string[] {
   const options = new Map<string, string>();
 
