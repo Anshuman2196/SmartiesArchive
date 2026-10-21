@@ -13,6 +13,7 @@ import styles from "./reader-experience.module.css";
 type ChapterLink = { id: string; title: string; position: number };
 type Preferences = ReaderPreferences;
 const defaults = defaultReaderPreferences;
+const COMPLETION_THRESHOLD = 0.95;
 
 function Media({ url, alt }: { url: string; alt: string }) {
   if (!isSecureMediaUrl(url)) return null;
@@ -91,6 +92,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   const current = chapters.findIndex((chapter) => chapter.id === chapterId);
   const previous = current > 0 ? chapters[current - 1] : undefined;
   const next = current >= 0 ? chapters[current + 1] : undefined;
+  const completed = progress >= COMPLETION_THRESHOLD;
 
   useEffect(() => {
     try {
@@ -149,11 +151,33 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     }
   }, [authenticated, chapterId, workId]);
 
+  const flushProgress = useCallback((value = progressRef.current) => {
+    if (!authenticated || !Number.isFinite(value)) return;
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const payload = JSON.stringify({ workId, chapterId, progress: Math.max(0, Math.min(1, value)) });
+    const body = new Blob([payload], { type: "application/json" });
+    if (navigator.sendBeacon?.("/api/reader/progress", body)) return;
+    void fetch("/api/reader/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => undefined);
+  }, [authenticated, chapterId, workId]);
+
   useEffect(() => {
-    const saveLatest = () => { try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Progress storage is optional. */ } };
+    const saveLatest = () => {
+      try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Progress storage is optional. */ }
+      flushProgress();
+    };
+    const saveWhenHidden = () => { if (document.visibilityState === "hidden") saveLatest(); };
     window.addEventListener("pagehide", saveLatest);
-    return () => { window.removeEventListener("pagehide", saveLatest); if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [chapterId, workId]);
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    return () => {
+      window.removeEventListener("pagehide", saveLatest);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+      saveLatest();
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [chapterId, flushProgress, workId]);
 
   const onScroll = useCallback(() => {
     if (restoringProgress.current) return;
@@ -161,7 +185,8 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     if (!article) return;
     const top = article.getBoundingClientRect().top + window.scrollY;
     const height = Math.max(article.offsetHeight - window.innerHeight, 1);
-    persistProgress(Math.max(0, Math.min(1, (window.scrollY - top) / height)));
+    const atDocumentEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 24;
+    persistProgress(atDocumentEnd ? 1 : Math.max(0, Math.min(1, (window.scrollY - top) / height)));
   }, [persistProgress]);
 
   useEffect(() => {
@@ -192,7 +217,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     <div className={`reader-layout ${styles.readerLayout}`}>
       <aside id="table-of-contents" className={`reader-toc ${styles.readerToc}`} data-open={tocOpen}>
         <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>
-        <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => setTocOpen(false)}>{chapter.title}</Link></li>)}</ol>
+        <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => { setTocOpen(false); flushProgress(); }}>{chapter.title}</Link></li>)}</ol>
       </aside>
       <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div></header>
         <section id="reader-preferences" className={`reader-tools ${styles.readerTools}`} aria-labelledby="reader-preferences-title">
@@ -212,7 +237,13 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
           </div>
         </section>
         <article ref={articleRef} className={`reader-article reader-font-${preferences.font} ${styles.readerArticle}`} aria-label={`${chapterTitle} content`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
-        <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`}>← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details">Story details →</Link>}</nav>
+        {completed && <section className={styles.completionCard} aria-live="polite" aria-label="Chapter completion">
+          <span className="eyebrow">Chapter complete</span>
+          <h2 className="serif">{next ? "Ready for the next chapter?" : "You reached the end."}</h2>
+          <p>{next ? `Continue with ${next.title}.` : "You have finished the published chapters in this story."}</p>
+          {next ? <Link href={`/work/${workId}/chapter/${next.id}`} className="pill primary" rel="next" onClick={() => flushProgress(1)}>Continue reading</Link> : <Link href={`/work/${workId}`} className="pill primary" onClick={() => flushProgress(1)}>Back to story details</Link>}
+        </section>}
+        <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}>← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details →</Link>}</nav>
       </div>
     </div>
   </main>;

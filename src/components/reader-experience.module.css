@@ -260,6 +260,27 @@
   min-width: 0;
 }
 
+.completionCard {
+  max-width: 900px;
+  margin: 54px auto 0;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--lime) 32%, transparent);
+  background: color-mix(in srgb, var(--lime) 7%, transparent);
+}
+
+.completionCard h2 {
+  margin: 8px 0 6px;
+  color: var(--page-ink);
+  font-size: clamp(24px, 4vw, 34px);
+  font-weight: 400;
+}
+
+.completionCard p {
+  margin: 0 0 18px;
+  color: var(--page-muted);
+  font: 12px/1.6 Arial, sans-serif;
+}
+
 @media (max-width: 760px) {
   .readerPage {
     padding-right: 14px;
