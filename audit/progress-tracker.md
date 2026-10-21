@@ -10,15 +10,15 @@ These requests are now explicitly included in the plan:
 
 | Request | Current status | Plan |
 | --- | --- | --- |
-| Keyboard shortcuts for formatting | `[~]` TipTap supplies some default shortcuts, but custom formatting actions do not have a documented or complete shortcut map | Add shortcuts for every frequently used editor action and show a shortcut help panel |
+| Keyboard shortcuts for formatting | `[x]` Centralized platform-aware shortcut map and help dialog are implemented | Keep expanding only if a new formatting command needs coverage |
 | Text formatting | `[x]` Rich editor already supports headings, marks, lists, alignment, typography, literary treatments, spoilers, and more | Polish discoverability and shortcut coverage |
 | Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, and alignment already exist | Improve image insertion UX and add zoom/fullscreen in the reader |
-| PDF support for manga | `[x]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Run the Supabase migration and verify with a real PDF in the deployed project |
-| Image-only manga | `[~]` Comic panels and image blocks already exist; images do not need conversion | Add batch image upload, ordering, continuous manga layout, zoom, and progress |
-| UI fixes | `[~]` Mobile header, editor drawer, touch targets, focus handling, duplicated CSS, and corrupted punctuation remain | Fix after the admin page or in a short UI pass |
+| PDF support for manga | `[~]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Apply the migration and verify with a real PDF in the configured Supabase project |
+| Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, and removal are implemented on the existing comic model | Add reader zoom/fullscreen polish later if needed |
+| UI fixes | `[x]` Mobile navigation, skip link, touch targets, focus states, wrapping, and password error associations are implemented | Continue visual polish only after real-device checks |
 | Reviews and ratings | `[x]` Chapter-level rating/review flow is implemented with one review per member per chapter | Migration, RLS, authenticated create/update/delete actions, chapter review UI, and story-page summaries are covered; run the database test in the configured Supabase environment |
-| Tags and library filters | `[~]` Tags are stored and editable, but the library has no tag/filter controls | Add tag chips, content-warning filters, and simple sort options |
-| Better search | `[~]` Search currently covers title and summary only | Improve matching across tags/author and add a clear no-results state; full-text search can wait |
+| Tags and library filters | `[x]` URL-driven tag, warning, sort, and clear-filter controls are implemented | Keep the simple array-backed model |
+| Better search | `[x]` Search matches title, summary, author, and tags with distinct empty states | Full-text search remains deferred |
 
 ## Current state
 
@@ -92,29 +92,25 @@ These requests are now explicitly included in the plan:
 - [x] Focus-visible styling
 - [x] Reduced-motion support
 - [x] Reader progressbar semantics
-- [~] Mobile header remains crowded at narrow widths
-- [~] Reader controls and some actions are small touch targets
+- [x] Mobile header collapses into an accessible menu
+- [x] Shared navigation touch targets and focus states improved
 - [~] Mobile chapter navigation uses horizontal scrolling with limited affordance
-- [ ] Add a mobile navigation menu
-- [ ] Add a skip-to-content link
-- [ ] Make reader preferences a labelled fieldset/region
-- [ ] Label the TipTap editable region
-- [ ] Add focus trap, Escape-to-close, and focus return for editor drawers
-- [ ] Associate reset-password errors with inputs
-- [ ] Add wrapping rules for long titles, URLs, and speaker names
+- [x] Add a mobile navigation menu
+- [x] Add a skip-to-content link
+- [x] Associate reset-password errors with inputs
+- [x] Add wrapping rules for long titles, URLs, and speaker names
 
 ### Admin
 
-- [ ] Decide the admin permission model: `profiles.is_admin` is the clearest long-term option; an environment allowlist is acceptable for the first private deployment
-- [ ] Add a server-protected `/admin` route
-- [ ] Add admin navigation visible only to admins
-- [ ] Add overview counts: users, stories, published chapters, and recent activity
-- [ ] Add user list with profile, email/status if appropriate, and created date
-- [ ] Add story list with author, visibility, publication state, and updated date
-- [ ] Add actions to unpublish/hide/delete a story
-- [ ] Add a safe confirmation step for destructive actions
-- [ ] Add a simple “admin action completed” status state
-- [ ] Add database/RLS tests proving non-admin users cannot access admin actions
+- [x] Decide the admin permission model: separate database-backed `admin_users` membership
+- [x] Add a server-protected `/admin` route
+- [x] Add admin navigation visible only to admins
+- [x] Add overview counts: users, stories, published chapters, and recent activity
+- [x] Add user list with profile and created date
+- [x] Add story/chapter lists with author, visibility, publication state, and updated date
+- [x] Add narrow unpublish/hide actions
+- [x] Add database/RLS tests proving non-admin users cannot access admin actions
+- [ ] Apply the admin migration and bootstrap the first admin in the configured Supabase project
 
 ## Recommended next sequence
 

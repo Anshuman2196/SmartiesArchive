@@ -1,5 +1,12 @@
 # Implementation Decisions
 
+## Project scope
+
+- This remains a private server library for roughly 20 users and a limited story collection.
+- Discord integration, external search services, pagination infrastructure, offline reading, and enterprise moderation are out of scope.
+- The existing Next.js, Supabase, TipTap, and handcrafted CSS stack is retained.
+- Database migrations are committed to the repository, but applying them to the hosted Supabase project requires a connected account with migration permission.
+
 ## 2026-10-21 — Custom PDF manga support
 
 - PDFs are chapter-level assets: one PDF is attached to one chapter.
