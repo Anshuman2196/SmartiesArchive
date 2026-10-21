@@ -1,20 +1,26 @@
 import { z } from "zod";
 import { validateRichDocument, type RichDocument } from "./rich-document.ts";
 
-export const chapterFormats = ["prose", "image", "comic", "chat", "mixed"] as const;
+export const chapterFormats = ["prose", "image", "comic", "chat", "mixed", "pdf"] as const;
 export type ChapterFormat = (typeof chapterFormats)[number];
 
 const secureUrl = z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS media URL.");
+const securePdfReference = z.string().refine((value) => {
+  if (value.startsWith("storage://story-media/")) return /^storage:\/\/story-media\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/i.test(value);
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+}, "Use a secure PDF media reference.");
 const proseBlock = z.object({ type: z.literal("prose"), text: z.string().min(1).max(100_000) });
 const imageBlock = z.object({ type: z.literal("image"), url: secureUrl, alt: z.string().max(300).default("") });
 const chatBlock = z.object({ type: z.literal("chat"), messages: z.array(z.object({ speaker: z.string().min(1).max(60), text: z.string().min(1).max(2000) })).min(1).max(500) });
 const comicBlock = z.object({ type: z.literal("comic"), panels: z.array(z.object({ url: secureUrl, alt: z.string().max(300).default("") })).min(1).max(100) });
+const pdfBlock = z.object({ type: z.literal("pdf"), url: securePdfReference });
 const mixedItem = z.discriminatedUnion("type", [proseBlock, imageBlock, chatBlock]);
 const readerContentSchema = z.discriminatedUnion("type", [
   proseBlock,
   imageBlock,
   chatBlock,
   comicBlock,
+  pdfBlock,
   z.object({ type: z.literal("mixed"), blocks: z.array(mixedItem).min(1).max(200) }),
 ]);
 
@@ -44,6 +50,10 @@ export function buildChapterContent(format: ChapterFormat, source: string, alt =
     });
     const content = readerContentSchema.parse({ type: "chat", messages });
     return { body: source, content };
+  }
+  if (format === "pdf") {
+    const content = readerContentSchema.parse({ type: "pdf", url: source.trim() });
+    return { body: source.trim(), content };
   }
   let parsed: unknown;
   try { parsed = JSON.parse(source); }

@@ -5,7 +5,7 @@ import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { getChapterReviews } from "@/lib/chapter-reviews";
 import { createClient } from "@/lib/supabase/server";
-import { signRichDocument } from "@/lib/story-media";
+import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number };
@@ -30,6 +30,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
   if (!work) notFound();
   let content = normalizeReaderContent(chapter.content, chapter.body, work.author_id, id);
   if (content.type === "rich") content = { ...content, document: await signRichDocument(content.document, supabase) as typeof content.document };
+  if (content.type === "pdf") {
+    const signedUrl = await signStoryMediaUrl(supabase, content.url);
+    if (signedUrl) content = { ...content, url: signedUrl };
+  }
   const isOwner = user?.id === work.author_id;
   const listResult = viaUnlistedLink
     ? await supabase.rpc("read_unlisted_chapters", { p_work_id: id })

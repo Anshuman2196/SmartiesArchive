@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { maxStoryImageBytes, storyImageExtension, validStoryImageHeader } from "./image-validation.ts";
+import { maxStoryImageBytes, maxStoryPdfBytes, storyImageExtension, validStoryImageHeader, validStoryPdfHeader } from "./image-validation.ts";
 
 test("image upload validation accepts supported signatures and assigns safe extensions", () => {
   assert.equal(storyImageExtension("image/webp"), "webp");
@@ -13,4 +13,10 @@ test("image upload validation rejects mismatched type, invalid size, and malform
   assert.equal(validStoryImageHeader("image/png", maxStoryImageBytes + 1, [0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,0]), false);
   assert.equal(validStoryImageHeader("image/svg+xml", 12, new Array(12).fill(0)), false);
   assert.equal(validStoryImageHeader("image/gif", 12, [71,73,70]), false);
+});
+
+test("PDF upload validation accepts the PDF signature and 50 MB limit", () => {
+  assert.equal(validStoryPdfHeader("application/pdf", 1024, [0x25, 0x50, 0x44, 0x46, 0x2d]), true);
+  assert.equal(validStoryPdfHeader("application/pdf", maxStoryPdfBytes + 1, [0x25, 0x50, 0x44, 0x46, 0x2d]), false);
+  assert.equal(validStoryPdfHeader("application/pdf", 1024, [0x89, 0x50, 0x4e, 0x47, 0x0d]), false);
 });

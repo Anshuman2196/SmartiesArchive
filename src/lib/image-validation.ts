@@ -1,7 +1,12 @@
 export const maxStoryImageBytes = 8 * 1024 * 1024;
+export const maxStoryPdfBytes = 50 * 1024 * 1024;
 const imageExtensions: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 
 export function storyImageExtension(mimeType: string) { return imageExtensions[mimeType]; }
+
+export function storyMediaExtension(mimeType: string) {
+  return storyImageExtension(mimeType) ?? (mimeType === "application/pdf" ? "pdf" : undefined);
+}
 
 export function validStoryImageHeader(mimeType: string, fileSize: number, bytes: number[]) {
   if (!storyImageExtension(mimeType) || !Number.isInteger(fileSize) || fileSize < 1 || fileSize > maxStoryImageBytes || bytes.length < 12 || bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)) return false;
@@ -10,4 +15,13 @@ export function validStoryImageHeader(mimeType: string, fileSize: number, bytes:
     : mimeType === "image/png" ? header.startsWith("89504e470d0a1a0a")
       : mimeType === "image/gif" ? header.startsWith("474946383761") || header.startsWith("474946383961")
         : header.startsWith("52494646") && header.slice(16, 24) === "57454250";
+}
+
+export function validStoryPdfHeader(mimeType: string, fileSize: number, bytes: number[]) {
+  return mimeType === "application/pdf"
+    && Number.isInteger(fileSize)
+    && fileSize >= 5
+    && fileSize <= maxStoryPdfBytes
+    && bytes.length >= 5
+    && bytes.slice(0, 5).every((byte, index) => byte === [0x25, 0x50, 0x44, 0x46, 0x2d][index]);
 }

@@ -9,7 +9,7 @@ import { buildChapterContent } from "@/lib/chapter-content";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
-import { storyImageExtension, validStoryImageHeader } from "@/lib/image-validation";
+import { storyMediaExtension, validStoryImageHeader, validStoryPdfHeader } from "@/lib/image-validation";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const siteOrigin = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -384,9 +384,9 @@ export async function finishStoryMediaUpload(workId: string, path: string): Prom
   try {
     const { supabase, user } = await requireOwnedWorkForAction(workId);
     const expectedPrefix = `${user.id}/${workId}/`;
-    if (!path.startsWith(expectedPrefix) || !new RegExp(`^${user.id}/${workId}/[a-f0-9-]{36}\\.(?:png|jpe?g|webp|gif)$`, "i").test(path)) return { ok: false, message: "The uploaded image could not be verified." };
+    if (!path.startsWith(expectedPrefix) || !new RegExp(`^${user.id}/${workId}/[a-f0-9-]{36}\\.(?:png|jpe?g|webp|gif|pdf)$`, "i").test(path)) return { ok: false, message: "The uploaded media could not be verified." };
     const { data, error } = await supabase.storage.from(storyMediaBucket).createSignedUrl(path, 3600);
-    if (error || !data?.signedUrl) return { ok: false, message: "The image uploaded, but its preview could not be prepared." };
+    if (error || !data?.signedUrl) return { ok: false, message: "The media uploaded, but its preview could not be prepared." };
     return { ok: true, src: `storage://${storyMediaBucket}/${path}`, previewSrc: data.signedUrl };
   } catch { return { ok: false, message: "The image could not be verified." }; }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
+import { PdfReader } from "@/components/pdf-reader";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 
@@ -21,13 +22,14 @@ function Chat({ messages }: { messages: Array<{ speaker: string; text: string }>
   return <div className="chat-transcript">{messages.map((message, index) => <div className="chat-line" key={`${index}-${message.speaker}`}><span className="chat-speaker">{message.speaker}</span><p>{message.text}</p></div>)}</div>;
 }
 
-function Content({ content }: { content: ReaderContent }) {
+function Content({ content, chapterTitle }: { content: ReaderContent; chapterTitle: string }) {
   if (content.type === "rich") return <div className="prose-content rich-reader"><RichDocumentRenderer document={content.document}/></div>;
   if (content.type === "prose") return <div className="prose-content">{content.text.split(/\n{2,}/).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>;
   if (content.type === "image") return <Media url={content.url} alt={content.alt}/>;
   if (content.type === "comic") return <div className="comic-panels">{content.panels.map((panel, index) => <Media key={`${panel.url}-${index}`} url={panel.url} alt={panel.alt}/>)}</div>;
   if (content.type === "chat") return <Chat messages={content.messages}/>;
-  return <div className="mixed-content">{content.blocks.map((block, index) => <section key={`${block.type}-${index}`}>{block.type === "prose" ? <Content content={block}/> : block.type === "image" ? <Media url={block.url} alt={block.alt}/> : <Chat messages={block.messages}/>}</section>)}</div>;
+  if (content.type === "pdf") return <PdfReader url={content.url} title={chapterTitle}/>;
+  return <div className="mixed-content">{content.blocks.map((block, index) => <section key={`${block.type}-${index}`}>{block.type === "prose" ? <Content content={block} chapterTitle={chapterTitle}/> : block.type === "image" ? <Media url={block.url} alt={block.alt}/> : <Chat messages={block.messages}/>}</section>)}</div>;
 }
 
 export function BookmarkButton({ workId, initialSaved }: { workId: string; initialSaved: boolean }) {
@@ -169,7 +171,7 @@ export function ReaderExperience({ workId, chapterId, chapterTitle, content, cha
       <aside id="table-of-contents" className="reader-toc"><span className="eyebrow">Contents</span><ol>{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined}>{chapter.title}</Link></li>)}</ol></aside>
       <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ width: `${Math.round(progress * 100)}%` }}/></div></header>
         <div className="reader-tools" aria-label="Reading preferences"><label>Typeface<select value={preferences.font} onChange={(event) => update("font", event.target.value as Preferences["font"])}><option value="serif">Literary serif</option><option value="sans">Sans serif</option></select></label><label>Text size<input aria-label="Text size" type="range" min="16" max="28" step="1" value={preferences.size} onChange={(event) => update("size", Number(event.target.value))}/></label><label>Line spacing<input aria-label="Line spacing" type="range" min="1.4" max="2.2" step="0.1" value={preferences.leading} onChange={(event) => update("leading", Number(event.target.value))}/></label><label>Paragraph spacing<input aria-label="Paragraph spacing" type="range" min="0.5" max="2.5" step="0.1" value={preferences.spacing} onChange={(event) => update("spacing", Number(event.target.value))}/></label><label>Reading width<select value={preferences.width} onChange={(event) => update("width", Number(event.target.value))}><option value="620">Narrow</option><option value="760">Comfortable</option><option value="900">Wide</option></select></label><fieldset><legend>Page tone</legend>{(["dark", "light", "sepia"] as const).map((theme) => <button type="button" key={theme} className="theme-swatch" data-selected={preferences.theme === theme} aria-label={`${theme} page theme`} aria-pressed={preferences.theme === theme} onClick={() => update("theme", theme)}>{theme}</button>)}</fieldset></div>
-        <article ref={articleRef} className={`reader-article reader-font-${preferences.font}`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content}/></article>
+        <article ref={articleRef} className={`reader-article reader-font-${preferences.font}`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
         <nav className="chapter-pager" aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev">← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next">Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`}>Story details →</Link>}</nav>
       </div>
     </div>

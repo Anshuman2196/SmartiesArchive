@@ -13,7 +13,7 @@ These requests are now explicitly included in the plan:
 | Keyboard shortcuts for formatting | `[~]` TipTap supplies some default shortcuts, but custom formatting actions do not have a documented or complete shortcut map | Add shortcuts for every frequently used editor action and show a shortcut help panel |
 | Text formatting | `[x]` Rich editor already supports headings, marks, lists, alignment, typography, literary treatments, spoilers, and more | Polish discoverability and shortcut coverage |
 | Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, and alignment already exist | Improve image insertion UX and add zoom/fullscreen in the reader |
-| PDF support for manga | `[ ]` No PDF chapter format or PDF viewer exists | Add PDF upload, validation, storage, reader display, and page navigation |
+| PDF support for manga | `[x]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Run the Supabase migration and verify with a real PDF in the deployed project |
 | Image-only manga | `[~]` Comic panels and image blocks already exist; images do not need conversion | Add batch image upload, ordering, continuous manga layout, zoom, and progress |
 | UI fixes | `[~]` Mobile header, editor drawer, touch targets, focus handling, duplicated CSS, and corrupted punctuation remain | Fix after the admin page or in a short UI pass |
 | Reviews and ratings | `[x]` Chapter-level rating/review flow is implemented with one review per member per chapter | Migration, RLS, authenticated create/update/delete actions, chapter review UI, and story-page summaries are covered; run the database test in the configured Supabase environment |
@@ -223,3 +223,10 @@ Cover only the flows that matter to this group:
 - Enterprise moderation tooling
 - Multi-tenant administration
 - Production-grade analytics and observability
+
+## 2026-10-21 implementation update
+
+- [x] Added the `pdf` chapter format and private `story-media` PDF references.
+- [x] Added 50 MB PDF signature/size validation while preserving the 8 MB image limit.
+- [x] Added custom PDF.js rendering with lazy visible-page loading, zoom, page controls, keyboard navigation, and download/open fallback.
+- [ ] Apply `supabase/migrations/202610210006_pdf_chapters.sql` to the configured Supabase project and test with a real PDF chapter.

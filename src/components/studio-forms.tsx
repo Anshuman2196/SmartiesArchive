@@ -116,15 +116,37 @@ const formatHelp: Record<ChapterFormat, string> = {
   comic: "Add one HTTPS image URL per line. Optionally add | and a panel caption.",
   chat: "Add one message per line in Speaker: message format.",
   mixed: 'Paste a JSON array of blocks, for example: [{"type":"prose","text":"..."},{"type":"image","url":"https://…","alt":"…"}].',
+  pdf: "Upload one PDF manga file. PDFs stay private and are rendered in the custom reader.",
 };
+
+function PdfAssetPicker({ workId, initialValue }: { workId: string; initialValue: string }) {
+  const [value, setValue] = useState(initialValue);
+  const [status, setStatus] = useState("");
+  const [busy, setBusy] = useState(false);
+  const choose = async (file?: File) => {
+    if (!file) return;
+    setBusy(true); setStatus("Preparing secure PDF upload…");
+    const result = await uploadStoryMediaFile(workId, file, (percent) => setStatus(`Uploading PDF… ${percent}%`));
+    setBusy(false);
+    if (!result.ok || !result.src || !result.previewSrc) { setStatus(result.message ?? "PDF upload failed."); return; }
+    setValue(result.src); setStatus("PDF uploaded. Save the chapter to apply it.");
+  };
+  return <div className="pdf-asset-picker">
+    <input type="hidden" name="content" value={value} required/>
+    {value && <a className="field-hint" href={value.startsWith("https://") ? value : undefined} target="_blank" rel="noreferrer">PDF selected · replace if needed</a>}
+    <label className="pill upload-image-button">{busy ? "Uploading…" : value ? "Replace PDF" : "Select PDF"}<input type="file" accept="application/pdf,.pdf" disabled={busy} onChange={(event) => void choose(event.target.files?.[0])}/></label>
+    <p className="field-hint">PDF files only, up to 50 MB. The reader renders pages privately with PDF.js.</p>
+    {status && <p role="status" className="field-hint">{status}</p>}
+  </div>;
+}
 
 export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, body, format, mediaAlt, content, isRevision }: { workId: string; chapterId?: string; expectedUpdatedAt?: string; title?: string; body?: string; format?: ChapterFormat; mediaAlt?: string; content?: unknown; isRevision?: boolean }) {
   const [selectedFormat, setSelectedFormat] = useState<ChapterFormat>(format ?? "prose");
   const action = chapterId ? saveChapter : createChapter;
-  const raw = content as { type?: string; text?: string; document?: RichDocument } | undefined;
+  const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument } | undefined;
   const initialDocument = raw?.type === "rich" && raw.document?.type === "doc" ? raw.document : legacyTextToRichDocument(raw?.type === "prose" && typeof raw.text === "string" ? raw.text : body ?? "");
   return <div className="chapter-composer">
     <div className="field"><label htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</label><select id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <option key={name} value={name}>{name === "image" ? "Single image" : name === "comic" ? "Manga / comic" : name === "chat" ? "Chat fiction" : name[0].toUpperCase() + name.slice(1)}</option>)}</select><span className="field-hint">{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</span></div>
-    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form"><input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/><div className="field"><label htmlFor={chapterId ? "edit-chapter-title" : "new-chapter-title"}>Chapter title</label><input id={chapterId ? "edit-chapter-title" : "new-chapter-title"} name="title" defaultValue={title} maxLength={120} required/></div>{selectedFormat === "image" && <div className="field"><label htmlFor="media-alt">Image description</label><input id="media-alt" name="mediaAlt" defaultValue={mediaAlt} maxLength={300}/></div>}<div className="field"><label htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</label><textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></div>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}<ActionSubmit>{chapterId ? isRevision ? "Save revision draft" : "Save chapter draft" : "Create chapter draft"}</ActionSubmit></ManagedForm>}
+    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form"><input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/><div className="field"><label htmlFor={chapterId ? "edit-chapter-title" : "new-chapter-title"}>Chapter title</label><input id={chapterId ? "edit-chapter-title" : "new-chapter-title"} name="title" defaultValue={title} maxLength={120} required/></div>{selectedFormat === "image" && <div className="field"><label htmlFor="media-alt">Image description</label><input id="media-alt" name="mediaAlt" defaultValue={mediaAlt} maxLength={300}/></div>}{selectedFormat === "pdf" ? <PdfAssetPicker workId={workId} initialValue={raw?.type === "pdf" && typeof raw.url === "string" ? raw.url : body ?? ""}/> : <div className="field"><label htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</label><textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></div>}{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}<ActionSubmit>{chapterId ? isRevision ? "Save revision draft" : "Save chapter draft" : "Create chapter draft"}</ActionSubmit></ManagedForm>}
   </div>;
 }

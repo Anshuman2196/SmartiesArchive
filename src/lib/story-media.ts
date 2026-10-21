@@ -8,7 +8,7 @@ export async function signStoryMediaUrl(supabase: SupabaseClient, reference: str
   const prefix = `storage://${bucket}/`;
   if (!reference.startsWith(prefix)) return reference.startsWith("https://") ? reference : null;
   const path = reference.slice(prefix.length);
-  if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpe?g|webp|gif)$/i.test(path)) return null;
+  if (!/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(png|jpe?g|webp|gif|pdf)$/i.test(path)) return null;
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 3600);
   return error ? null : data.signedUrl;
 }
