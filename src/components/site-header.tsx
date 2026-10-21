@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { AuthNavigation } from "@/components/site-header-client";
+import { AuthNavigation, MobileNavigation } from "@/components/site-header-client";
 import { PaletteSelector } from "@/components/palette-selector";
 
 export async function SiteHeader() {
@@ -15,5 +15,5 @@ export async function SiteHeader() {
   } catch {
     // The public archive remains available when Supabase is unconfigured or temporarily unavailable.
   }
-  return <header className="topbar"><nav className="shell nav" aria-label="Main navigation"><Link href="/" className="brand">smarties<span>archive</span></Link><div className="navlinks"><Link href="/library">Library</Link><PaletteSelector/>{profile ? <AuthNavigation username={profile.username} displayName={profile.display_name}/> : <><Link href="/auth?mode=login">Sign in</Link><Link href="/auth?mode=signup" className="pill primary">Join free</Link></>}</div></nav></header>;
+  return <header className="topbar"><nav className="shell nav" aria-label="Main navigation"><Link href="/" className="brand">smarties<span>archive</span></Link><div className="navlinks navlinks-desktop"><Link href="/library">Library</Link><PaletteSelector/>{profile ? <AuthNavigation username={profile.username} displayName={profile.display_name}/> : <><Link href="/auth?mode=login">Sign in</Link><Link href="/auth?mode=signup" className="pill primary">Join free</Link></>}</div><MobileNavigation username={profile?.username} displayName={profile?.display_name}/></nav></header>;
 }
