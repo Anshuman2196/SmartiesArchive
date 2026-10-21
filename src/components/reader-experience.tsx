@@ -78,10 +78,11 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, workTitle, author, chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0 }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0 }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number }) {
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
+  const [warningsAccepted, setWarningsAccepted] = useState(contentWarnings.length === 0);
   const [progress, setProgress] = useState(savedProgress);
   const progressRef = useRef(savedProgress);
   const [saveMessage, setSaveMessage] = useState("");
@@ -93,6 +94,11 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   const previous = current > 0 ? chapters[current - 1] : undefined;
   const next = current >= 0 ? chapters[current + 1] : undefined;
   const completed = progress >= COMPLETION_THRESHOLD;
+
+  useEffect(() => {
+    if (contentWarnings.length === 0) return;
+    try { setWarningsAccepted(localStorage.getItem(`smarties-warning:${workId}`) === "accepted"); } catch { /* Show the gate when storage is unavailable. */ }
+  }, [contentWarnings.length, workId]);
 
   useEffect(() => {
     try {
@@ -198,6 +204,16 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   const progressPercent = Math.round(progress * 100);
   const storyTitle = workTitle || "Story";
   const authorLabel = author?.displayName || "Archive member";
+
+  if (contentWarnings.length > 0 && !warningsAccepted) return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
+    <section className={styles.warningGate} aria-labelledby="reader-warning-title">
+      <span className="eyebrow">Content notes</span>
+      <h1 id="reader-warning-title" className="serif">Before you open {storyTitle}</h1>
+      <p>This chapter includes content notes chosen by the author. Take care of yourself and continue only if you are comfortable.</p>
+      <ul>{contentWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+      <div className="story-actions"><button type="button" className="pill primary" onClick={() => { setWarningsAccepted(true); try { localStorage.setItem(`smarties-warning:${workId}`, "accepted"); } catch { /* Continue for this visit. */ } }}>I understand, continue</button><Link className="pill" href={`/work/${workId}`}>Back to story details</Link></div>
+    </section>
+  </main>;
 
   return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
     <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">
