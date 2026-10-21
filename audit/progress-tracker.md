@@ -240,9 +240,9 @@ Cover only the flows that matter to this group:
 
 ## Remaining verification
 
-- [ ] Apply and run the admin, review, and PDF migrations in the configured Supabase project.
+- [ ] Apply and run the admin, review, and PDF migrations in the configured Supabase project. The connected Supabase tool rejected migration/list access with a permission error; the committed SQL is ready to apply manually.
 - [ ] Bootstrap the first admin in `admin_users`.
 - [ ] Upload and read a real PDF chapter.
 - [ ] Upload, reorder, caption, save, and read a real image-only manga chapter.
 - [ ] Run mobile checks at 320px, 375px, and 768px.
-- [ ] Perform a clean production build with no concurrent Next processes.
+- [~] Perform a clean production build with no concurrent Next processes. Tests, lint, and typecheck pass; the build remained at optimization because unrelated Next workers were already running.
