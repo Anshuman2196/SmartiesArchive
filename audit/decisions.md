@@ -70,6 +70,7 @@
 - Chapter completion is inferred at 95% scroll progress, while reaching the document end records 100% so the existing shelf can classify the chapter as finished.
 - Authenticated progress flushes use a reader-only endpoint with `navigator.sendBeacon` and a keepalive `fetch` fallback on pagehide, visibility changes, cleanup, and chapter navigation. Guest progress remains local-only.
 - Inline images and comic panels open in a custom accessible viewer with Escape/Tab handling, focus return, bounded zoom, and native fullscreen when supported. The browser-native PDF viewer remains unused.
+- Direct chapter links enforce the story's content-warning acknowledgement before rendering chapter content; acceptance is remembered per story on the reader device, while a back-to-story option remains available.
 
 ## 2026-10-21 — Publishing readiness and media cleanup
 

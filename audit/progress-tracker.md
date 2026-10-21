@@ -12,9 +12,9 @@ These requests are now explicitly included in the plan:
 | --- | --- | --- |
 | Keyboard shortcuts for formatting | `[x]` Centralized platform-aware shortcut map and help dialog are implemented | Keep expanding only if a new formatting command needs coverage |
 | Text formatting | `[x]` Rich editor already supports headings, marks, lists, alignment, typography, literary treatments, spoilers, and more | Polish discoverability and shortcut coverage |
-| Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, and alignment already exist | Improve image insertion UX and add zoom/fullscreen in the reader |
+| Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, alignment, and reader zoom/fullscreen already exist | Keep the current focused viewer |
 | PDF support for manga | `[~]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Apply the migration and verify with a real PDF in the configured Supabase project |
-| Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, and removal are implemented on the existing comic model | Add reader zoom/fullscreen polish later if needed |
+| Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, removal, and reader zoom/fullscreen are implemented on the existing comic model | Keep the existing image model |
 | UI fixes | `[x]` Mobile navigation, skip link, touch targets, focus states, wrapping, and password error associations are implemented | Continue visual polish only after real-device checks |
 | Reviews and ratings | `[x]` Chapter-level rating/review flow is implemented with one review per member per chapter | Migration, RLS, authenticated create/update/delete actions, chapter review UI, and story-page summaries are covered; run the database test in the configured Supabase environment |
 | Tags and library filters | `[x]` URL-driven tag, warning, sort, and clear-filter controls are implemented | Keep the simple array-backed model |
@@ -66,7 +66,7 @@ These requests are now explicitly included in the plan:
 - [x] Authenticated reading progress in Supabase
 - [x] Story bookmarks in Supabase
 - [x] Progress save is debounced with pagehide, visibility-change, navigation, and keepalive flushes
-- [~] Warnings are shown on story details but not enforced on direct chapter links
+- [x] Direct chapter links show a content-warning acceptance gate and remember acceptance per story
 - [x] Personal `/shelf` page groups bookmarked, currently-reading, and recently-finished stories with auth and empty states — `9228ce8`
 - [x] Chapter completion state and “continue” action
 - [x] Reader action bar for contents, bookmark, share, settings, and story details
@@ -176,6 +176,7 @@ These requests are now explicitly included in the plan:
 - [x] Added persistent story/author context and the reader action bar — `3f1205d`
 - [x] Added an accessible zoom/fullscreen viewer for inline images and comic panels — `b478041`
 - [x] Added chapter completion, continue actions, and robust authenticated progress flushing — `5511561`
+- [x] Added direct chapter content-warning acceptance gates — `48076ae`
 
 ## Remaining UI verification
 
