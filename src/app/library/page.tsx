@@ -20,6 +20,13 @@ const sortLabels = {
   title: "Title A–Z",
 } as const;
 
+type PublishedChapterSummary = { work_id: string; body: string };
+
+function readingMinutes(chapters: PublishedChapterSummary[]): number {
+  const words = chapters.reduce((total, chapter) => total + chapter.body.trim().split(/\s+/).filter(Boolean).length, 0);
+  return words ? Math.max(1, Math.ceil(words / 220)) : 0;
+}
+
 function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning"): string {
   const params = new URLSearchParams();
   if (key !== "q" && filters.q) params.set("q", filters.q);
@@ -45,8 +52,21 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       .order("created_at", { ascending: false })
       .limit(100);
     const works = (data ?? []) as unknown as LibraryWork[];
-    const coverUrls = await signStoryMediaUrls(supabase, works.map((work) => work.cover_url));
-    allWorks = works.map((work) => ({ ...work, coverPreviewUrl: work.cover_url ? coverUrls.get(work.cover_url) ?? null : null }));
+    const workIds = works.map((work) => work.id);
+    const [{ data: chapterRows }, coverUrls] = await Promise.all([
+      workIds.length ? supabase.from("chapters").select("work_id,body").in("work_id", workIds).eq("state", "published") : Promise.resolve({ data: [] as PublishedChapterSummary[] }),
+      signStoryMediaUrls(supabase, works.map((work) => work.cover_url)),
+    ]);
+    const chaptersByWork = new Map<string, PublishedChapterSummary[]>();
+    for (const chapter of (chapterRows ?? []) as PublishedChapterSummary[]) {
+      const chapters = chaptersByWork.get(chapter.work_id) ?? [];
+      chapters.push(chapter);
+      chaptersByWork.set(chapter.work_id, chapters);
+    }
+    allWorks = works.map((work) => {
+      const chapters = chaptersByWork.get(work.id) ?? [];
+      return { ...work, coverPreviewUrl: work.cover_url ? coverUrls.get(work.cover_url) ?? null : null, chapterCount: chapters.length, readingMinutes: readingMinutes(chapters) };
+    });
   } catch {
     configured = false;
   }
@@ -98,6 +118,11 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
     </div>}
 
+    {!activeFilters && configured && filteredWorks.length > 0 && <section className="section" aria-labelledby="featured-stories-title" style={{ padding: "10px 0 24px" }}>
+      <div className="section-head"><div><span className="eyebrow">A place to begin</span><h2 id="featured-stories-title" className="serif">Featured from the archive</h2></div><span className="muted">Freshly published</span></div>
+      <div className="cards">{filteredWorks.slice(0, 3).map((work) => <Link className="card" key={`featured-${work.id}`} href={`/work/${work.id}`} aria-label={`Open featured story: ${work.title}`}><span className="tag">Featured</span><h3 className="serif">{work.title}</h3><p>{work.summary || "A new story begins here."}</p><span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read` : `${work.chapterCount ?? 0} chapters`} · By {work.profiles?.display_name ?? "A reader"}</span></Link>)}</div>
+    </section>}
+
     {!configured && <p className="notice">Connect your Supabase project to open the shelves.</p>}
     {configured && allWorks.length === 0 && <div className="card"><h2 className="serif">A little quiet on these shelves.</h2><p>Published public stories will find their home here. Be the first to add yours.</p><Link href="/auth" className="pill primary">Write the first story</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="card"><h2 className="serif">Nothing matches these filters.</h2><p>Try a different author, tag, content note, or search phrase.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
@@ -108,7 +133,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         <h3 className={styles.title}>{work.title}</h3>
         <p className={styles.summary}>{work.summary || "A new story begins here."}</p>
         {work.tags.length > 0 && <div className={styles.tags} aria-label={`Tags for ${work.title}`}>{work.tags.map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}</div>}
-        <span className="byline">By {work.profiles?.display_name ?? "A reader"}</span>
+        <span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read · ` : ""}By {work.profiles?.display_name ?? "A reader"}</span>
       </div>
     </Link>)}</div>
   </main>;
