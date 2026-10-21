@@ -39,8 +39,8 @@ One accent carries the interface. Story covers retain their own colors. On the g
 - Author profiles use the same cover-led presentation. An author-supplied cover always takes precedence over the archive fallback.
 - Story details: cover, title, synopsis, tags, warnings, then the reading action and chapter programme.
 - Shelf and forms use open lists and plain fields. Panels exist only when they contain an interaction.
-- The reader opens with content and keeps its saved settings behind a single control. The studio starts new stories with a title; optional setup and chapter operations expand on demand.
-- Publication checks expand when something blocks release. The admin desk opens on stories and keeps chapter and member tables behind section headings.
+- The reader opens with content and keeps its saved settings behind a single control. The studio creates a private draft from a title in a dialog, then gives chapters and story details separate, persistent workspaces.
+- Publication checks open in a dialog, with blocking items called out in the page. The admin desk opens on stories and keeps chapter and member tables behind section headings.
 - No arrow glyphs on ordinary links. Directional symbols remain where they describe pagination or reader movement.
 
 ## Interaction
@@ -50,6 +50,7 @@ One accent carries the interface. Story covers retain their own colors. On the g
 - In-progress shelf entries open the saved chapter. Home entry points send signed-in members to their shelf or studio.
 - Hover changes tone or image scale slightly. Reduced-motion settings remove decorative transitions.
 - The old palettes remain accessible from the theme selector; reader page-tone controls are separate.
+- Studio dialogs, tabs, menus, fields, inputs, and confirmation prompts use the installed shadcn/ui components. Their semantic colors map to the active archive palette in `src/app/globals.css`.
 
 ## Reference decisions
 

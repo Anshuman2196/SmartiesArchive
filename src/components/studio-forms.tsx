@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { createChapter, createWorkRecord, saveChapter, saveWorkMetadata, setWorkCover } from "@/app/actions";
+import { createChapter, createWorkRecord, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -10,6 +10,11 @@ import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
 import { RichChapterEditor } from "@/components/rich-chapter-editor";
 import { MangaPanelPicker } from "@/components/manga-panel-picker";
+import { Button } from "@/components/ui/button";
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 type ServerFormAction = (formData: FormData) => void | Promise<void>;
 
@@ -57,54 +62,37 @@ function CoverAssetPicker({ workId, initialValue, initialPreview }: { workId: st
   return <div className="cover-asset-picker"><input type="hidden" name="coverUrl" value={value}/>{preview ? <Image className="cover-upload-preview" src={preview} width={600} height={900} unoptimized alt="Selected story cover preview"/> : <div className="cover-upload-empty">Cover preview</div>}<div className="cover-picker-actions"><label className="pill upload-image-button">{busy ? "Uploading…" : value ? "Replace cover" : "Select cover image"}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={busy} onChange={(event) => void choose(event.target.files?.[0])}/></label><button type="button" className="text-action" onClick={() => { setValue(""); setPreview(""); setStatus("Cover removed. Save work details to apply."); }}>Remove cover</button></div><label className="field-hint" htmlFor="edit-work-cover-url">Or use an HTTPS image URL</label><input id="edit-work-cover-url" type="url" inputMode="url" placeholder="https://…" value={value.startsWith("https://") ? value : ""} onChange={(event) => { setValue(event.target.value); setPreview(event.target.value); }}/><p className="field-hint">JPEG, PNG, WebP, or GIF up to 8 MB. Existing cover stays in place until you save.</p>{status && <p role="status" className="field-hint">{status}</p>}</div>;
 }
 
-export function NewWorkCoverInput({ file, onFile }: { file?: File; onFile: (file?: File) => void }) {
-  const [preview, setPreview] = useState("");
-  const [error, setError] = useState("");
-  useEffect(() => { if (!file) { setPreview(""); return; } const url = URL.createObjectURL(file); setPreview(url); return () => URL.revokeObjectURL(url); }, [file]);
-  return <div className="cover-asset-picker"><label htmlFor="new-work-cover">Cover image <span className="field-hint">Optional · JPEG, PNG, WebP, or GIF up to 8 MB</span></label><input id="new-work-cover" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const selected = event.target.files?.[0]; setError(""); if (!selected) return; if (!selected.type.startsWith("image/") || selected.size > 8 * 1024 * 1024) { setError("Choose a supported image smaller than 8 MB."); event.target.value = ""; onFile(undefined); return; } onFile(selected); }}/>{preview && <Image className="cover-upload-preview" src={preview} width={600} height={900} unoptimized alt="Selected story cover preview"/>}{file && <button type="button" className="text-action" onClick={() => onFile(undefined)}>Remove cover</button>}{error && <p role="alert" className="field-error">{error}</p>}</div>;
-}
-
 export function CreateWorkForm() {
   const router = useRouter();
-  const [file, setFile] = useState<File>();
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
-  const [progress, setProgress] = useState(0);
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (pending) return;
     setPending(true); setStatus("Creating your story…");
     const result = await createWorkRecord(new FormData(event.currentTarget));
     if (!result.ok || !result.workId) { setPending(false); setStatus(result.message ?? "The story could not be created."); return; }
-    if (file) {
-      const uploaded = await uploadStoryMediaFile(result.workId, file, setProgress);
-      if (!uploaded.ok || !uploaded.src) { setPending(false); router.push(`/studio/${result.workId}?status=cover_upload_error`); return; }
-      const saved = await setWorkCover(result.workId, uploaded.src);
-      if (!saved.ok) { setPending(false); router.push(`/studio/${result.workId}?status=cover_upload_error`); return; }
-    }
     router.push(`/studio/${result.workId}`); router.refresh();
   };
   return <form onSubmit={submit}>
-    <div className="field"><label htmlFor="title">Story title</label><input id="title" name="title" required maxLength={120} autoComplete="off"/></div>
-    <p className="field-hint">Start privately. Add chapters, a cover, and publishing details when you’re ready.</p>
-    <details className="create-work-options"><summary>More story details</summary>
-      <div className="field"><label htmlFor="summary">A short introduction</label><textarea id="summary" name="summary" maxLength={2000}/></div>
-      <div className="field"><label htmlFor="visibility">Who can read it?</label><select id="visibility" name="visibility"><option value="private">Private — only me</option><option value="unlisted">Unlisted — anyone with the link</option><option value="public">Public — listed in the library</option></select></div>
-      <div className="field"><NewWorkCoverInput file={file} onFile={setFile}/></div>
-    </details>
-    {status && <p role="status" aria-live="polite" className="field-hint">{file && pending ? `${status} ${progress}%` : status}</p>}
-    <button className="pill primary" type="submit" disabled={pending}>{pending ? "Creating…" : "Create story"}</button>
+    <input type="hidden" name="summary" value=""/>
+    <input type="hidden" name="visibility" value="private"/>
+    <FieldGroup><Field><FieldLabel htmlFor="title">Story title</FieldLabel><Input id="title" name="title" required maxLength={120} autoComplete="off" autoFocus/><FieldDescription>Your story starts as a private draft. Add the cover and publishing details later.</FieldDescription></Field></FieldGroup>
+    {status && <p role="status" aria-live="polite" className="field-hint">{status}</p>}
+    <Button className="studio-dialog-submit" type="submit" disabled={pending}>{pending ? "Creating…" : "Create story"}</Button>
   </form>;
 }
 
 export function WorkMetadataForm({ work, previewCoverUrl }: { work: EditableWork; previewCoverUrl?: string }) {
   return <ManagedForm action={saveWorkMetadata} className="studio-edit-form">
     <input type="hidden" name="workId" value={work.id}/><input type="hidden" name="expectedUpdatedAt" value={work.expectedUpdatedAt}/>
-    <div className="field"><label htmlFor="edit-work-title">Title</label><input id="edit-work-title" name="title" defaultValue={work.title} required maxLength={120}/></div>
-    <div className="field"><label htmlFor="edit-work-summary">Synopsis</label><textarea id="edit-work-summary" name="summary" defaultValue={work.summary} maxLength={2000}/></div>
-    <div className="field"><span className="field-label">Cover image</span><CoverAssetPicker workId={work.id} initialValue={work.cover_url} initialPreview={previewCoverUrl}/></div>
-    <div className="field"><label htmlFor="edit-work-tags">Tags</label><input id="edit-work-tags" name="tags" defaultValue={work.tags.join(", ")} placeholder="fantasy, found family"/><span className="field-hint">Separate up to 20 tags with commas.</span></div>
-    <div className="field"><label htmlFor="edit-work-warnings">Content warnings</label><input id="edit-work-warnings" name="contentWarnings" defaultValue={work.content_warnings.join(", ")} placeholder="violence, grief"/><span className="field-hint">Separate up to 20 notes with commas.</span></div>
-    <div className="field"><label htmlFor="edit-work-visibility">Visibility</label><select id="edit-work-visibility" name="visibility" defaultValue={work.visibility}><option value="public">Public — listed in library</option><option value="unlisted">Unlisted — direct link</option><option value="private">Private — only you</option></select></div>
+    <FieldGroup>
+      <Field><FieldLabel htmlFor="edit-work-title">Title</FieldLabel><Input id="edit-work-title" name="title" defaultValue={work.title} required maxLength={120}/></Field>
+      <Field><FieldLabel htmlFor="edit-work-summary">Synopsis</FieldLabel><Textarea id="edit-work-summary" name="summary" defaultValue={work.summary} maxLength={2000}/></Field>
+      <Field><FieldTitle>Cover image</FieldTitle><CoverAssetPicker workId={work.id} initialValue={work.cover_url} initialPreview={previewCoverUrl}/></Field>
+      <Field><FieldLabel htmlFor="edit-work-tags">Tags</FieldLabel><Input id="edit-work-tags" name="tags" defaultValue={work.tags.join(", ")} placeholder="fantasy, found family"/><FieldDescription>Separate up to 20 tags with commas.</FieldDescription></Field>
+      <Field><FieldLabel htmlFor="edit-work-warnings">Content warnings</FieldLabel><Input id="edit-work-warnings" name="contentWarnings" defaultValue={work.content_warnings.join(", ")} placeholder="violence, grief"/><FieldDescription>Separate up to 20 notes with commas.</FieldDescription></Field>
+      <Field><FieldLabel htmlFor="edit-work-visibility">Visibility</FieldLabel><NativeSelect id="edit-work-visibility" name="visibility" defaultValue={work.visibility}><NativeSelectOption value="public">Public — listed in library</NativeSelectOption><NativeSelectOption value="unlisted">Unlisted — direct link</NativeSelectOption><NativeSelectOption value="private">Private — only you</NativeSelectOption></NativeSelect></Field>
+    </FieldGroup>
     <ActionSubmit>Save work details</ActionSubmit>
   </ManagedForm>;
 }
@@ -145,7 +133,16 @@ export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, b
   const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument } | undefined;
   const initialDocument = raw?.type === "rich" && raw.document?.type === "doc" ? raw.document : legacyTextToRichDocument(raw?.type === "prose" && typeof raw.text === "string" ? raw.text : body ?? "");
   return <div className="chapter-composer">
-    <div className="field"><label htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</label><select id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <option key={name} value={name}>{name === "image" ? "Single image" : name === "comic" ? "Manga / comic" : name === "chat" ? "Chat fiction" : name[0].toUpperCase() + name.slice(1)}</option>)}</select><span className="field-hint">{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</span></div>
-    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form"><input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/><div className="field"><label htmlFor={chapterId ? "edit-chapter-title" : "new-chapter-title"}>Chapter title</label><input id={chapterId ? "edit-chapter-title" : "new-chapter-title"} name="title" defaultValue={title} maxLength={120} required/></div>{selectedFormat === "image" && <div className="field"><label htmlFor="media-alt">Image description</label><input id="media-alt" name="mediaAlt" defaultValue={mediaAlt} maxLength={300}/></div>}{selectedFormat === "pdf" ? <PdfAssetPicker workId={workId} initialValue={raw?.type === "pdf" && typeof raw.url === "string" ? raw.url : body ?? ""}/> : selectedFormat === "comic" ? <MangaPanelPicker workId={workId} initialValue={body ?? ""}/> : <div className="field"><label htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</label><textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></div>}{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}<ActionSubmit>{chapterId ? isRevision ? "Save revision draft" : "Save chapter draft" : "Create chapter draft"}</ActionSubmit></ManagedForm>}
+    <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{name === "image" ? "Single image" : name === "comic" ? "Manga / comic" : name === "chat" ? "Chat fiction" : name[0].toUpperCase() + name.slice(1)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</FieldDescription></Field></FieldGroup>
+    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form">
+      <input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/>
+      <FieldGroup>
+        <Field><FieldLabel htmlFor={chapterId ? "edit-chapter-title" : "new-chapter-title"}>Chapter title</FieldLabel><Input id={chapterId ? "edit-chapter-title" : "new-chapter-title"} name="title" defaultValue={title} maxLength={120} required/></Field>
+        {selectedFormat === "image" && <Field><FieldLabel htmlFor="media-alt">Image description</FieldLabel><Input id="media-alt" name="mediaAlt" defaultValue={mediaAlt} maxLength={300}/></Field>}
+        {selectedFormat === "pdf" ? <PdfAssetPicker workId={workId} initialValue={raw?.type === "pdf" && typeof raw.url === "string" ? raw.url : body ?? ""}/> : selectedFormat === "comic" ? <MangaPanelPicker workId={workId} initialValue={body ?? ""}/> : <Field><FieldLabel htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</FieldLabel><Textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></Field>}
+      </FieldGroup>
+      {isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}
+      <ActionSubmit>{chapterId ? isRevision ? "Save revision draft" : "Save chapter draft" : "Create chapter draft"}</ActionSubmit>
+    </ManagedForm>}
   </div>;
 }
