@@ -48,3 +48,10 @@
 - Reader title/author context and image zoom/fullscreen remain separate follow-up work because the current UI polish pass focused on controls, semantics, and mobile discoverability.
 - Mojibake in studio labels was repaired at the source; JSX apostrophes use escaped entities where required by the lint rules.
 - `LibraryWork.cover_url` is optional at the type boundary so existing stories and test fixtures without a cover remain valid; the library still renders a deliberate poster fallback.
+
+## 2026-10-21 — Performance follow-up
+
+- The first performance fix targets request waterfalls and storage round trips: independent Supabase queries now start together, and cover/inline-image signing uses `createSignedUrls` in one batch.
+- Chapter reviews are intentionally streamed after the reader shell with Suspense because they are secondary content and should not delay reading.
+- No broad cross-request cache was added yet. Signed media URLs are bearer URLs tied to authorization and expire; caching them across users could reuse a private URL incorrectly. Browser/module caching and request batching are safer first steps for this 20-user project.
+- A cache can be considered later for public, non-sensitive library metadata with a short revalidation window and explicit invalidation after publishing, once hosted latency is measured.

@@ -268,3 +268,11 @@ Cover only the flows that matter to this group:
 - [ ] Add image zoom/fullscreen for comics and inline illustrations
 - [ ] Run real-device checks at 320px, 375px, and 768px widths
 - [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
+
+## 2026-10-21 performance follow-up
+
+- [x] Batch cover and inline-image signed URL creation instead of issuing one storage request per asset — `510e4df`
+- [x] Parallelize independent work, chapter, author, contents, progress, and bookmark lookups — `ffac6a6`
+- [x] Stream chapter reviews below the reader with a Suspense boundary so review/profile queries do not block the chapter shell — `ffac6a6`
+- [x] Add a regression test for batched signed media requests — `34cfe4e`
+- [ ] Measure real hosted latency after the Supabase migrations/project configuration are available
