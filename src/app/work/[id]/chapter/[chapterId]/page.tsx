@@ -10,6 +10,7 @@ import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number };
 type Work = { id: string; title: string; author_id: string };
+type Author = { username: string; display_name: string };
 
 export default async function ChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
   const { id, chapterId } = await params;
@@ -46,17 +47,24 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
   const savedPromise = user
     ? supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()
     : Promise.resolve({ data: null });
-  const [content, listResult, savedResult] = await Promise.all([
+  const bookmarkPromise = user
+    ? supabase.from("user_bookmarks").select("work_id").eq("user_id", user.id).eq("work_id", id).maybeSingle()
+    : Promise.resolve({ data: null });
+  const authorPromise = supabase.from("profiles").select("username,display_name").eq("id", work.author_id).maybeSingle();
+  const [content, listResult, savedResult, bookmarkResult, authorResult] = await Promise.all([
     contentPromise,
     listResultPromise,
     savedPromise,
+    bookmarkPromise,
+    authorPromise,
   ]);
   const chapters = (listResult.data ?? []) as ChapterLink[];
   const saved = savedResult.data;
+  const author = authorResult.data as Author | null;
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio →</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}/>
     <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
       <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
     </Suspense>

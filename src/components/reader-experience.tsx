@@ -48,12 +48,12 @@ export function BookmarkButton({ workId, initialSaved }: { workId: string; initi
   return <div className="reader-action-wrap"><button type="button" className="pill" aria-pressed={saved} disabled={pending} onClick={toggle}>{pending ? "Saving…" : saved ? "Bookmarked" : "Bookmark story"}</button>{message && <span role="alert" className="reader-action-message">{message}</span>}</div>;
 }
 
-export function ShareButton() {
+export function ShareButton({ title }: { title?: string }) {
   const [message, setMessage] = useState("");
   const share = async () => {
     const url = window.location.href;
     try {
-      if (navigator.share) await navigator.share({ title: document.title, url });
+      if (navigator.share) await navigator.share({ title: title || document.title, url });
       else { await navigator.clipboard.writeText(url); setMessage("Link copied."); }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
@@ -77,7 +77,7 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, chapterTitle, content, chapters, authenticated, savedProgress = 0 }: { workId: string; chapterId: string; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; savedProgress?: number }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0 }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number }) {
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -171,12 +171,22 @@ export function ReaderExperience({ workId, chapterId, chapterTitle, content, cha
 
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => setPreferences((previousValue) => ({ ...previousValue, [key]: value }));
   const progressPercent = Math.round(progress * 100);
+  const storyTitle = workTitle || "Story";
+  const authorLabel = author?.displayName || "Archive member";
 
   return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
     <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">
-      <Link href={`/work/${workId}`} className={`reader-back ${styles.readerBack}`} aria-label="Back to story details">← <span>Story details</span></Link>
-      <Link href="#table-of-contents" className={`reader-toc-jump ${styles.desktopTocLink}`}>Contents <span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></Link>
-      <button type="button" className={`reader-toc-jump ${styles.tocButton} ${styles.mobileTocButton}`} aria-expanded={tocOpen} aria-controls="table-of-contents" aria-label={`${tocOpen ? "Close" : "Open"} table of contents`} onClick={() => setTocOpen((open) => !open)}>Contents <span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></button>
+      <div className={styles.readerContext} aria-label="Current story">
+        <span className={styles.readerContextTitle}>{storyTitle}</span>
+        {author?.username ? <Link href={`/author/${author.username}`} className={styles.readerContextAuthor}>By {authorLabel}</Link> : <span className={styles.readerContextAuthor}>By {authorLabel}</span>}
+      </div>
+      <div className={styles.readerActionBar} aria-label="Reader actions">
+        <Link href={`/work/${workId}`} className={`${styles.readerAction} ${styles.readerBack}`} aria-label={`Open story details for ${storyTitle}`}>Story details</Link>
+        <button type="button" className={`${styles.readerAction} ${styles.tocButton}`} aria-expanded={tocOpen} aria-controls="table-of-contents" onClick={() => setTocOpen((open) => !open)}>Contents <span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></button>
+        {authenticated ? <BookmarkButton workId={workId} initialSaved={initialSaved}/> : <Link href={`/auth?mode=login&next=${encodeURIComponent(`/work/${workId}/chapter/${chapterId}`)}`} className={styles.readerAction}>Bookmark</Link>}
+        <ShareButton title={`${storyTitle} — ${chapterTitle}`}/>
+        <a href="#reader-preferences" className={styles.readerAction}>Settings</a>
+      </div>
       <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
     </nav>
     <div className={`reader-layout ${styles.readerLayout}`}>
@@ -185,7 +195,7 @@ export function ReaderExperience({ workId, chapterId, chapterTitle, content, cha
         <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => setTocOpen(false)}>{chapter.title}</Link></li>)}</ol>
       </aside>
       <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div></header>
-        <section className={`reader-tools ${styles.readerTools}`} aria-labelledby="reader-preferences-title">
+        <section id="reader-preferences" className={`reader-tools ${styles.readerTools}`} aria-labelledby="reader-preferences-title">
           <div className={styles.preferenceHeader}><div><h2 id="reader-preferences-title">Reading preferences</h2><p>Adjust the page for this reading session. Your choices are saved on this device.</p></div><button type="button" className={styles.resetButton} onClick={() => setPreferences(defaults)}>Reset</button></div>
           <div className={styles.preferenceGrid}>
             <fieldset className={styles.preferenceGroup}><legend>Typography</legend>
