@@ -114,6 +114,7 @@ export async function setWorkCover(workId: string, coverUrl: string): Promise<{ 
     if (!allowed) return { ok: false, message: "The cover reference could not be verified." };
     const { error } = await supabase.from("works").update({ cover_url: coverUrl }).eq("id", workId).eq("author_id", user.id);
     if (error) return { ok: false, message: "The cover could not be saved." };
+    await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
     revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath("/studio");
     return { ok: true };
   } catch { return { ok: false, message: "The cover could not be saved." }; }
@@ -173,6 +174,7 @@ export async function saveWorkMetadata(form: FormData) {
       ? await supabase.from("work_drafts").update({ ...fields, updated_at: new Date().toISOString() }).eq("work_id", workId).eq("updated_at", expected).select("work_id").maybeSingle()
       : await supabase.from("work_drafts").insert({ work_id: workId, ...fields }).select("work_id").maybeSingle();
     if (result.error || !result.data) redirect(`/studio/${workId}?status=conflict`);
+    await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
     revalidatePath(`/studio/${workId}`);
     revalidatePath(`/work/${workId}`);
     redirect(`/studio/${workId}?status=metadata_draft`);
@@ -180,6 +182,7 @@ export async function saveWorkMetadata(form: FormData) {
   const { data, error } = await supabase.from("works").update(fields).eq("id", workId).eq("author_id", user.id).eq("updated_at", value(form, "expectedUpdatedAt")).select("id").maybeSingle();
   if (error || !data) redirect(`/studio/${workId}?status=conflict`);
   await supabase.from("work_drafts").delete().eq("work_id", workId);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`);
   revalidatePath(`/work/${workId}`);
   revalidatePath("/library");
@@ -188,10 +191,11 @@ export async function saveWorkMetadata(form: FormData) {
 
 export async function publishWork(form: FormData) {
   const workId = value(form, "workId");
-  const { supabase } = await requireOwnedWork(workId);
+  const { supabase, user } = await requireOwnedWork(workId);
   const { data, error } = await supabase.rpc("publish_work", { p_work_id: workId });
   if (error) redirect(`/studio/${workId}?status=save_error`);
   if (!data) redirect(`/studio/${workId}?status=no_published_chapters`);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`);
   revalidatePath(`/work/${workId}`);
   revalidatePath("/library");
@@ -217,6 +221,7 @@ export async function deleteWork(form: FormData) {
     redirect(`/studio/${workId}?status=delete_failed`);
   }
   if (!data) redirect(`/studio/${workId}?status=delete_not_found`);
+  await removeAllStoryMedia(supabase, user.id, workId);
   revalidatePath("/studio"); revalidatePath("/library");
   redirect("/studio?status=work_deleted");
 }
@@ -232,7 +237,7 @@ export async function saveChapter(form: FormData) {
   let payload;
   try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt")); }
   catch { redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`); }
-  const { supabase } = await requireOwnedWork(workId);
+  const { supabase, user } = await requireOwnedWork(workId);
   const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at").eq("id", chapterId).eq("work_id", workId).maybeSingle();
   if (!chapter) redirect(`/studio/${workId}?status=not_found`);
   const { data: draft } = await supabase.from("chapter_drafts").select("updated_at").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
@@ -249,6 +254,7 @@ export async function saveChapter(form: FormData) {
     const { data, error } = await supabase.from("chapters").update(contentFields).eq("id", chapterId).eq("work_id", workId).eq("state", "draft").eq("updated_at", expected).select("id").maybeSingle();
     if (error || !data) redirect(`/studio/${workId}?chapter=${chapterId}&status=conflict`);
   }
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
   redirect(`/studio/${workId}?chapter=${chapterId}&status=${isStaged ? "chapter_draft_saved" : "chapter_saved"}`);
 }
@@ -272,6 +278,7 @@ export async function publishChapter(form: FormData) {
   }
   const { data, error } = await supabase.rpc("publish_chapter", { p_work_id: workId, p_chapter_id: chapterId });
   if (error || !data) redirect(`/studio/${workId}?status=save_error`);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`); revalidatePath("/library");
   redirect(`/studio/${workId}?status=chapter_published`);
 }
@@ -289,13 +296,14 @@ export async function unpublishChapter(form: FormData) {
 export async function deleteChapter(form: FormData) {
   const workId = value(form, "workId"), chapterId = value(form, "chapterId");
   if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
-  const { supabase } = await requireOwnedWork(workId);
+  const { supabase, user } = await requireOwnedWork(workId);
   const { data, error } = await supabase.from("chapters").delete().eq("id", chapterId).eq("work_id", workId).select("id").maybeSingle();
   if (error) {
     console.warn("[studio-delete] chapter delete rejected", { code: error.code ?? "unknown" });
     redirect(`/studio/${workId}?status=delete_failed`);
   }
   if (!data) redirect(`/studio/${workId}?status=delete_not_found`);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath("/library");
   redirect(`/studio/${workId}?status=chapter_deleted`);
 }
@@ -357,6 +365,63 @@ export async function saveReadingProgress(workId: string, chapterId: string, pro
 }
 
 const storyMediaBucket = "story-media";
+const storyMediaObjectPattern = /^[0-9a-f-]{36}\.(?:png|jpe?g|webp|gif|pdf)$/i;
+
+function storyMediaObjectName(reference: unknown, userId: string, workId: string): string | undefined {
+  if (typeof reference !== "string") return undefined;
+  const match = reference.match(/^storage:\/\/story-media\/([^/]+)\/([^/]+)\/([^/]+)$/i);
+  if (!match || match[1].toLowerCase() !== userId.toLowerCase() || match[2].toLowerCase() !== workId.toLowerCase() || !storyMediaObjectPattern.test(match[3])) return undefined;
+  return `${userId}/${workId}/${match[3]}`;
+}
+
+function collectStoryMediaReferences(value: unknown, userId: string, workId: string, references: Set<string>) {
+  const objectName = storyMediaObjectName(value, userId, workId);
+  if (objectName) references.add(objectName);
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectStoryMediaReferences(item, userId, workId, references));
+  } else if (typeof value === "object" && value !== null) {
+    Object.values(value as Record<string, unknown>).forEach((item) => collectStoryMediaReferences(item, userId, workId, references));
+  }
+}
+
+async function removeStoryMediaObjects(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, workId: string, keep = new Set<string>()) {
+  const folder = `${userId}/${workId}`;
+  const { data, error } = await supabase.storage.from(storyMediaBucket).list(folder, { limit: 1000 });
+  if (error) {
+    console.warn("[story-media-cleanup] list rejected", { code: error.code ?? "unknown" });
+    return;
+  }
+  const removable = (data ?? [])
+    .filter((item) => storyMediaObjectPattern.test(item.name))
+    .map((item) => `${folder}/${item.name}`)
+    .filter((objectName) => !keep.has(objectName));
+  if (!removable.length) return;
+  const { error: removeError } = await supabase.storage.from(storyMediaBucket).remove(removable);
+  if (removeError) console.warn("[story-media-cleanup] remove rejected", { code: removeError.code ?? "unknown" });
+}
+
+async function removeAllStoryMedia(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, workId: string) {
+  await removeStoryMediaObjects(supabase, userId, workId);
+}
+
+async function cleanupUnreferencedStoryMedia(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, workId: string) {
+  const [workResult, workDraftResult, chaptersResult, chapterDraftsResult] = await Promise.all([
+    supabase.from("works").select("cover_url").eq("id", workId).eq("author_id", userId).maybeSingle(),
+    supabase.from("work_drafts").select("cover_url").eq("work_id", workId).maybeSingle(),
+    supabase.from("chapters").select("content").eq("work_id", workId),
+    supabase.from("chapter_drafts").select("content").eq("work_id", workId),
+  ]);
+  if (workResult.error || workDraftResult.error || chaptersResult.error || chapterDraftsResult.error) {
+    console.warn("[story-media-cleanup] reference scan rejected", { code: workResult.error?.code ?? workDraftResult.error?.code ?? chaptersResult.error?.code ?? chapterDraftsResult.error?.code ?? "unknown" });
+    return;
+  }
+  const references = new Set<string>();
+  collectStoryMediaReferences(workResult.data?.cover_url, userId, workId, references);
+  collectStoryMediaReferences(workDraftResult.data?.cover_url, userId, workId, references);
+  for (const chapter of chaptersResult.data ?? []) collectStoryMediaReferences(chapter.content, userId, workId, references);
+  for (const draft of chapterDraftsResult.data ?? []) collectStoryMediaReferences(draft.content, userId, workId, references);
+  await removeStoryMediaObjects(supabase, userId, workId, references);
+}
 
 async function requireOwnedWorkForAction(workId: string) {
   if (!z.uuid().safeParse(workId).success) throw new Error("This story could not be found.");
@@ -433,6 +498,7 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
         : await supabase.from("chapter_drafts").insert({ work_id: workId, chapter_id: chapterId, ...fields }).select("updated_at").single()
       : await supabase.from("chapters").update(fields).eq("id", chapterId).eq("work_id", workId).eq("state", "draft").eq("updated_at", currentVersion).select("updated_at").single();
     if (result.error || !result.data) return { ok: false, message: "This chapter changed before the save completed. Reload and try again." };
+    await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
     revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
     return { ok: true, chapterId, updatedAt: result.data.updated_at };
   } catch (error) {
