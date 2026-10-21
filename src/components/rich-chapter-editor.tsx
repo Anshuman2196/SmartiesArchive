@@ -2,6 +2,7 @@
 
 import { Node, Mark, Extension, mergeAttributes } from "@tiptap/core";
 import Image from "next/image";
+import { ArrowLeft, MoreHorizontal, Settings2 } from "lucide-react";
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
@@ -304,13 +305,13 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   return <section ref={editorRootRef} className={`${styles.editorRoot} rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} role="region" aria-labelledby="rich-editor-label">
     <h1 id="rich-editor-label" className={styles.visuallyHidden}>Chapter writing editor</h1>
     <header className="editor-topbar">
-      <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}>← <span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
+      <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}><ArrowLeft size={17} aria-hidden="true"/><span>Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
         <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status}</span>
-        <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()}>Formatting</button>
+        <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()} title="Formatting options"><Settings2 size={18} aria-hidden="true"/></button>
         <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
         <div className="editor-overflow">
-          <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()}>•••</button>
+          <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()} title="More chapter actions"><MoreHorizontal size={19} aria-hidden="true"/></button>
           {overflowOpen && <div ref={overflowMenuRef} id="editor-overflow-menu" className="editor-overflow-menu" role="menu" aria-label="More chapter actions" onKeyDown={handleOverflowKeyDown}>
             {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
             {menuButton(preview ? "Return to writing" : "Preview chapter", () => setPreview(!preview))}

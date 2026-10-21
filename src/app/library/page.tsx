@@ -3,13 +3,14 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { signStoryMediaUrls } from "@/lib/story-media";
 import styles from "./library-card.module.css";
+import { LibraryToolbar } from "@/components/library-toolbar";
+import { CoverFallback } from "@/components/cover-fallback";
 import {
   getLibraryOptions,
   hasActiveLibraryFilters,
   matchesLibraryFilters,
   parseLibraryFilters,
   sortLibraryWorks,
-  splitFeaturedWorks,
   type LibrarySearchParams,
   type LibraryWork,
 } from "@/lib/library-filters";
@@ -26,6 +27,24 @@ type PublishedChapterSummary = { work_id: string; body: string };
 function readingMinutes(chapters: PublishedChapterSummary[]): number {
   const words = chapters.reduce((total, chapter) => total + chapter.body.trim().split(/\s+/).filter(Boolean).length, 0);
   return words ? Math.max(1, Math.ceil(words / 220)) : 0;
+}
+
+function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boolean }) {
+  return <div className={styles.poster} aria-hidden="true">
+    {work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" fill sizes="(max-width: 540px) 112px, (max-width: 760px) 50vw, 33vw" unoptimized priority={eager}/> : <CoverFallback title={work.title}/>}
+  </div>;
+}
+
+function LibraryTags({ work }: { work: LibraryWork }) {
+  if (work.tags.length === 0) return null;
+  return <div className={styles.tags} aria-label={`Tags for ${work.title}`}>
+    {work.tags.slice(0, 3).map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}
+    {work.tags.length > 3 && <span className={styles.moreTags}>+{work.tags.length - 3}</span>}
+  </div>;
+}
+
+function LibraryAuthor({ work }: { work: LibraryWork }) {
+  return <span className={styles.author}>By {work.profiles?.display_name ?? "A reader"}</span>;
 }
 
 function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning"): string {
@@ -76,67 +95,35 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const tags = getLibraryOptions(allWorks, "tags");
   const warnings = getLibraryOptions(allWorks, "content_warnings");
   const activeFilters = hasActiveLibraryFilters(filters);
-  const { featuredWorks, remainingWorks } = splitFeaturedWorks(filteredWorks, !activeFilters);
 
-  return <main className="shell section">
-    <div className="section-head">
-      <div><span className="eyebrow">The public shelves</span><h1 className="serif" style={{ fontSize: 48, fontWeight: 400, margin: "10px 0" }}>The library</h1></div>
-      <span className="muted">{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span>
+  return <main className="shell section library-page">
+    <div className="library-intro">
+      <div><span className="eyebrow">Read / Discover</span><h1 className="serif">The library</h1><p className="library-deck">Find a story by title, author, or tag. Content notes are available before you begin reading.</p></div>
+      <span className="library-count">{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span>
     </div>
 
-    <form method="get" className="actions" role="search" style={{ margin: "0 0 16px", alignItems: "end" }}>
-      <div>
-        <label htmlFor="q" className="muted">Search stories, authors, or tags</label>
-        <input id="q" name="q" defaultValue={filters.q} placeholder="A title or a feeling…" style={{ minWidth: 260, background: "var(--panel)", border: "1px solid var(--line)", color: "var(--cream)", padding: 12, borderRadius: 4 }} />
-      </div>
-      <div>
-        <label htmlFor="tag" className="muted">Tag</label>
-        <select id="tag" name="tag" defaultValue={filters.tag} style={{ background: "var(--panel)", border: "1px solid var(--line)", color: "var(--cream)", padding: 12, borderRadius: 4 }}>
-          <option value="">All tags</option>
-          {tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="warning" className="muted">Content notes</label>
-        <select id="warning" name="warning" defaultValue={filters.warning} style={{ background: "var(--panel)", border: "1px solid var(--line)", color: "var(--cream)", padding: 12, borderRadius: 4 }}>
-          <option value="">Any content notes</option>
-          {warnings.map((warning) => <option key={warning} value={warning}>{warning}</option>)}
-        </select>
-      </div>
-      <div>
-        <label htmlFor="sort" className="muted">Sort</label>
-        <select id="sort" name="sort" defaultValue={filters.sort} style={{ background: "var(--panel)", border: "1px solid var(--line)", color: "var(--cream)", padding: 12, borderRadius: 4 }}>
-          {Object.entries(sortLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-      </div>
-      <button className="pill" type="submit">Apply filters</button>
-      {activeFilters && <Link className="text-action" href="/library">Clear all</Link>}
-    </form>
+    <LibraryToolbar filters={filters} tags={tags} warnings={warnings}/>
 
-    {activeFilters && configured && <div className="actions" aria-label="Active filters" style={{ margin: "0 0 26px" }}>
+    {activeFilters && configured && <div className="library-active-filters" aria-label="Active filters">
       {filters.q && <span className="tag">Search: {filters.q} <Link href={filterHref(filters, "q")} aria-label="Remove search filter">×</Link></span>}
       {filters.tag && <span className="tag">Tag: {filters.tag} <Link href={filterHref(filters, "tag")} aria-label="Remove tag filter">×</Link></span>}
       {filters.warning && <span className="tag">Content note: {filters.warning} <Link href={filterHref(filters, "warning")} aria-label="Remove content note filter">×</Link></span>}
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
+      <Link className="text-action" href="/library">Clear all</Link>
     </div>}
 
-    {featuredWorks.length > 0 && configured && <section className="section" aria-labelledby="featured-stories-title" style={{ padding: "10px 0 24px" }}>
-      <div className="section-head"><div><span className="eyebrow">A place to begin</span><h2 id="featured-stories-title" className="serif">Featured from the archive</h2></div><span className="muted">Freshly published</span></div>
-      <div className="cards">{featuredWorks.map((work) => <Link className="card" key={`featured-${work.id}`} href={`/work/${work.id}`} aria-label={`Open featured story: ${work.title}`}><span className="tag">Featured</span><h3 className="serif">{work.title}</h3><p>{work.summary || "A new story begins here."}</p><span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read` : `${work.chapterCount ?? 0} chapters`} · By {work.profiles?.display_name ?? "A reader"}</span></Link>)}</div>
-    </section>}
-
     {!configured && <p className="notice">Connect your Supabase project to open the shelves.</p>}
-    {configured && allWorks.length === 0 && <div className="card"><h2 className="serif">A little quiet on these shelves.</h2><p>Published public stories will find their home here. Be the first to add yours.</p><Link href="/auth" className="pill primary">Write the first story</Link></div>}
-    {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="card"><h2 className="serif">Nothing matches these filters.</h2><p>Try a different author, tag, content note, or search phrase.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
+    {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open the studio</Link></div>}
+    {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {remainingWorks.length > 0 && <div className="cards">{remainingWorks.map((work) => <Link className={`card ${styles.card}`} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
-      <div className={styles.poster} aria-hidden="true">{work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" width={240} height={320} unoptimized/> : <span className={styles.posterPlaceholder}>{work.title}</span>}</div>
-      <div className={styles.body}><div className="actions" style={{ justifyContent: "space-between", margin: 0 }}><span className="tag">Story</span><span className="muted">{work.tags.length} {work.tags.length === 1 ? "tag" : "tags"}</span></div>
+    {filteredWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{filteredWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
+      <LibraryPoster work={work} eager={index < 3}/>
+      <div className={styles.body}>
         <h3 className={styles.title}>{work.title}</h3>
-        <p className={styles.summary}>{work.summary || "A new story begins here."}</p>
-        {work.tags.length > 0 && <div className={styles.tags} aria-label={`Tags for ${work.title}`}>{work.tags.map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}</div>}
-        <span className="byline">{work.readingMinutes ? `${work.readingMinutes} min read · ` : ""}By {work.profiles?.display_name ?? "A reader"}</span>
+        {work.summary && <p className={styles.summary}>{work.summary}</p>}
+        <LibraryTags work={work}/>
+        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{work.content_warnings.length > 0 && <span>Content notes</span>}</div>
       </div>
-    </Link>)}</div>}
+    </Link>)}</div></section>}
   </main>;
 }

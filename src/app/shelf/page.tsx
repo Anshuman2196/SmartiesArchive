@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getShelf, type ShelfItem } from "@/lib/shelf";
 import styles from "./page.module.css";
+import { CoverFallback } from "@/components/cover-fallback";
 
 function formatDate(value: string | null): string {
   if (!value) return "";
@@ -13,9 +14,10 @@ function ShelfCard({ item, section }: { item: ShelfItem; section: "bookmark" | "
   const progressPercent = item.progress === null ? null : Math.min(100, Math.round(item.progress * 100));
   const actionLabel = section === "reading" ? "Continue reading" : section === "finished" ? "Read again" : "Open story";
   const date = formatDate(section === "bookmark" ? item.bookmarkCreatedAt : item.progressUpdatedAt);
-  return <Link className={styles.card} href={`/work/${item.id}`} aria-label={`${actionLabel}: ${item.title}`}>
+  const href = section === "reading" && item.chapterId ? `/work/${item.id}/chapter/${item.chapterId}` : `/work/${item.id}`;
+  return <Link className={styles.card} href={href} aria-label={`${actionLabel}: ${item.title}`}>
     <div className={styles.poster} aria-hidden="true">
-      {item.coverPreviewUrl ? <Image className={styles.posterImage} src={item.coverPreviewUrl} alt="" fill sizes="96px" unoptimized/> : <span className={styles.posterPlaceholder}>{item.title}</span>}
+      {item.coverPreviewUrl ? <Image className={styles.posterImage} src={item.coverPreviewUrl} alt="" fill sizes="96px" unoptimized/> : <CoverFallback title={item.title}/>}
     </div>
     <div className={styles.cardBody}>
       <span className={styles.cardType}>{section === "bookmark" ? "Bookmarked" : section === "reading" ? "Currently reading" : "Finished"}</span>
@@ -26,6 +28,7 @@ function ShelfCard({ item, section }: { item: ShelfItem; section: "bookmark" | "
         <div className={styles.progressTrack} role="progressbar" aria-label={`${item.title} reading progress`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% complete`}><span style={{ width: `${progressPercent}%` }}/></div>
         <span className={styles.progressText}>{section === "finished" ? `Finished${item.chapterTitle ? ` · ${item.chapterTitle}` : ""}` : `${progressPercent}%${item.chapterTitle ? ` · ${item.chapterTitle}` : ""}`}</span>
       </div>}
+      <span className={styles.cardAction}>{actionLabel}</span>
       <span className={styles.meta}>{item.author?.displayName ?? "A reader"}{date ? ` · ${date}` : ""}</span>
     </div>
   </Link>;
@@ -45,7 +48,7 @@ export default async function ShelfPage() {
   if (shelf.status === "unavailable") return <main className={`shell section ${styles.page}`}><div className={styles.intro}><span className="eyebrow">Your private shelf</span><h1 className="serif">Your shelf is taking a moment.</h1><p className="notice">We could not load your saved stories right now. Please try again in a moment.</p><Link className="pill" href="/shelf">Try again</Link></div></main>;
 
   return <main className={`shell section ${styles.page}`}>
-    <div className={styles.intro}><div><span className="eyebrow">Your private shelf</span><h1 className="serif">Keep stories close.</h1><p>Bookmarks, unfinished chapters, and the stories you have just finished.</p></div><Link className="pill" href="/library">Find another story <span aria-hidden="true">↗</span></Link></div>
+    <div className={styles.intro}><div><span className="eyebrow">Your private shelf</span><h1 className="serif">Keep stories close.</h1><p>Bookmarks, unfinished chapters, and the stories you have just finished.</p></div><Link className="pill" href="/library">Find another story</Link></div>
     <ShelfSection id="currently-reading" title="Currently reading" description="Pick up where you left off." items={shelf.currentlyReading} section="reading" emptyMessage="Nothing in progress yet. Start a story and your place will appear here."/>
     <ShelfSection id="bookmarked" title="Bookmarked" description="Stories you want to keep nearby." items={shelf.bookmarked} section="bookmark" emptyMessage="No bookmarks yet. Save a story from its details page to keep it here."/>
     <ShelfSection id="recently-finished" title="Recently finished" description="A small record of stories you made it through." items={shelf.recentlyFinished} section="finished" emptyMessage="Finished stories will appear here when you reach the end of a chapter."/>

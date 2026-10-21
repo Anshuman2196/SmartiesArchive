@@ -90,11 +90,14 @@ export function CreateWorkForm() {
   };
   return <form onSubmit={submit}>
     <div className="field"><label htmlFor="title">Story title</label><input id="title" name="title" required maxLength={120} autoComplete="off"/></div>
-    <div className="field"><label htmlFor="summary">A short introduction</label><textarea id="summary" name="summary" maxLength={2000}/></div>
-    <div className="field"><label htmlFor="visibility">Who can read it?</label><select id="visibility" name="visibility"><option value="private">Private — only me</option><option value="unlisted">Unlisted — anyone with the link</option><option value="public">Public — listed in the library</option></select></div>
-    <div className="field"><NewWorkCoverInput file={file} onFile={setFile}/></div>
+    <p className="field-hint">Start privately. Add chapters, a cover, and publishing details when you’re ready.</p>
+    <details className="create-work-options"><summary>More story details</summary>
+      <div className="field"><label htmlFor="summary">A short introduction</label><textarea id="summary" name="summary" maxLength={2000}/></div>
+      <div className="field"><label htmlFor="visibility">Who can read it?</label><select id="visibility" name="visibility"><option value="private">Private — only me</option><option value="unlisted">Unlisted — anyone with the link</option><option value="public">Public — listed in the library</option></select></div>
+      <div className="field"><NewWorkCoverInput file={file} onFile={setFile}/></div>
+    </details>
     {status && <p role="status" aria-live="polite" className="field-hint">{file && pending ? `${status} ${progress}%` : status}</p>}
-    <button className="pill primary" type="submit" disabled={pending}>{pending ? "Creating…" : "Create work"}</button>
+    <button className="pill primary" type="submit" disabled={pending}>{pending ? "Creating…" : "Create story"}</button>
   </form>;
 }
 

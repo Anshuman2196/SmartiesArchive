@@ -26,6 +26,7 @@ export type ShelfItem = {
   progress: number | null;
   progressUpdatedAt: string | null;
   chapterTitle: string | null;
+  chapterId: string | null;
 };
 
 export type ShelfData =
@@ -107,6 +108,7 @@ export async function getShelf(): Promise<ShelfData> {
         progress: savedProgress?.progress ?? null,
         progressUpdatedAt: savedProgress?.updated_at ?? null,
         chapterTitle: savedProgress ? chapters.get(savedProgress.chapter_id) ?? null : null,
+        chapterId: savedProgress?.chapter_id ?? null,
       };
     });
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
+import "./refresh.css";
 
 export const metadata: Metadata = { title: "Smarties Archive — Stories that stay with you", description: "A quiet corner of the internet for stories worth keeping." };
 

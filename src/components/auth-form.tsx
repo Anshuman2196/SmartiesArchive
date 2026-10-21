@@ -40,7 +40,6 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
     return `/auth?${query.toString()}`;
   };
   return <main className="shell auth-shell">
-    <aside className="auth-editorial" aria-label="About Smarties Archive"><span className="eyebrow">A home for the stories we carry</span><p className="auth-quote serif">“Somewhere, a story is waiting for exactly the person you are.”</p><div><span className="auth-rule"/><p className="muted">Read closely. Write freely. Find your people.</p></div><span className="auth-edition">SMARTIES ARCHIVE · OPEN TO EVERYONE</span></aside>
     <section className="auth-panel" aria-labelledby="auth-title">
       {mode === "recover" ? <>
         <Link href={modeLink("login")} className="auth-back">← Back to sign in</Link>
@@ -48,7 +47,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
         {statusMessage && <p className="notice" role="status">{statusMessage}</p>}<Feedback state={recoveryState}/>
         <form action={recoveryAction} className="auth-form"><input type="hidden" name="next" value={next}/><div className="field"><label htmlFor="recover-email">Email address</label><input id="recover-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!recoveryState.fields?.email} aria-describedby={recoveryState.fields?.email ? "recover-email-error" : undefined}/>{recoveryState.fields?.email && <span id="recover-email-error" className="field-error">{recoveryState.fields.email}</span>}</div><button className="pill primary auth-submit" type="submit" disabled={recoveryPending}>{recoveryPending && <span className="spinner" aria-hidden="true"/>}{recoveryPending ? "Sending link…" : "Send recovery link"}</button></form>
       </> : <>
-        <span className="eyebrow">{mode === "signup" ? "Your next chapter" : "Welcome back"}</span><h1 id="auth-title" className="serif">{mode === "signup" ? "Make yourself at home." : "Step back into the story."}</h1><p className="muted">{mode === "signup" ? "Create an account and find a little more room for wonder." : "Your reading life is right where you left it."}</p>
+        <span className="eyebrow">Smarties Archive / Account</span><h1 id="auth-title" className="serif">{mode === "signup" ? "Create an account." : "Sign in."}</h1><p className="muted">{mode === "signup" ? "Save stories, keep your reading place, and publish your work." : "Return to your shelf and studio."}</p>
         <div className="auth-tabs" aria-label="Account options"><Link href={modeLink("login")} aria-current={mode === "login" ? "page" : undefined}>Sign in</Link><Link href={modeLink("signup")} aria-current={mode === "signup" ? "page" : undefined}>Create account</Link></div>
         {statusMessage && <p className="notice" role="status">{statusMessage}</p>}
         {!(mode === "signup" && signupState.kind === "success") && <Feedback state={state}/>}
@@ -61,7 +60,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
             <PasswordField id="signup-confirmation" name="confirmation" label="Confirm password" autoComplete="new-password" error={signupState.fields?.confirmation}/>
             <button className="pill primary auth-submit" type="submit" disabled={signupPending}>{signupPending && <span className="spinner" aria-hidden="true"/>}{signupPending ? "Creating your account…" : "Create your free account"}</button>
           </form> : <div className="confirmation-card"><span className="confirmation-mark" aria-hidden="true">✳</span><h2 className="serif">Check your email.</h2><p>{signupState.message}</p>{signupState.email && <p className="confirmation-email">{signupState.email}</p>}<form action={resendAction}><input type="hidden" name="email" value={signupState.email ?? ""}/><button className="text-action" type="submit" disabled={resendPending}>{resendPending ? "Sending a fresh link…" : "Resend confirmation email"}</button></form><Feedback state={resendState}/><Link href={modeLink("login")} className="pill auth-submit">Return to sign in</Link></div>}
-          <p className="auth-footnote">Account creation is open to everyone. If email confirmation is enabled, we’ll ask you to confirm your address before signing in.</p>
+          <p className="auth-footnote">You may need to confirm your email address before signing in.</p>
         </> : <form action={loginAction} className="auth-form"><input type="hidden" name="next" value={next}/>
           <div className="field"><label htmlFor="login-email">Email address</label><input id="login-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!loginState.fields?.email} aria-describedby={loginState.fields?.email ? "login-email-error" : undefined}/>{loginState.fields?.email && <span id="login-email-error" className="field-error">{loginState.fields.email}</span>}</div>
           <PasswordField id="login-password" name="password" label="Password" autoComplete="current-password" error={loginState.fields?.password}/>
@@ -69,7 +68,6 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
           <button className="pill primary auth-submit" type="submit" disabled={loginPending}>{loginPending && <span className="spinner" aria-hidden="true"/>}{loginPending ? "Signing you in…" : "Sign in"}</button>
         </form>}
       </>}
-      <p className="auth-terms">By continuing, you agree to treat one another and the stories we share with care.</p>
     </section>
   </main>;
 }

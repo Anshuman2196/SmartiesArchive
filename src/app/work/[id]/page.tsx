@@ -1,5 +1,6 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
+import { CoverFallback } from "@/components/cover-fallback";
 import { notFound } from "next/navigation";
 import { BookmarkButton, ResumeLink, ShareButton } from "@/components/reader-experience";
 import { getChapterReviewSummaries } from "@/lib/chapter-reviews";
@@ -47,15 +48,15 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const resumeId = progress?.chapter_id && published.some((chapter) => chapter.id === progress.chapter_id) ? progress.chapter_id : undefined;
 
   return <main className="shell story-page">
-    <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <div className="story-cover story-cover-placeholder" aria-label="No cover art"><span className="eyebrow">Smarties Archive</span><span className="serif">{work.title}</span></div>}</div>
+    <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <CoverFallback title={work.title} className="story-cover story-cover-placeholder"/>}</div>
     <div className="story-detail">
       <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private work" : work.visibility === "unlisted" ? "Shared by link" : "From the public archive"}</span><h1 className="serif">{work.title}</h1>
         {author && <p className="story-byline">By <Link href={`/author/${author.username}`}>{author.display_name}</Link></p>}
-        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span><span>{work.state}</span><span>{work.visibility}</span>{chapters.some((chapter) => chapter.format && chapter.format !== "prose") && <span>Illustrated formats</span>}</div>
-        {(work.tags?.length ?? 0) > 0 && <ul className="story-tags" aria-label="Story tags">{work.tags?.map((tag) => <li key={tag}>{tag}</li>)}</ul>}
+        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{work.state === "draft" && <span>Draft</span>}{work.visibility !== "public" && <span>{work.visibility}</span>}{chapters.some((chapter) => chapter.format && chapter.format !== "prose") && <span>Illustrated formats</span>}</div>
         {work.summary && <p className="story-summary">{work.summary}</p>}
+        {(work.tags?.length ?? 0) > 0 && <ul className="story-tags" aria-label="Story tags">{work.tags?.map((tag) => <li key={tag}>{tag}</li>)}</ul>}
         {(work.content_warnings?.length ?? 0) > 0 && <details className="content-warnings"><summary>Content notes</summary><ul>{work.content_warnings?.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
-        <div className="story-actions">{first && <ResumeLink workId={work.id} firstChapterId={first.id} savedChapterId={resumeId} chapterIds={published.map((chapter) => chapter.id)}/>}{isOwner && <Link className="pill" href={`/studio/${work.id}`}>Manage story</Link>}{work.state === "published" && work.visibility !== "private" && <ShareButton/>}{session.user && !isOwner ? <BookmarkButton workId={work.id} initialSaved={!!bookmark}/> : !session.user && work.state === "published" && <Link className="text-action" href={`/auth?mode=login&next=${encodeURIComponent(`/work/${work.id}`)}`}>Sign in to bookmark</Link>}</div>
+        <div className="story-actions">{first && <ResumeLink workId={work.id} firstChapterId={first.id} savedChapterId={resumeId} chapterIds={published.map((chapter) => chapter.id)}/>}{isOwner && <Link className="pill" href={`/studio/${work.id}`}>Manage story</Link>}{work.state === "published" && work.visibility !== "private" && <ShareButton iconOnly/>}{session.user && !isOwner ? <BookmarkButton workId={work.id} initialSaved={!!bookmark} iconOnly/> : !session.user && work.state === "published" && <Link className="text-action" href={`/auth?mode=login&next=${encodeURIComponent(`/work/${work.id}`)}`}>Sign in to bookmark</Link>}</div>
       </div>
       <section className="story-contents" aria-labelledby="story-contents-title"><div className="section-head"><div><span className="eyebrow">The reading path</span><h2 id="story-contents-title" className="serif">Chapters</h2></div><span className="muted">{published.length} published</span></div>
         {chapters.length ? <ol className="story-chapter-list">{chapters.map((chapter, index) => { const summary = reviewSummaries[chapter.id]; return <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div><Link href={`/work/${work.id}/chapter/${chapter.id}`} className="chapter-title">{chapter.title}</Link><span className="chapter-meta">{chapter.state}{chapter.format && chapter.format !== "prose" ? ` · ${chapter.format}` : ""}{summary ? ` · ★ ${summary.average.toFixed(1)} (${summary.count})` : ""}</span></div>{isOwner && <Link href={`/studio/${work.id}?chapter=${chapter.id}`} className="chapter-manage">Edit</Link>}</li>; })}</ol> : <div className="card empty-chapters"><h3 className="serif">A story gathering its first words.</h3><p className="muted">The author has not published a chapter yet.</p>{isOwner && <Link className="pill primary" href={`/studio/${work.id}`}>Open Creator Studio</Link>}</div>}
