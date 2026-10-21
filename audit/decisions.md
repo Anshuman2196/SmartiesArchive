@@ -39,3 +39,12 @@
 - The current project remains intentionally small; no external search service or pagination infrastructure was introduced.
 - Library cards use one outer link instead of nested title/author links so the entire card is clickable and keyboard-accessible.
 - Library posters use signed story-media cover URLs when available, with a title placeholder fallback; descriptions are clamped to three lines.
+
+## 2026-10-21 — UI polish follow-up
+
+- The editor formatting drawer is treated as a non-modal dialog: it is removed from the accessibility tree with `inert` while closed, receives focus when opened, closes on Escape, and returns focus to its trigger.
+- The editor overflow actions use a small ARIA menu with Escape, arrow-key, Home, and End navigation; this keeps the existing actions discoverable on narrow screens without changing the shortcut registry.
+- The chapter reader keeps its custom controls and adds a mobile table-of-contents disclosure, semantic preference fieldsets, visible setting values, and a reset control. Native PDF styling remains avoided by the existing custom PDF viewer decision.
+- Reader title/author context and image zoom/fullscreen remain separate follow-up work because the current UI polish pass focused on controls, semantics, and mobile discoverability.
+- Mojibake in studio labels was repaired at the source; JSX apostrophes use escaped entities where required by the lint rules.
+- `LibraryWork.cover_url` is optional at the type boundary so existing stories and test fixtures without a cover remain valid; the library still renders a deliberate poster fallback.

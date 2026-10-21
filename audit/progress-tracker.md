@@ -52,7 +52,7 @@ These requests are now explicitly included in the plan:
 - [x] Image, comic, chat, and mixed-media chapter formats
 - [x] Structured validation with Zod
 - [x] Safe React rendering instead of trusted HTML
-- [~] Rich editor accessibility needs labeling and focus management
+- [x] Rich editor accessibility labels, dialog semantics, focus management, and keyboard navigation
 - [~] CSS for the editor contains duplicated generations of rules
 
 ### Reading
@@ -78,11 +78,11 @@ These requests are now explicitly included in the plan:
 - [x] Public published story library
 - [x] Search by title and summary
 - [x] Author links from story cards
-- [~] Library cards lack covers and useful metadata
-- [~] Empty search results are confused with an empty library
-- [ ] Add covers, tags, and reading-time metadata to cards
-- [ ] Add a simple sort option
-- [ ] Add a better no-results state
+- [x] Library cards show covers/poster fallbacks, tags, and clamped descriptions
+- [x] Empty search results are separated from an empty library
+- [ ] Add reading-time metadata to cards
+- [x] Add a simple sort option
+- [x] Add a better no-results state
 - [ ] Add a small featured/staff-pick shelf
 - [-] Pagination and large-scale search infrastructure for now
 
@@ -92,9 +92,10 @@ These requests are now explicitly included in the plan:
 - [x] Focus-visible styling
 - [x] Reduced-motion support
 - [x] Reader progressbar semantics
+- [x] Mobile table-of-contents disclosure, preference fieldsets, reset control, and visible setting values
 - [x] Mobile header collapses into an accessible menu
 - [x] Shared navigation touch targets and focus states improved
-- [~] Mobile chapter navigation uses horizontal scrolling with limited affordance
+- [x] Mobile chapter navigation uses a clear table-of-contents disclosure
 - [x] Add a mobile navigation menu
 - [x] Add a skip-to-content link
 - [x] Associate reset-password errors with inputs
@@ -253,3 +254,17 @@ Cover only the flows that matter to this group:
 - [x] Added visible tag chips and tag count metadata.
 - [x] Clamped long descriptions to three lines with overflow hidden.
 - [x] Made the entire story card a single keyboard-accessible link.
+
+## 2026-10-21 UI polish follow-up
+
+- [x] Repaired mojibake arrows, separators, and apostrophes in the studio UI — `0c7f35d`, `ac4fb5a`
+- [x] Added accessible editor drawer semantics, focus return, Escape handling, overflow-menu keyboard navigation, and editor naming — `3bbb895`
+- [x] Added mobile reader contents disclosure, semantic reading-preference groups, reset control, visible values, and larger touch targets — `2313d82`
+- [x] Kept stories without covers valid in library filter/test fixtures — `a490118`
+
+## Next UI work
+
+- [ ] Add persistent story title/author context to the chapter reader
+- [ ] Add image zoom/fullscreen for comics and inline illustrations
+- [ ] Run real-device checks at 320px, 375px, and 768px widths
+- [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
