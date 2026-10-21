@@ -11,11 +11,12 @@ import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
+import { createEditorShortcutExtension, detectShortcutPlatform, editorShortcutDefinitions, formatShortcut, type EditorShortcutCallbacks, type EditorShortcutDefinition, type ShortcutPlatform } from "@/lib/editor-shortcuts";
 
 const imageNode = Node.create({
   name: "imageBlock", group: "block", atom: true, selectable: true, draggable: true,
@@ -99,6 +100,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [sidebarTab, setSidebarTab] = useState("text");
   const [selectionActive, setSelectionActive] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
+  const [shortcutPlatform, setShortcutPlatform] = useState<ShortcutPlatform>("windows");
   const [mediaOpen, setMediaOpen] = useState(false);
   const [media, setMedia] = useState<Array<{ src: string; previewSrc: string; name: string }>>([]);
   const [mediaError, setMediaError] = useState("");
@@ -112,9 +115,12 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const documentRef = useRef<RichDocument>(initialDocument);
   const titleRef = useRef(initialTitle);
   const busy = useRef(false);
+  const shortcutCallbacksRef = useRef<EditorShortcutCallbacks>({});
+  const shortcutHelpCloseRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
-  const editor = useEditor({ extensions, content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
+  const shortcutExtension = useMemo(() => createEditorShortcutExtension(shortcutCallbacksRef), []);
+  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
   const save = useCallback(async () => {
     if (!dirty) return true;
     if (busy.current) return false;
@@ -135,6 +141,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
 
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, save]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
+  useEffect(() => { setShortcutPlatform(detectShortcutPlatform()); }, []);
+  useEffect(() => { if (shortcutHelpOpen) shortcutHelpCloseRef.current?.focus(); }, [shortcutHelpOpen]);
 
   const wordCount = plainTextFromRichDocument(documentRef.current).trim().split(/\s+/).filter(Boolean).length;
   const activeBlock = editor?.isActive("heading") ? "heading" : editor?.isActive("literaryBlock") ? "literaryBlock" : "paragraph";
@@ -150,12 +158,25 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     setImageNotice("Image uploaded and inserted.");
     if (uploadRef.current) uploadRef.current.value = "";
   };
-  const openMedia = async () => { setMediaError(""); setMediaOpen((open) => !open); const list = await listWorkMedia(workId).catch(() => []); setMedia(list); if (!list.length) setMediaError("No uploaded images yet."); };
+  const loadMedia = async () => { const list = await listWorkMedia(workId).catch(() => []); setMedia(list); if (!list.length) setMediaError("No uploaded images yet."); };
+  const openMedia = () => { setMediaError(""); setMediaOpen((open) => !open); void loadMedia(); };
+  const openImagePicker = () => { setSidebarTab("insert"); setSidebarOpen(true); setMediaError(""); setMediaOpen(true); void loadMedia(); };
   const insertEmoji = (emoji: string) => { editor?.chain().focus().insertContent(emoji).run(); setEmojiOpen(false); setEmojiSearch(""); };
   const setLink = () => { if (!editor) return; const href = window.prompt("Enter a website URL or internal story path (for example, /work/…):", editor.getAttributes("link").href ?? "https://"); if (href === null) return; if (!href) editor.chain().focus().unsetLink().run(); else editor.chain().focus().setLink({ href }).run(); };
   const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().focus().updateAttributes("imageBlock", { [key]: value }).run();
 
   if (!editor) return <div className="rich-editor-loading" role="status">Preparing your writing space…</div>;
+  shortcutCallbacksRef.current = {
+    onLink: setLink,
+    onIndent: () => changeIndent(1),
+    onOutdent: () => changeIndent(-1),
+    onInsertImage: openImagePicker,
+    onInsertEmoji: () => { setSidebarTab("insert"); setSidebarOpen(true); setEmojiOpen(true); setEmojiSearch(""); },
+    onSave: () => { void save(); },
+    onTogglePreview: () => setPreview((open) => !open),
+    onToggleFocusMode: () => setFocusMode((focused) => !focused),
+    onOpenHelp: () => setShortcutHelpOpen(true),
+  };
   const selectedImage = editor.isActive("imageBlock");
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
   const toolbarButton = (label: string, command: () => void, active = false, disabled = false) => <button type="button" className="editor-tool-button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{label}</button>;
@@ -170,6 +191,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     const url = URL.createObjectURL(recovery); const link = document.createElement("a"); link.href = url; link.download = "smarties-chapter-recovery.json"; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const formattingMore = () => { setSidebarTab("type"); setSidebarOpen(true); };
+  const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
+  const closeShortcutHelp = () => { setShortcutHelpOpen(false); editor.chain().focus().run(); };
 
   return <section className={`rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} aria-label="Chapter writing editor">
     <header className="editor-topbar">
@@ -182,12 +205,23 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
           <button type="button" className="editor-top-action" aria-pressed={preview} onClick={() => setPreview(!preview)}>{preview ? "Return to writing" : "Preview chapter"}</button>
           <button type="button" className="editor-top-action" aria-pressed={focusMode} onClick={() => setFocusMode(!focusMode)}>{focusMode ? "Exit focus mode" : "Focus mode"}</button>
+          <button type="button" className="editor-top-action" aria-pressed={shortcutHelpOpen} onClick={() => setShortcutHelpOpen(true)}>Keyboard shortcuts</button>
           {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" type="submit" disabled={dirty || !!saveError}>Publish saved draft</button></form>}
           <button type="button" className="editor-top-action" onClick={downloadRecovery}>Download recovery copy</button>
         </div></details>
       </div>
     </header>
     {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
+    {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeShortcutHelp(); } }}>
+      <div className="editor-popover-head"><strong id="editor-shortcut-help-title">Keyboard shortcuts</strong><button ref={shortcutHelpCloseRef} type="button" onClick={closeShortcutHelp}>Close</button></div>
+      <p className="editor-sidebar-help">Shortcuts work while your cursor is in the chapter editor. Formatting controls such as font, size, and color remain in the Formatting panel.</p>
+      {shortcutCategories.map((category) => <section key={category} aria-labelledby={`shortcut-category-${category.toLowerCase()}`}>
+        <h3 id={`shortcut-category-${category.toLowerCase()}`} className="eyebrow">{category}</h3>
+        <div className="editor-sidebar-panel" style={{ gap: 6, paddingTop: 6 }}>
+          {editorShortcutDefinitions.filter((definition) => definition.category === category).map((definition) => <div key={definition.id} style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}><span><strong>{definition.label}</strong><small style={{ display: "block", color: "var(--muted)" }}>{definition.description}</small></span><kbd>{formatShortcut(definition.shortcut, shortcutPlatform)}</kbd></div>)}
+        </div>
+      </section>)}
+    </div>}
     <div className="editor-workspace">
       <main className="editor-writing-column">
         <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" placeholder="Untitled chapter" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; setDocumentRevision((revision) => revision + 1); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
