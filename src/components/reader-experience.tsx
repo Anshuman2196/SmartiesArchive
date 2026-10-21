@@ -8,6 +8,7 @@ import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { PdfReader } from "@/components/pdf-reader";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
+import styles from "./reader-experience.module.css";
 
 type ChapterLink = { id: string; title: string; position: number };
 type Preferences = ReaderPreferences;
@@ -79,6 +80,7 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
 export function ReaderExperience({ workId, chapterId, chapterTitle, content, chapters, authenticated, savedProgress = 0 }: { workId: string; chapterId: string; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; savedProgress?: number }) {
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
   const [progress, setProgress] = useState(savedProgress);
   const progressRef = useRef(savedProgress);
   const [saveMessage, setSaveMessage] = useState("");
@@ -127,6 +129,10 @@ export function ReaderExperience({ workId, chapterId, chapterTitle, content, cha
     }
   }, [preferences, preferencesReady]);
 
+  useEffect(() => {
+    setTocOpen(false);
+  }, [chapterId]);
+
   const persistProgress = useCallback((value: number) => {
     setProgress(value);
     progressRef.current = value;
@@ -164,15 +170,39 @@ export function ReaderExperience({ workId, chapterId, chapterTitle, content, cha
   }, [onScroll]);
 
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => setPreferences((previousValue) => ({ ...previousValue, [key]: value }));
+  const progressPercent = Math.round(progress * 100);
 
-  return <main className="reader-page" data-theme={preferences.theme}>
-    <div className="reader-topbar"><Link href={`/work/${workId}`} className="reader-back">← Story details</Link><a href="#table-of-contents" className="reader-toc-jump">Contents</a><span className="reader-save-status" aria-live="polite">{saveMessage}</span></div>
-    <div className="reader-layout">
-      <aside id="table-of-contents" className="reader-toc"><span className="eyebrow">Contents</span><ol>{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined}>{chapter.title}</Link></li>)}</ol></aside>
-      <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ width: `${Math.round(progress * 100)}%` }}/></div></header>
-        <div className="reader-tools" aria-label="Reading preferences"><label>Typeface<select value={preferences.font} onChange={(event) => update("font", event.target.value as Preferences["font"])}><option value="serif">Literary serif</option><option value="sans">Sans serif</option></select></label><label>Text size<input aria-label="Text size" type="range" min="16" max="28" step="1" value={preferences.size} onChange={(event) => update("size", Number(event.target.value))}/></label><label>Line spacing<input aria-label="Line spacing" type="range" min="1.4" max="2.2" step="0.1" value={preferences.leading} onChange={(event) => update("leading", Number(event.target.value))}/></label><label>Paragraph spacing<input aria-label="Paragraph spacing" type="range" min="0.5" max="2.5" step="0.1" value={preferences.spacing} onChange={(event) => update("spacing", Number(event.target.value))}/></label><label>Reading width<select value={preferences.width} onChange={(event) => update("width", Number(event.target.value))}><option value="620">Narrow</option><option value="760">Comfortable</option><option value="900">Wide</option></select></label><fieldset><legend>Page tone</legend>{(["dark", "light", "sepia"] as const).map((theme) => <button type="button" key={theme} className="theme-swatch" data-selected={preferences.theme === theme} aria-label={`${theme} page theme`} aria-pressed={preferences.theme === theme} onClick={() => update("theme", theme)}>{theme}</button>)}</fieldset></div>
-        <article ref={articleRef} className={`reader-article reader-font-${preferences.font}`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
-        <nav className="chapter-pager" aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev">← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next">Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`}>Story details →</Link>}</nav>
+  return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
+    <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">
+      <Link href={`/work/${workId}`} className={`reader-back ${styles.readerBack}`} aria-label="Back to story details">← <span>Story details</span></Link>
+      <Link href="#table-of-contents" className={`reader-toc-jump ${styles.desktopTocLink}`}>Contents <span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></Link>
+      <button type="button" className={`reader-toc-jump ${styles.tocButton} ${styles.mobileTocButton}`} aria-expanded={tocOpen} aria-controls="table-of-contents" aria-label={`${tocOpen ? "Close" : "Open"} table of contents`} onClick={() => setTocOpen((open) => !open)}>Contents <span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></button>
+      <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
+    </nav>
+    <div className={`reader-layout ${styles.readerLayout}`}>
+      <aside id="table-of-contents" className={`reader-toc ${styles.readerToc}`} data-open={tocOpen}>
+        <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>
+        <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => setTocOpen(false)}>{chapter.title}</Link></li>)}</ol>
+      </aside>
+      <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div></header>
+        <section className={`reader-tools ${styles.readerTools}`} aria-labelledby="reader-preferences-title">
+          <div className={styles.preferenceHeader}><div><h2 id="reader-preferences-title">Reading preferences</h2><p>Adjust the page for this reading session. Your choices are saved on this device.</p></div><button type="button" className={styles.resetButton} onClick={() => setPreferences(defaults)}>Reset</button></div>
+          <div className={styles.preferenceGrid}>
+            <fieldset className={styles.preferenceGroup}><legend>Typography</legend>
+              <label htmlFor="reader-font">Typeface<select id="reader-font" value={preferences.font} onChange={(event) => update("font", event.target.value as Preferences["font"])}><option value="serif">Literary serif</option><option value="sans">Sans serif</option></select></label>
+              <label htmlFor="reader-size">Text size<span className={styles.preferenceValue}>{preferences.size}px</span><input id="reader-size" type="range" min="16" max="28" step="1" value={preferences.size} onChange={(event) => update("size", Number(event.target.value))}/></label>
+              <label htmlFor="reader-leading">Line spacing<span className={styles.preferenceValue}>{preferences.leading.toFixed(1)}×</span><input id="reader-leading" type="range" min="1.4" max="2.2" step="0.1" value={preferences.leading} onChange={(event) => update("leading", Number(event.target.value))}/></label>
+              <label htmlFor="reader-spacing">Paragraph spacing<span className={styles.preferenceValue}>{preferences.spacing.toFixed(1)}×</span><input id="reader-spacing" type="range" min="0.5" max="2.5" step="0.1" value={preferences.spacing} onChange={(event) => update("spacing", Number(event.target.value))}/></label>
+            </fieldset>
+            <fieldset className={styles.preferenceGroup}><legend>Layout</legend>
+              <label htmlFor="reader-width">Reading width<select id="reader-width" value={preferences.width} onChange={(event) => update("width", Number(event.target.value))}><option value="620">Narrow</option><option value="760">Comfortable</option><option value="900">Wide</option></select></label>
+              <p className={styles.preferenceHint}>Choose a wider column for images or a narrower one for prose.</p>
+            </fieldset>
+            <fieldset className={`${styles.preferenceGroup} ${styles.themeGroup}`}><legend>Page tone</legend><div className={styles.themeChoices}>{(["dark", "light", "sepia"] as const).map((theme) => <button type="button" key={theme} className={`theme-swatch ${styles.themeButton}`} data-selected={preferences.theme === theme} aria-label={`${theme} page theme`} aria-pressed={preferences.theme === theme} onClick={() => update("theme", theme)}>{theme}</button>)}</div></fieldset>
+          </div>
+        </section>
+        <article ref={articleRef} className={`reader-article reader-font-${preferences.font} ${styles.readerArticle}`} aria-label={`${chapterTitle} content`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
+        <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`}>← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details">Story details →</Link>}</nav>
       </div>
     </div>
   </main>;
