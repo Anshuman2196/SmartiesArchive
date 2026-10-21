@@ -7,7 +7,7 @@ test("publish checklist distinguishes optional warnings from blockers", () => {
     chapters: [{ title: "Opening", state: "draft", body: "" }],
   });
 
-  assert.deepEqual(checklist.map((item) => item.tone), ["warning", "warning", "blocking", "blocking"]);
+  assert.deepEqual(checklist.map((item) => item.tone), ["warning", "warning", "blocking", "warning"]);
   assert.match(checklist[2].detail, /at least one chapter/);
   assert.match(checklist[3].detail, /missing content/);
 });

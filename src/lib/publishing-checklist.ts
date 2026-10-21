@@ -28,7 +28,7 @@ export function getPublishChecklist({ coverUrl, contentWarnings, chapters }: { c
       ? { id: "chapters", label: "Published chapters", detail: `${published.length} chapter${published.length === 1 ? " is" : "s are"} ready for readers.`, tone: "ready" }
       : { id: "chapters", label: "Published chapters", detail: "Publish at least one chapter before publishing the story.", tone: "blocking" },
     incomplete.length
-      ? { id: "drafts", label: "Chapter completeness", detail: `${incomplete.length} chapter${incomplete.length === 1 ? " is" : "s are"} missing content.`, tone: "blocking" }
+      ? { id: "drafts", label: "Chapter completeness", detail: `${incomplete.length} chapter${incomplete.length === 1 ? " is" : "s are"} missing content. Review before sharing the story.`, tone: "warning" }
       : unpublished.length
         ? { id: "drafts", label: "Unpublished changes", detail: `${unpublished.length} chapter${unpublished.length === 1 ? " is" : "s are"} still unpublished or has an unpublished revision.`, tone: "warning" }
         : { id: "drafts", label: "Chapter completeness", detail: "There are no unpublished chapter changes.", tone: "ready" },
