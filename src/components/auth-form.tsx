@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff, MailCheck } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { StatusToast } from "@/components/status-toast";
 import { register, requestPasswordReset, resendConfirmation, signIn, type AuthActionState } from "@/app/actions";
 
 type Mode = "login" | "signup" | "recover";
@@ -15,7 +17,9 @@ function PasswordField({ id, label, name, autoComplete, error, required = true }
 }
 
 function Feedback({ state }: { state: AuthActionState }) {
-  if (!state.message) return null;
+  // Successful updates are transient, so they show as toasts; errors stay beside the form they relate to.
+  useEffect(() => { if (state.message && state.kind !== "error") toast.success(state.message, { id: `auth:${state.message}` }); }, [state]);
+  if (!state.message || state.kind !== "error") return null;
   return <p className={state.kind === "error" ? "notice auth-error" : "notice auth-success"} role={state.kind === "error" ? "alert" : "status"} aria-live={state.kind === "error" ? "assertive" : "polite"}>{state.message}</p>;
 }
 
@@ -45,12 +49,12 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
       {mode === "recover" ? <>
         <Link href={modeLink("login")} className="auth-back"><ArrowLeft size={15} aria-hidden="true"/> Back to sign in</Link>
         <span className="eyebrow">Password recovery</span><h1 id="auth-title" className="serif">Reset your password.</h1><p className="muted">We’ll email you a secure link to choose a new password.</p>
-        {statusMessage && <p className="notice" role="status">{statusMessage}</p>}<Feedback state={recoveryState}/>
+        {statusMessage && <StatusToast message={statusMessage}/>}<Feedback state={recoveryState}/>
         <form action={recoveryAction} className="auth-form"><input type="hidden" name="next" value={next}/><div className="field"><label htmlFor="recover-email">Email address</label><input id="recover-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!recoveryState.fields?.email} aria-describedby={recoveryState.fields?.email ? "recover-email-error" : undefined}/>{recoveryState.fields?.email && <span id="recover-email-error" className="field-error">{recoveryState.fields.email}</span>}</div><button className="pill primary auth-submit" type="submit" disabled={recoveryPending}>{recoveryPending && <span className="spinner" aria-hidden="true"/>}{recoveryPending ? "Sending link…" : "Send recovery link"}</button></form>
       </> : <>
         <span className="eyebrow">Your account</span><h1 id="auth-title" className="serif">{mode === "signup" ? "Create account." : "Sign in."}</h1><p className="muted">{next === "/studio" ? mode === "signup" ? "Create an account to open Creator Studio and publish your work." : "Sign in to open Creator Studio and manage your stories." : mode === "signup" ? "Save stories, keep your reading place, and publish your work." : "Return to your shelf and Creator Studio."}</p>
         <div className="auth-tabs" aria-label="Account options"><Link href={modeLink("login")} aria-current={mode === "login" ? "page" : undefined}>Sign in</Link><Link href={modeLink("signup")} aria-current={mode === "signup" ? "page" : undefined}>Create account</Link></div>
-        {statusMessage && <p className="notice" role="status">{statusMessage}</p>}
+        {statusMessage && <StatusToast message={statusMessage}/>}
         {!(mode === "signup" && signupState.kind === "success") && <Feedback state={state}/>}
         {mode === "signup" ? <>
           {signupState.kind !== "success" ? <form action={signupAction} className="auth-form"><input type="hidden" name="next" value={next}/>

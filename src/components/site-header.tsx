@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LibraryBig } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AuthNavigation, MobileNavigation } from "@/components/site-header-client";
 import { getCurrentUser } from "@/lib/supabase/current-user";
@@ -21,5 +22,5 @@ export async function SiteHeader() {
   } catch {
     // The public archive remains available when Supabase is unconfigured or temporarily unavailable.
   }
-  return <header className="topbar"><nav className="shell nav" aria-label="Main navigation"><Link href="/" className="brand">smarties<span>archive</span></Link><div className="navlinks navlinks-desktop"><Link href="/library">Library</Link>{profile ? <AuthNavigation username={profile.username} displayName={profile.display_name} isAdmin={isAdmin}/> : <><Link href="/auth?mode=login">Sign in</Link><Link href="/auth?mode=signup" className="pill primary">Create account</Link></>}</div><MobileNavigation username={profile?.username} displayName={profile?.display_name} isAdmin={isAdmin}/></nav></header>;
+  return <header className="topbar"><nav className="shell nav" aria-label="Main navigation"><Link href="/" className="brand">smarties<span>archive</span></Link><div className="navlinks navlinks-desktop"><Link href="/library" className="nav-library"><LibraryBig size={18} aria-hidden="true"/>Library</Link>{profile ? <AuthNavigation username={profile.username} displayName={profile.display_name} isAdmin={isAdmin}/> : <><Link href="/auth?mode=login">Sign in</Link><Link href="/auth?mode=signup" className="pill primary">Create account</Link></>}</div><MobileNavigation username={profile?.username} displayName={profile?.display_name} isAdmin={isAdmin}/></nav></header>;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Pencil, Star, Trash2 } from "lucide-react";
 import { deleteChapterReview, restoreChapterReview, saveChapterReview } from "@/app/actions";
@@ -61,39 +62,36 @@ function ReviewForm({ workId, chapterId, review, onSaved }: { workId: string; ch
 export function ChapterReviews({ workId, chapterId, authorId, reviews, currentUserId, loginHref }: { workId: string; chapterId: string; authorId: string; reviews: ChapterReview[]; currentUserId?: string; loginHref: string }) {
   const [editing, setEditing] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [undoReview, setUndoReview] = useState<ChapterReview>();
   const [deleteState, deleteAction, deleting] = useActionState(deleteChapterReview, idleState);
-  const [restoreState, restoreAction, restoring] = useActionState(restoreChapterReview, idleState);
+  const [restoreState, restoreAction] = useActionState(restoreChapterReview, idleState);
   const router = useRouter();
   const deleteHandled = useRef(false);
   const ownReview = currentUserId ? reviews.find((review) => review.userId === currentUserId) : undefined;
   const average = reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0;
-  const onReviewSaved = useCallback((message: string) => { setEditing(false); setNotice(message); }, []);
+  const onReviewSaved = useCallback((message: string) => { setEditing(false); toast.success(message); }, []);
 
   useEffect(() => {
     if (deleteState.kind === "success" && !deleteHandled.current) {
       deleteHandled.current = true;
       setDeleteOpen(false);
-      if (ownReview) setUndoReview(ownReview);
-      setNotice(deleteState.message ?? "Review deleted.");
+      const deleted = ownReview;
+      toast.success(deleteState.message ?? "Review deleted.", { duration: 10000, action: deleted ? { label: "Undo", onClick: () => {
+        const form = new FormData();
+        form.set("workId", workId); form.set("chapterId", chapterId); form.set("rating", String(deleted.rating)); form.set("body", deleted.body ?? "");
+        startTransition(() => restoreAction(form));
+      } } : undefined });
       router.refresh();
     }
     if (deleteState.kind !== "success") deleteHandled.current = false;
-  }, [deleteState.kind, deleteState.message, ownReview, router]);
+  }, [chapterId, deleteState.kind, deleteState.message, ownReview, restoreAction, router, workId]);
 
   useEffect(() => {
+    if (restoreState.kind === "error" && restoreState.message) toast.error(restoreState.message);
     if (restoreState.kind !== "success") return;
-    setUndoReview(undefined);
-    setNotice(restoreState.message ?? "Review restored.");
+    toast.success(restoreState.message ?? "Review restored.");
     router.refresh();
-  }, [restoreState.kind, restoreState.message, router]);
+  }, [restoreState, router]);
 
-  useEffect(() => {
-    if (!undoReview) return;
-    const timer = window.setTimeout(() => setUndoReview(undefined), 10000);
-    return () => window.clearTimeout(timer);
-  }, [undoReview]);
 
   return <section className={`${styles.section} shell`} aria-labelledby={`chapter-reviews-${chapterId}`}>
     <div className={styles.layout}>
@@ -129,7 +127,6 @@ export function ChapterReviews({ workId, chapterId, authorId, reviews, currentUs
       </div>
     </div>
 
-    {(notice || undoReview || restoreState.kind === "error") && <div className={styles.notice} role="status" aria-live="polite"><span>{restoreState.kind === "error" ? restoreState.message : notice}</span>{undoReview && <form action={restoreAction}><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="rating" value={undoReview.rating}/><input type="hidden" name="body" value={undoReview.body}/><Button variant="outline" type="submit" disabled={restoring}>{restoring ? "Restoring…" : "Undo"}</Button></form>}</div>}
     {currentUserId && <Dialog open={editing} onOpenChange={setEditing}><DialogContent className={styles.composeDialog}><DialogHeader><DialogTitle>{ownReview ? "Edit your review" : "Review this chapter"}</DialogTitle><DialogDescription>Rate the chapter and add a note if you like.</DialogDescription></DialogHeader><ReviewForm workId={workId} chapterId={chapterId} review={ownReview} onSaved={onReviewSaved}/></DialogContent></Dialog>}
   </section>;
 }

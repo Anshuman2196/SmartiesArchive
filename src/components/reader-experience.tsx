@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
@@ -10,7 +11,7 @@ import { ReaderMedia } from "@/components/reader-media";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 import styles from "./reader-experience.module.css";
-import { ArrowLeft, ArrowRight, Bookmark, List, Settings2, Share2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, List, Settings2, Share2, Star, UserRound, X } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ChapterLink = { id: string; title: string; position: number };
@@ -42,37 +43,34 @@ function Content({ content, chapterTitle }: { content: ReaderContent; chapterTit
 
 export function BookmarkButton({ workId, initialSaved, iconOnly = false }: { workId: string; initialSaved: boolean; iconOnly?: boolean }) {
   const [saved, setSaved] = useState(initialSaved);
-  const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
   const toggle = () => startTransition(async () => {
-    setMessage("");
     try {
       const result = await toggleBookmark(workId, !saved);
-      if (result.ok) setSaved(result.saved);
-      else setMessage(result.message);
-    } catch { setMessage("We couldn’t update your bookmark. Please try again."); }
+      if (result.ok) { setSaved(result.saved); toast.success(result.saved ? "Saved to your shelf." : "Removed from your shelf."); }
+      else toast.error(result.message);
+    } catch { toast.error("We couldn’t update your bookmark. Please try again."); }
   });
-  return <div className="reader-action-wrap"><button type="button" className="pill" aria-label={saved ? "Remove bookmark" : "Bookmark story"} title={saved ? "Remove bookmark" : "Bookmark story"} aria-pressed={saved} disabled={pending} onClick={toggle}>{iconOnly ? <Bookmark size={18} fill={saved ? "currentColor" : "none"} aria-hidden="true"/> : pending ? "Saving…" : saved ? "Bookmarked" : "Bookmark story"}</button>{message && <span role="alert" className="reader-action-message">{message}</span>}</div>;
+  return <div className="reader-action-wrap"><button type="button" className="pill" aria-label={saved ? "Remove bookmark" : "Bookmark story"} title={saved ? "Remove bookmark" : "Bookmark story"} aria-pressed={saved} disabled={pending} onClick={toggle}>{iconOnly ? <Bookmark size={18} fill={saved ? "currentColor" : "none"} aria-hidden="true"/> : pending ? "Saving…" : saved ? "Bookmarked" : "Bookmark story"}</button></div>;
 }
 
 export function ShareButton({ title, iconOnly = false }: { title?: string; iconOnly?: boolean }) {
-  const [message, setMessage] = useState("");
   const [open, setOpen] = useState(false);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
-      setMessage("Link copied.");
+      toast.success("Link copied.");
       setOpen(false);
     } catch {
-      setMessage("We couldn’t copy the link. Copy it from your browser address bar.");
+      toast.error("We couldn’t copy the link. Copy it from your browser address bar.");
     }
   };
   const share = async () => {
-    if (!navigator.share) { setMessage("Device sharing is not available here. Copy the link instead."); return; }
+    if (!navigator.share) { toast.error("Device sharing is not available here. Copy the link instead."); return; }
     try { await navigator.share({ title: title || document.title, url: window.location.href }); setOpen(false); }
-    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) setMessage("We couldn’t open the share sheet."); }
+    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) toast.error("We couldn’t open the share sheet."); }
   };
-  return <div className="reader-action-wrap"><button type="button" className="pill" onClick={() => { setMessage(""); setOpen(true); }} aria-label="Share story" title="Share story">{iconOnly ? <Share2 size={18} aria-hidden="true"/> : "Share link"}</button>{message && <span role="status" className="reader-action-message">{message}</span>}<Dialog open={open} onOpenChange={setOpen}><DialogContent className="reader-share-dialog"><DialogHeader><DialogTitle>Share this chapter</DialogTitle><DialogDescription>Copy a link or open your device share options.</DialogDescription></DialogHeader><div className="reader-share-actions"><button type="button" className="pill primary" onClick={() => void copy()}>Copy link</button><button type="button" className="pill" onClick={() => void share()}>Share…</button></div><DialogClose asChild><button type="button" className="text-action">Close</button></DialogClose></DialogContent></Dialog></div>;
+  return <div className="reader-action-wrap"><button type="button" className="pill" onClick={() => { toast.error(""); setOpen(true); }} aria-label="Share story" title="Share story">{iconOnly ? <Share2 size={18} aria-hidden="true"/> : "Share link"}</button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="reader-share-dialog"><DialogHeader><DialogTitle>Share this chapter</DialogTitle><DialogDescription>Copy a link or open your device share options.</DialogDescription></DialogHeader><div className="reader-share-actions"><button type="button" className="pill primary" onClick={() => void copy()}>Copy link</button><button type="button" className="pill" onClick={() => void share()}>Share…</button></div><DialogClose asChild><button type="button" className="text-action">Close</button></DialogClose></DialogContent></Dialog></div>;
 }
 
 export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds = [], allowGuestLocal = true }: { workId: string; firstChapterId?: string; savedChapterId?: string; chapterIds?: string[]; allowGuestLocal?: boolean }) {
@@ -292,8 +290,8 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, tags = 
           <p>{next ? `Continue with ${next.title}.` : "You have finished the published chapters in this story."}</p>
           <div className={styles.completionActions}>
             {next ? <Link href={`/work/${workId}/chapter/${next.id}`} className="pill primary" rel="next" onClick={() => flushProgress(1)}>Continue reading</Link> : <Link href={`/work/${workId}`} className="pill primary" onClick={() => flushProgress(1)}>Back to story details</Link>}
-            {canReview && <Link href={`#chapter-reviews-${chapterId}`} className="pill">Rate or review this chapter</Link>}
-            {author?.username && <Link href={`/author/${author.username}`} className="pill">More by {author.displayName}</Link>}
+            {canReview && <Link href={`#chapter-reviews-${chapterId}`} className="icon-action" aria-label="Rate or review this chapter" data-tooltip="Rate or review this chapter"><Star/></Link>}
+            {author?.username && <Link href={`/author/${author.username}`} className="icon-action" aria-label={`More by ${author.displayName}`} data-tooltip={`More by ${author.displayName}`}><UserRound/></Link>}
           </div>
           {tags.length > 0 && <div className={styles.completionTags} aria-label="Explore story tags">{tags.slice(0, 3).map((tag) => <Link key={tag} href={`/library?tag=${encodeURIComponent(tag)}`}>More {tag}</Link>)}</div>}
         </section>}

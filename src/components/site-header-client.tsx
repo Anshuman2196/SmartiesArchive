@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Bookmark, LogOut, Menu, PenLine, ShieldCheck, X } from "lucide-react";
 import { signOut, type AuthActionState } from "@/app/actions";
 import { PaletteSelector } from "@/components/palette-selector";
 import { cancelReaderStateSignOutCleanup, markReaderStateForSignOutCleanup } from "@/lib/reader-local-state";
@@ -13,7 +13,7 @@ export function AuthNavigation({ username, displayName, isAdmin }: { username?: 
   useEffect(() => {
     if (state.kind === "error") cancelReaderStateSignOutCleanup();
   }, [state.kind]);
-  return <><Link href={username ? `/author/${username}` : "/studio"} className="nav-profile"><span className="avatar" aria-hidden="true">{(displayName || username || "W").slice(0, 1).toUpperCase()}</span><span>{username || displayName}</span></Link><Link href="/shelf" className="optional">My shelf</Link><Link href="/studio" className="optional">Creator Studio</Link>{isAdmin && <Link href="/admin" className="optional">Admin</Link>}<form action={action} onSubmit={markReaderStateForSignOutCleanup}><button type="submit" className="nav-signout" disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button></form>{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</>;
+  return <><Link href={username ? `/author/${username}` : "/studio"} className="nav-profile" data-tooltip={`Your profile · ${username || displayName}`}><span className="avatar" aria-hidden="true">{(displayName || username || "W").slice(0, 1).toUpperCase()}</span><span className="sr-only">{username || displayName}</span></Link><Link href="/shelf" className="nav-icon" aria-label="My shelf" data-tooltip="My shelf"><Bookmark size={18} aria-hidden="true"/></Link><Link href="/studio" className="nav-icon" aria-label="Creator Studio" data-tooltip="Creator Studio"><PenLine size={18} aria-hidden="true"/></Link>{isAdmin && <Link href="/admin" className="nav-icon" aria-label="Admin" data-tooltip="Admin"><ShieldCheck size={18} aria-hidden="true"/></Link>}<form action={action} onSubmit={markReaderStateForSignOutCleanup}><button type="submit" className="nav-icon nav-signout" disabled={pending} aria-label={pending ? "Signing out" : "Sign out"} data-tooltip="Sign out"><LogOut size={18} aria-hidden="true"/></button></form>{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</>;
 }
 
 export function MobileNavigation({ username, displayName, isAdmin }: { username?: string; displayName?: string; isAdmin: boolean }) {

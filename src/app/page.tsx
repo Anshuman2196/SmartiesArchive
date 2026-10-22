@@ -5,7 +5,7 @@ import { signStoryMediaUrls } from "@/lib/story-media";
 import { CoverFallback } from "@/components/cover-fallback";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { HomeContinueLink } from "@/components/home-continue-link";
-import { DismissibleNotice } from "@/components/dismissible-notice";
+import { StatusToast } from "@/components/status-toast";
 
 type RecentWork = {
   id: string;
@@ -51,7 +51,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const studioHref = signedIn ? "/studio" : "/auth?mode=signup&next=%2Fstudio";
 
   return <main id="main-content" tabIndex={-1} className="home cinema-home">
-    {status === "signed_out" && <div className="shell"><DismissibleNotice message="You’re signed out." hrefWithoutStatus="/"/></div>}
+    {status === "signed_out" && <div className="shell"><StatusToast message="You’re signed out." hrefWithoutStatus="/"/></div>}
     <section className="cinema-hero" aria-labelledby="home-title">
       <Image className="cinema-hero-image" src="/images/cinema-projection.webp" alt="" fill priority sizes="100vw"/>
       <div className="cinema-hero-shade" aria-hidden="true"/>

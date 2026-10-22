@@ -2,7 +2,8 @@
 
 import { Node, Mark, Extension, mergeAttributes } from "@tiptap/core";
 import Image from "next/image";
-import { ArrowLeft, MoreHorizontal, Settings2, X } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, Bold, Eye, EyeOff, ImagePlus, Italic, Link2, List, ListOrdered, ListTodo, MoreHorizontal, PenLine, Quote, Save, Send, Redo2, Settings2, Table, Undo2, type LucideIcon } from "lucide-react";
 import { EditorContent, NodeViewWrapper, ReactNodeViewRenderer, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
@@ -138,8 +139,6 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [emojiCategory, setEmojiCategory] = useState("People");
   const [activeTreatment, setActiveTreatment] = useState("narration");
   const [detectionNotice, setDetectionNotice] = useState("");
-  const [imageNotice, setImageNotice] = useState("");
-  const [importNotice, setImportNotice] = useState("");
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const [linkError, setLinkError] = useState("");
@@ -195,7 +194,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         return true;
       }
       view.dispatch(transaction);
-      if (hadFormatting) setImportNotice("Pasted text was simplified, so its headings, lists, or emphasis were not kept.");
+      if (hadFormatting) toast.info("Pasted text was simplified, so its headings, lists, or emphasis were not kept.");
       return true;
     },
   }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
@@ -338,14 +337,14 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     view.dispatch(transaction.scrollIntoView());
     setDetectionNotice(`Styled ${matches.length} ${matches.length === 1 ? "paragraph" : "paragraphs"}. Review the result; Undo restores the previous formatting.`);
   };
-  const insertMedia = (item: { src: string; previewSrc: string }) => { if (!editor) return; const attrs = { src: item.src, previewSrc: item.previewSrc, alt: "", caption: "", width: 100, align: "center" }; if (editor.isActive("imageBlock")) editor.chain().focus().updateAttributes("imageBlock", attrs).run(); else editor.chain().focus().insertContent({ type: "imageBlock", attrs }).run(); setMediaOpen(false); setImageNotice("Image inserted. Add a description in Image settings if it conveys story information."); };
+  const insertMedia = (item: { src: string; previewSrc: string }) => { if (!editor) return; const attrs = { src: item.src, previewSrc: item.previewSrc, alt: "", caption: "", width: 100, align: "center" }; if (editor.isActive("imageBlock")) editor.chain().focus().updateAttributes("imageBlock", attrs).run(); else editor.chain().focus().insertContent({ type: "imageBlock", attrs }).run(); setMediaOpen(false); toast.success("Image inserted.", { description: "Add a description in Image settings if it conveys story information." }); };
   const upload = async (file?: File) => {
     if (!file) return;
-    setImageNotice("Preparing secure upload…");
-    const result = await uploadStoryMediaFile(workId, file, (percent) => setImageNotice(`Uploading image… ${percent}%`));
-    if (!result.ok || !result.src || !result.previewSrc) { setImageNotice(result.message ?? "Image upload failed."); return; }
+    toast.loading("Preparing secure upload…", { id: "image-upload" });
+    const result = await uploadStoryMediaFile(workId, file, (percent) => toast.loading(`Uploading image… ${percent}%`, { id: "image-upload" }));
+    if (!result.ok || !result.src || !result.previewSrc) { toast.error(result.message ?? "Image upload failed.", { id: "image-upload" }); return; }
     insertMedia({ src: result.src, previewSrc: result.previewSrc });
-    setImageNotice("Image uploaded and inserted.");
+    toast.success("Image uploaded and inserted.", { id: "image-upload" });
     if (uploadRef.current) uploadRef.current.value = "";
   };
   const loadMedia = async () => { const list = await listWorkMedia(workId).catch(() => []); setMedia(list); if (!list.length) setMediaError("No uploaded images yet."); };
@@ -435,10 +434,9 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         walk(normalized);
         if (oversized || count > chapterContentLimits.nodes || JSON.stringify(normalized).length > chapterContentLimits.json || plainTextFromRichDocument(normalized).length > chapterContentLimits.text) throw new Error("This Markdown exceeds the chapter limit. Split it into shorter chapters.");
         editor.commands.setContent(normalized);
-        setImportNotice("");
       }
     } catch (error) {
-      setImportNotice(error instanceof Error ? error.message : "Could not preview this Markdown.");
+      toast.error(error instanceof Error ? error.message : "Could not preview this Markdown.");
       return;
     }
     setPreview(true);
@@ -455,7 +453,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     onOpenHelp: () => openShortcutHelp(),
   };
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
-  const toolbarButton = (label: string, command: () => void, active = false, disabled = false) => <button type="button" className="editor-tool-button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{label}</button>;
+  const toolbarButton = (label: string, command: () => void, active = false, disabled = false, Icon?: LucideIcon) => <button type="button" className={`editor-tool-button${Icon ? " editor-tool-icon" : ""}`} data-tooltip={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{Icon ? <Icon size={17} aria-hidden="true"/> : label}</button>;
   const menuButton = (label: string, command: () => void, disabled = false) => <button type="button" role="menuitem" className="editor-top-action" aria-label={label} disabled={disabled} onClick={() => { command(); closeOverflow(); }}>{label}</button>;
   const handleOverflowKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = overflowMenuRef.current ? getFocusableElements(overflowMenuRef.current) : [];
@@ -479,7 +477,6 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   };
   const importMarkdown = async (file?: File) => {
     if (!file) return;
-    setImportNotice("");
     try {
       if (!/\.(md|markdown)$/i.test(file.name)) throw new Error("Choose a .md or .markdown file.");
       if (file.size > chapterContentLimits.text * 2) throw new Error("This Markdown file is too large for one chapter.");
@@ -498,9 +495,9 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
       if (oversized || count > chapterContentLimits.nodes || JSON.stringify(candidate).length > chapterContentLimits.json || plainTextFromRichDocument(candidate).length > chapterContentLimits.text) throw new Error("This file exceeds the chapter limit. Split it into shorter chapters.");
       editor.view.dispatch(transaction);
       editor.commands.focus();
-      setImportNotice(`Imported ${file.name} at the cursor. Review the chapter before saving.`);
+      toast.success(`Imported ${file.name} at the cursor. Review the chapter before saving.`);
     } catch (error) {
-      setImportNotice(error instanceof Error ? error.message : "Could not import this Markdown file.");
+      toast.error(error instanceof Error ? error.message : "Could not import this Markdown file.");
     } finally {
       if (markdownRef.current) markdownRef.current.value = "";
     }
@@ -515,10 +512,12 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
       <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}><ArrowLeft size={17} aria-hidden="true"/><span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
         <span className={`editor-save-status ${saveError ? "has-error" : ""}`} data-state={saveError ? "error" : status === "Saved" ? "saved" : status.startsWith("Saving") ? "saving" : "unsaved"} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status === "Saved" && updatedAt ? `Saved at ${saveTimeLabel(updatedAt)}` : status}</span>
-        <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()} title="Formatting options"><Settings2 size={18} aria-hidden="true"/></button>
-        <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
+        <button ref={formatToggleRef} type="button" className="icon-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()} data-tooltip="Formatting panel"><Settings2 size={18} aria-hidden="true"/></button>
+        <button type="button" className="icon-action editor-save" disabled={!dirty || busy.current} aria-label={saveError ? "Retry save" : "Save draft"} data-tooltip={saveError ? "Retry save" : "Save draft (Ctrl+S)"} onClick={() => void save()}><Save/></button>
+        <button type="button" className="icon-action editor-preview-toggle" aria-pressed={preview} aria-label={preview ? "Return to writing" : "Preview current edits"} data-tooltip={preview ? "Return to writing" : "Preview current edits"} onClick={togglePreview}>{preview ? <PenLine/> : <Eye/>}</button>
+        {chapterId && <><form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill primary" type="submit" disabled={dirty || !!saveError} data-tooltip={dirty || saveError ? "Save your changes before publishing." : "Publish the saved draft to readers"} aria-describedby={dirty || saveError ? "editor-publish-hint" : undefined}><Send size={16} aria-hidden="true"/> Publish</button></form>{(dirty || saveError) && <span id="editor-publish-hint" className="editor-publish-hint" role="status">Save your changes before publishing.</span>}</>}
         <div className="editor-overflow">
-          <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()} title="More chapter actions"><MoreHorizontal size={19} aria-hidden="true"/></button>
+          <button ref={overflowTriggerRef} type="button" className={`icon-action ${styles.overflowTrigger}`} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()} data-tooltip="More chapter actions"><MoreHorizontal size={19} aria-hidden="true"/></button>
           {overflowOpen && <div ref={overflowMenuRef} id="editor-overflow-menu" className="editor-overflow-menu" role="menu" aria-label="More chapter actions" onKeyDown={handleOverflowKeyDown}>
             {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
             {menuButton(preview ? "Return to writing" : "Preview current edits", togglePreview)}
@@ -533,18 +532,17 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     <div className={styles.quickToolbar} role="toolbar" aria-label="Writing tools">
       <div className={styles.quickTools} role="group" aria-label="Text formatting">
         <label className="sr-only" htmlFor="quick-block-style">Text style</label><select id="quick-block-style" aria-label="Text style" value={blockValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option>{[1,2,3,4,5,6].map((level) => <option key={level} value={`h${level}`}>Heading {level}</option>)}<option value="quote">Blockquote</option></select>
-        {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
-        {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}
-        {toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}{toolbarButton("Task list", () => editor.commands.toggleTaskList(), editor.isActive("taskList"))}
-        {toolbarButton("Blockquote", () => editor.chain().focus().toggleBlockquote().run(), editor.isActive("blockquote"))}{toolbarButton("Insert table", () => editor.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true }))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Insert image", () => { setSidebarTab("insert"); setMediaOpen(true); setMediaError(""); openSidebar(); })}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}
-      </div>
-      <div className={styles.quickActions} role="group" aria-label="Preview and publishing">
-        <button type="button" className="pill" aria-pressed={preview} onClick={togglePreview}>{preview ? "Return to writing" : "Preview"}</button>
-        {chapterId && <><form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill primary" type="submit" disabled={dirty || !!saveError} title={dirty || saveError ? "Save your changes before publishing." : undefined} aria-describedby={dirty || saveError ? "editor-publish-hint" : undefined}>Publish saved draft</button></form>{(dirty || saveError) && <span id="editor-publish-hint" className="editor-publish-hint" role="status">Save your changes before publishing.</span>}</>}
+        <span className={styles.toolDivider} aria-hidden="true"/>
+        {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo(), Undo2)}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo(), Redo2)}
+        <span className={styles.toolDivider} aria-hidden="true"/>
+        {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"), false, Bold)}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"), false, Italic)}{toolbarButton("Add or edit link", setLink, editor.isActive("link"), false, Link2)}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"), false, EyeOff)}
+        <span className={styles.toolDivider} aria-hidden="true"/>
+        {toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"), false, List)}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"), false, ListOrdered)}{toolbarButton("Task list", () => editor.commands.toggleTaskList(), editor.isActive("taskList"), false, ListTodo)}{toolbarButton("Blockquote", () => editor.chain().focus().toggleBlockquote().run(), editor.isActive("blockquote"), false, Quote)}
+        <span className={styles.toolDivider} aria-hidden="true"/>
+        {toolbarButton("Insert table", () => editor.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true }), false, false, Table)}{toolbarButton("Insert image", () => { setSidebarTab("insert"); setMediaOpen(true); setMediaError(""); openSidebar(); }, false, false, ImagePlus)}
       </div>
     </div>
     <input ref={markdownRef} className="sr-only" type="file" accept=".md,.markdown,text/markdown" aria-label="Markdown chapter file" onChange={(event) => void importMarkdown(event.target.files?.[0])}/>
-    {importNotice && <div className="editor-import-notice" role="status">{importNotice}<button type="button" aria-label="Dismiss import message" onClick={() => setImportNotice("")}><X size={14} aria-hidden="true"/></button></div>}
     {linkDialogOpen && <div className="editor-dialog-backdrop"><section className="editor-link-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-link-title" aria-describedby="editor-link-help"><h2 id="editor-link-title">Add or edit link</h2><p id="editor-link-help">Use an HTTPS address, an email link, or an internal story path. Leave blank to remove the link.</p><form onSubmit={submitLink}><label htmlFor="editor-link-address">Link address</label><input ref={linkInputRef} id="editor-link-address" type="text" inputMode="url" autoComplete="url" value={linkValue} onChange={(event) => setLinkValue(event.target.value)} aria-invalid={!!linkError} aria-describedby={linkError ? "editor-link-error" : "editor-link-help"}/>{linkError && <p id="editor-link-error" role="alert">{linkError}</p>}<div><button type="button" className="pill" onClick={() => setLinkDialogOpen(false)}>Cancel</button><button type="submit" className="pill primary">Apply link</button></div></form></section></div>}
     {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
     {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" aria-describedby="editor-shortcut-help-description" onKeyDown={(event) => {
@@ -568,7 +566,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     </div>}
     <div className="editor-workspace">
       <section className="editor-writing-column" aria-label="Chapter writing area">
-        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><textarea id="rich-chapter-title" rows={1} placeholder="Untitled chapter" value={title} maxLength={120} onInput={(event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`; }} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
+        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><textarea ref={(node) => { if (node) { node.style.height = "auto"; node.style.height = `${node.scrollHeight}px`; } }} id="rich-chapter-title" rows={1} placeholder="Untitled chapter" value={title} maxLength={120} onInput={(event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`; }} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
         {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
           {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"))}
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
@@ -598,7 +596,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           </>}
           {sidebarTab === "insert" && <>
             <div className="editor-control-group editor-insert-actions">{toolbarButton("Insert image", () => { setMediaOpen((open) => !open); setMediaError(""); })}{toolbarButton("Insert emoji", () => setEmojiOpen((open) => !open))}</div>
-            {mediaOpen && <div className="editor-popover" role="region" aria-label="Insert image"><div className="editor-popover-head"><strong>Images for this story</strong><button type="button" aria-label="Close image picker" onClick={() => setMediaOpen(false)}>Close</button></div><label className="pill primary upload-image-button">Upload an image<input ref={uploadRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void upload(event.target.files?.[0])}/></label><button type="button" className="pill" onClick={() => void openMedia()}>Choose uploaded image</button><p className="field-hint">JPEG, PNG, WebP, or GIF. Maximum 8 MB.</p>{mediaError && <p role="status">{mediaError}</p>}<div className="media-picker-grid">{media.map((item) => <button type="button" key={item.src} onClick={() => insertMedia(item)}><Image src={item.previewSrc} width={200} height={120} unoptimized alt=""/><span>{item.name}</span></button>)}</div>{imageNotice && <p role="status">{imageNotice}</p>}</div>}
+            {mediaOpen && <div className="editor-popover" role="region" aria-label="Insert image"><div className="editor-popover-head"><strong>Images for this story</strong><button type="button" aria-label="Close image picker" onClick={() => setMediaOpen(false)}>Close</button></div><label className="pill primary upload-image-button">Upload an image<input ref={uploadRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => void upload(event.target.files?.[0])}/></label><button type="button" className="pill" onClick={() => void openMedia()}>Choose uploaded image</button><p className="field-hint">JPEG, PNG, WebP, or GIF. Maximum 8 MB.</p>{mediaError && <p role="status">{mediaError}</p>}<div className="media-picker-grid">{media.map((item) => <button type="button" key={item.src} onClick={() => insertMedia(item)}><Image src={item.previewSrc} width={200} height={120} unoptimized alt=""/><span>{item.name}</span></button>)}</div></div>}
             {emojiOpen && <div className="editor-popover emoji-popover" role="region" aria-label="Emoji picker"><div className="editor-popover-head"><strong>Insert an emoji</strong><button type="button" onClick={() => setEmojiOpen(false)}>Close</button></div><label className="sr-only" htmlFor="emoji-search">Search emoji</label><input id="emoji-search" placeholder="Search emoji by name" value={emojiSearch} onChange={(event) => setEmojiSearch(event.target.value)}/><div className="emoji-categories" role="group" aria-label="Emoji categories">{Object.keys(emojiGroups).map((category) => <button type="button" key={category} aria-pressed={emojiCategory === category} onClick={() => setEmojiCategory(category)}>{category}</button>)}</div><div className="emoji-grid">{emojiGroups[emojiCategory].map((emoji, index) => ({ emoji, terms: emojiTerms[emojiCategory]?.[index] ?? "" })).filter(({ emoji, terms }) => !emojiSearch || `${emoji} ${terms} ${emojiCategory}`.toLowerCase().includes(emojiSearch.trim().toLowerCase())).map(({ emoji, terms }) => <button key={emoji} type="button" aria-label={`Insert ${terms.split(" ")[0] ?? "emoji"}`} onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div></div>}
             {selectedImage && <div className="image-inspector" aria-label="Selected image settings"><strong>Image settings</strong><label>Alternative text<input ref={imageAltRef} aria-describedby="image-alt-help" value={String(editor.getAttributes("imageBlock").alt ?? "")} maxLength={300} onChange={(event) => updateImage("alt", event.target.value)}/></label><p id="image-alt-help" className="field-hint">Describe meaningful images. Leave blank for decoration or if the nearby text already explains the image.</p><label>Caption<input value={String(editor.getAttributes("imageBlock").caption ?? "")} maxLength={500} onChange={(event) => updateImage("caption", event.target.value)}/></label><label>Width<input type="range" min="15" max="100" value={Number(editor.getAttributes("imageBlock").width ?? 100)} onChange={(event) => updateImage("width", Number(event.target.value))}/></label><label>Alignment<select value={String(editor.getAttributes("imageBlock").align ?? "center")} onChange={(event) => updateImage("align", event.target.value)}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>{toolbarButton("Remove selected image", () => editor.chain().focus().deleteSelection().run())}</div>}
           </>}

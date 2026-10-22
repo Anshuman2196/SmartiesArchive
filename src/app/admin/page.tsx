@@ -3,6 +3,7 @@ import { adminUnpublishChapter, adminUnpublishWork } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 import { workVisibilityLabel, type WorkVisibility } from "@/lib/work-visibility";
 import { ConfirmSubmit } from "@/components/confirm-submit";
+import { StatusToast } from "@/components/status-toast";
 import styles from "./page.module.css";
 import type { Metadata } from "next";
 
@@ -54,7 +55,7 @@ function StatusMessage({ status }: { status?: string }) {
   };
   const message = status ? messages[status] : undefined;
   if (!message) return null;
-  return <p className={`notice ${styles.status}`} role="status">{message}</p>;
+  return <StatusToast message={message} error={status === "invalid"} hrefWithoutStatus="/admin"/>;
 }
 
 function TableSection({ title, count, children, defaultOpen = false }: { title: string; count: number; children: ReactNode; defaultOpen?: boolean }) {

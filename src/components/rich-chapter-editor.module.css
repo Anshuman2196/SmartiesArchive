@@ -78,6 +78,45 @@
   overscroll-behavior-inline: contain;
 }
 
+/* Desktop wraps the tools instead of hiding some behind a horizontal scrollbar. */
+@media (min-width: 761px) {
+  .quickTools {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .quickTools {
+    scrollbar-width: none;
+  }
+
+  .quickTools::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.toolDivider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 22px;
+  margin: 0 var(--space-1);
+  background: var(--line);
+}
+
+.quickTools :global(.editor-tool-icon) {
+  display: inline-grid;
+  place-items: center;
+  width: var(--control-height);
+  padding: 0;
+  color: var(--muted);
+}
+
+.quickTools :global(.editor-tool-icon:hover),
+.quickTools :global(.editor-tool-icon[aria-pressed="true"]) {
+  color: var(--cream);
+}
+
 .quickTools :global(.editor-tool-button),
 .quickActions :global(.pill),
 .quickTools select {

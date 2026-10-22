@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useTransition, type FormEvent } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Search, SlidersHorizontal } from "lucide-react";
 import type { LibraryFilters } from "@/lib/library-filters";
 
 type Props = { filters: LibraryFilters; tags: string[]; warnings: string[] };
@@ -38,9 +39,9 @@ export function LibraryToolbar({ filters, tags, warnings }: Props) {
 
   return <form ref={formRef} method="get" className="library-toolbar" role="search" onSubmit={submit} aria-busy={pending}>
     <div className="library-search-field"><label htmlFor="q">Search stories</label><input id="q" name="q" type="search" defaultValue={filters.q} placeholder="Title, author, or tag" /></div>
-    <button className="pill primary" type="submit">Search</button>
+    <button className="pill primary library-search-submit" type="submit" aria-label="Search" data-tooltip="Search"><Search size={18} aria-hidden="true"/></button>
     <details className="library-filter-details" open={secondaryActive}>
-      <summary>Filter and sort{secondaryActive ? " · Active" : ""}</summary>
+      <summary data-tooltip="Filter by tag or content note, and change the sort order"><SlidersHorizontal size={16} aria-hidden="true"/>Filters{secondaryActive && <span className="library-filter-dot" aria-label="active"/>}</summary>
       <div className="library-filter-grid">
         {tags.length > 0 && <fieldset className="library-tag-options"><legend>Tags · match all selected</legend><div>{tags.map((tag) => <label key={tag}><input type="checkbox" name="tag" value={tag} defaultChecked={filters.tags.some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase())} onChange={applySelection}/><span>{tag}</span></label>)}</div></fieldset>}
         <label htmlFor="warning">Content notes<select id="warning" name="warning" defaultValue={filters.warning} onChange={applySelection}><option value="">Any content notes</option>{warnings.map((warning) => <option key={warning} value={warning}>{warning}</option>)}</select></label>
