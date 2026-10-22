@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useFormStatus } from "react-dom";
 import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
+import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import Image from "next/image";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
@@ -130,7 +131,7 @@ export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, b
   };
   const initialDocument = raw?.type === "rich" && raw.document?.type === "doc" ? raw.document : legacyTextToRichDocument(raw?.type === "prose" && typeof raw.text === "string" ? raw.text : body ?? "");
   return <div className="chapter-composer">
-    <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{name === "image" ? "Single image" : name === "comic" ? "Manga / comic" : name === "chat" ? "Chat fiction" : name[0].toUpperCase() + name.slice(1)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</FieldDescription></Field></FieldGroup>
+    <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{chapterFormatLabel(name)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</FieldDescription></Field></FieldGroup>
     {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form" onSubmit={validateSpecialFormat}>
       <input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/>
       <FieldGroup>
