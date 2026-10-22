@@ -108,7 +108,6 @@ button,.pill,[data-slot="button"],.danger-button,.icon-action,.mobile-nav-toggle
 .editor-link-dialog form>div{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
 .chapter-action-pending{position:absolute;right:46px;white-space:nowrap;color:var(--muted);font-size:11px}
 .rich-editor.is-focused{position:fixed;inset:0;z-index:100;overflow:auto;padding-bottom:30px;background:var(--ink)}
-.rich-editor.is-focused .editor-topbar{position:sticky;top:0}
 .rich-editor.is-focused .editor-workspace{max-width:1120px;margin:0 auto}
 .rich-editor.is-focused .editor-writing-column{max-width:920px;margin:0 auto}
 .reader-secondary[data-theme="light"]{--ink:#eef3ed;--panel:#f7f8f3;--panel-raised:#e2e9e1;--cream:#172521;--muted:#4b625b;--line:#17252130;--lime:#315f4a;background:#eef3ed;color:#172521}
