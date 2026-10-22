@@ -40,7 +40,7 @@ export function safeRichDocumentErrorMessage(error: RichDocumentValidationError)
     invalid_attrs_object: "An element has invalid formatting settings.", invalid_marks_array: "A text element has too many formatting styles.",
     marks_on_non_text_node: "A text style is attached to an element that cannot use text formatting.", invalid_mark_shape: "A text style has incomplete settings.",
     unsupported_mark: "A text style is not supported by this editor.", invalid_text_style_attrs: "A text style setting is not supported.",
-    invalid_content_array: "An element's nested content is malformed.", missing_node_content: "An element is missing its content structure.",
+    invalid_content_array: "An element’s nested content is malformed.", missing_node_content: "An element is missing its content structure.",
     invalid_document_child: "The document contains an unsupported top-level element.", invalid_inline_child: "A text block contains a block element where text is expected.",
     invalid_list_child: "A list contains an invalid item.", invalid_list_item_child: "A list item contains an unsupported element.",
     invalid_block_child: "A literary block contains an unsupported element.", content_on_leaf_node: "A standalone element contains unexpected nested content.",
