@@ -40,7 +40,7 @@ export function MobileNavigation({ username, displayName, isAdmin }: { username?
     const closeOnEscapeOrResize = (event: KeyboardEvent) => {
       if (event.key === "Escape" && open) setOpen(false);
     };
-    const closeOnDesktop = () => { if (window.innerWidth > 800) setOpen(false); };
+    const closeOnDesktop = () => { if (window.innerWidth > 850) setOpen(false); };
     window.addEventListener("keydown", closeOnEscapeOrResize);
     window.addEventListener("resize", closeOnDesktop);
     return () => {
