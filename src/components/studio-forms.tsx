@@ -97,7 +97,7 @@ function ManagedForm({ action, children, className, onSubmit }: { action: Server
     try { await action(data); }
     finally { dirtyRef.current = false; setDirty(false); setPending(false); }
   };
-  return <form className={className} action={submit} onSubmit={onSubmit} onChange={markDirty} onClick={(event) => { if (event.target instanceof Element && event.target.closest(".chip-remove")) markDirty(); }} onReset={() => { dirtyRef.current = false; setDirty(false); }}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
+  return <form className={className} action={submit} onSubmit={onSubmit} onChange={markDirty} onClick={(event) => { if (event.target instanceof Element && event.target.closest(".chip-remove")) markDirty(); }} onKeyDown={(event) => { if (event.key === "Backspace" && event.target instanceof HTMLInputElement && event.target.classList.contains("chip-entry") && !event.target.value) markDirty(); }} onReset={() => { dirtyRef.current = false; setDirty(false); }}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
 }
 
 type EditableWork = { id: string; title: string; summary: string; visibility: string; cover_url: string; tags: string[]; content_warnings: string[]; expectedUpdatedAt: string };
@@ -113,7 +113,7 @@ function ChipField({ name, label, description, initialValues, placeholder, maxIt
     let warning = "";
     for (const candidate of candidates) {
       if (candidate.length > maxLength) { warning = `Each ${label.toLowerCase().replace(/s$/, "")} must be ${maxLength} characters or fewer.`; continue; }
-      if (next.some((item) => item.toLocaleLowerCase() === candidate.toLocaleLowerCase())) continue;
+      if (next.some((item) => item.toLowerCase() === candidate.toLowerCase())) continue;
       if (next.length >= maxItems) { warning = `Add up to ${maxItems} ${label.toLowerCase()}.`; break; }
       next.push(candidate);
     }
