@@ -2,6 +2,8 @@
 
 ## 2026-10-22 assumptions
 
+- Supabase work must use the hosted SmartiesArchive project only. The connected Supabase account lists only the unrelated “Summiter 1.0” project, so do not use it and do not substitute the local prototype. Hosted migration application and verification remain pending until SmartiesArchive access is available. An accidental local startup was stopped without removing containers' volumes; no further local database work will be done.
+
 - The reader, writer, cross-cutting, and prior audit findings in `audit/` define this remediation. Existing fixes are credited only after checking the current working tree.
 - Preserve existing story/chapter behavior and stored content formats unless an audit identifies a defect. Keep existing Supabase rows and migrations compatible.
 - Treat browser-observed defects as actionable. Mark viewport and interaction results for browser confirmation when they cannot be established from code or supplied screenshots.
@@ -24,7 +26,7 @@
 - Standardize the visible product name as “Creator Studio” and use “story details” in author-facing errors and save actions. Keep “content warnings” for authoring controls and “content notes” for reader-facing presentation to match their different contexts.
 - Display visibility consistently as “Public,” “Private,” or “Shared by link” in reader and writer surfaces; preserve the existing `public`/`private`/`unlisted` values in storage and URLs.
 - Keep rich-image validation bound to the signed-in owner's story-media path. The upload and save code currently agree on the reference shape, so do not relax ownership/path validation without a reproduced failing reference.
-- Serialize each reader/story progress write with a transaction-level advisory lock in an authenticated `SECURITY INVOKER` RPC. This keeps the furthest published chapter stable when scroll, pagehide, or overlapping requests arrive out of order while retaining the existing RLS policies. The migration is applied locally; an authenticated RLS query passed, and local security advisors found no issues. The hosted Smarties Archive project is not connected to this workspace, so hosted migration application and verification remain pending.
+- Serialize each reader/story progress write with a transaction-level advisory lock in an authenticated `SECURITY INVOKER` RPC. This keeps the furthest published chapter stable when scroll, pagehide, or overlapping requests arrive out of order while retaining the existing RLS policies. Earlier local prototype checks are not evidence of hosted behavior. The hosted Smarties Archive project is not connected to this workspace, so hosted migration application and verification remain pending.
 - On the home hero, send signed-in readers to their shelf; for guests, resume the most recently saved local chapter and use the library as the fallback when there is no valid saved chapter.
 - Once a chapter is complete, keep its completion card as the single forward/story-details action. Retain the previous-chapter link for readers who want to revisit earlier material.
 - On story details, keep tags and content notes before the reading CTA, then place the long summary after the CTA so mobile readers can start or resume sooner without losing warning context.

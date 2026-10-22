@@ -16,6 +16,11 @@ This tracker is intentionally scoped for a private server project with about 20 
 
 ## 2026-10-22 implementation status
 
+### Cloud-only Supabase constraint
+
+- Supabase operations for this remediation must target the hosted SmartiesArchive project. The connected account currently lists only “Summiter 1.0”; no SmartiesArchive project is available, so no hosted database operation has been run. Do not substitute the local Supabase prototype or the unrelated Summiter project. Hosted migration/data verification is blocked pending SmartiesArchive project access.
+- The accidental local Supabase startup was stopped by stopping its containers. Local volumes were left intact. No further local Supabase startup or database verification will be used for this audit.
+
 ### Writer findings
 
 | Finding | Status | Change / remaining work |
@@ -31,14 +36,14 @@ This tracker is intentionally scoped for a private server project with about 20 
 | W-17, W-19–W-21, W-23–W-27, W-30–W-32 | `[x]` | Full-screen focus, success/publish feedback, destructive confirmation, discard revision, details tab, page titles, compact cover, link dialog, live word count, and preview state are implemented. |
 | W-28 | `[~]` | Fix the mobile formatting button's overlapping icon/“Aa” label, keep save status readable, raise toolbar targets to 44 px, and reduce the formatting sheet so editor text remains visible. CSS is updated; verify at 320/390 px in a browser. |
 | W-22 | `[x]` | Zero-chapter completeness is a warning, and each checklist row links to its relevant Details or Chapters tab. |
-| W-29 | `[~]` | Duplicate chapters are moved directly after the source with the existing reorder RPC; verify in the configured database. |
+| W-29 | `[~]` | Duplicate chapters are moved directly after the source with the existing reorder RPC; verify against hosted SmartiesArchive when that project is connected. |
 
 ### Reader findings
 
 | Finding group | Status | Change / remaining work |
 | --- | --- | --- |
 | B-01–B-04, B-09, B-12–B-15, B-19, B-24–B-25 | `[x]` | Improve reader defaults and theme contrast, sticky progress/toolbars, settings overlap behavior, saved-status width, guest privacy, owner resume/bookmark, shared theme scope, and reading-width alignment. |
-| B-05–B-08 | `[~]` | Story-level completion and progress timestamps are implemented. The migration is applied locally, and an authenticated RLS query confirmed an earlier chapter cannot replace the furthest saved chapter; apply and verify on the configured hosted project when it is available. |
+| B-05–B-08 | `[~]` | Story-level completion and progress timestamps are implemented. Earlier local prototype checks are not evidence of hosted behavior; apply and verify against hosted SmartiesArchive when that project is connected. |
 | B-16–B-17, B-20, B-23–B-30, B-32 | `[~]` | Loading/metadata, guest home continuation from local progress, persistent story/author context, image zoom/fullscreen, dialog naming, mobile contents, theme scope, numbering, serif heading styling, copy/share, keyboard navigation, library density, and author-review suppression received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
 | B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
 | B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
@@ -52,7 +57,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | P1-1–P1-4 | `[x]` | Add page metadata, palette pre-hydration, reader contrast tokens, and remove legacy Royal/Wine button overrides. |
 | P2-1, P2-3, P2-5–P2-6, P2-8, P2-10–P2-12, P2-14 | `[x]` | Improve user-facing labels (visibility is consistently “Shared by link,” “Private,” or “Public”), control borders, heading hierarchy, server-rendered warning gate, loading/error states (including generic reader-facing library outage feedback), optimized WebP assets, metadata endpoints, mobile navigation (closed menu is inert to keyboard and assistive technology), and signup feedback. |
 | P2-4 | `[~]` | Raise the audited editor, media, emoji, theme, filter-removal, and back controls to at least 44 px in CSS, including the mobile editor toolbar; confirm rendered sizes at 320/390 px. |
-| P2-2, P2-7, P2-9, P2-15 | `[~]` | Styling consolidation, unlisted throttling, remaining request performance, and rate limiting remain. Raise audited small type in studio overlines, palette selects, reader actions/status, settings headings/labels/hints/buttons, and media captions to 12 px. Unlisted story/chapter pages emit noindex metadata. Middleware now validates claims and refreshes cookies with `getClaims()`; a request-cached user lookup deduplicates the remaining `getUser()` between the shared header and route Server Components. Header profile and admin-membership reads now run concurrently. Reader-progress writes validate same-origin requests and chapter/work membership, and serialize updates atomically; local security advisors report no issues, while hosted-project verification remains pending. |
+| P2-2, P2-7, P2-9, P2-15 | `[~]` | Styling consolidation, unlisted throttling, remaining request performance, and rate limiting remain. Raise audited small type in studio overlines, palette selects, reader actions/status, settings headings/labels/hints/buttons, and media captions to 12 px. Unlisted story/chapter pages emit noindex metadata. Middleware now validates claims and refreshes cookies with `getClaims()`; a request-cached user lookup deduplicates the remaining `getUser()` between the shared header and route Server Components. Header profile and admin-membership reads now run concurrently. Reader-progress writes validate same-origin requests and chapter/work membership, and serialize updates atomically; hosted-project verification remains pending. |
 | P2-13 | `[~]` | Standardize “Creator Studio” naming in the home CTA, studio heading/navigation/descriptions, and sign-in copy; align signup heading, tab, and submit labels on “Create account”; standardize visibility labels, the library empty-state CTA, and “story details” in writer UI/errors. Standardize curly apostrophes in the reviewed reader and writer feedback. The audience-specific “content warnings” (authoring) / “content notes” (reader) distinction is intentional; a full product-wide copy pass remains. |
 | P3-1 | `[x]` | Corrected README scope and migration count, removed the empty `review-preview` route directory, and updated DESIGN/ASSETS image references to the shipped WebP files. |
 | P3-2–P3-10 | `[~]` | Skip link targets each route's focusable main landmark; the editor's nested main landmark is a labelled section. Reduced-motion support, form boundary contrast, icon exceptions, production origin configuration, and sanitized signup callback destinations are addressed. PDF viewing and the rich editor now load as separate dynamic chunks; stateless label/separator wrappers no longer declare client boundaries, and the duplicate palette controls already synchronize through a shared event. Responsive checks, bundle measurement, and performance review remain; browser verification is pending because localhost access was denied by the browser origin gate. |
