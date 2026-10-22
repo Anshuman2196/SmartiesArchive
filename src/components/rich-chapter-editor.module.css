@@ -20,8 +20,8 @@
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 42px;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
   padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: var(--control-radius);
@@ -38,8 +38,8 @@
 .overflowTrigger {
   display: grid;
   place-items: center;
-  min-width: 38px;
-  min-height: 38px;
+  min-width: var(--control-height);
+  min-height: var(--control-height);
   padding: 5px var(--space-2);
   border: 1px solid var(--line);
   border-radius: var(--control-radius);
@@ -82,7 +82,7 @@
 .quickActions :global(.pill),
 .quickTools select {
   flex: 0 0 auto;
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 .quickTools select {
@@ -107,7 +107,7 @@
 }
 
 .quickActions :global(.editor-publish-form button) {
-  min-height: 44px;
+  min-height: var(--control-height);
 }
 
 .quickActions :global(.editor-publish-hint) {
@@ -139,8 +139,8 @@
   }
 
   .overflowTrigger {
-    min-width: 38px;
-    min-height: 38px;
+    min-width: var(--control-height);
+    min-height: var(--control-height);
   }
 }
 
