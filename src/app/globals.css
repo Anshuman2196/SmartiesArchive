@@ -57,6 +57,20 @@
 @media(max-width:720px){.palette-select-label select{max-width:112px;font-size:9px}.navlinks{gap:8px}.editor-toolbar{top:64px;gap:3px}.editor-tool-button,.editor-more summary{min-height:42px;min-width:42px;padding:7px;font-size:10px}.editor-mode-toggle{margin-left:0}.editor-save{margin-left:auto}.rich-editor-heading{display:block}.editor-stats{margin-top:8px}.rich-editor-canvas,.rich-editor-preview{padding:20px 17px;min-height:60vh;font-size:17px}.rich-editor-canvas .tiptap,.rich-editor-preview{min-height:52vh}.editor-more-menu{position:fixed;top:20vh;left:5vw;right:5vw;width:90vw;max-height:70vh}.image-inspector{align-items:stretch}.image-inspector label{flex:1 1 42%}.rich-publish-row{align-items:flex-start;flex-direction:column}}
 
 /* Chapter writing workspace */
+.literary-block{margin:0 0 var(--reader-spacing,.75em);padding:0;border:0;background:none;color:inherit}
+.literary-block > p:last-child{margin-bottom:0}
+.literary-narration{font:inherit}
+.literary-dialogue{margin-left:clamp(.5em,3vw,1.5em);padding-left:.8em;border-left:1px solid currentColor}
+.literary-thought{margin-left:1em;font-style:italic;opacity:.9}
+.literary-whisper{margin-left:1.2em;font-size:.88em;line-height:1.7;letter-spacing:.015em;opacity:.78}
+.literary-letter{margin:1.5em 0;padding:1.15em 1.35em;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 92%,var(--cream) 8%);font-style:normal;line-height:1.75}
+.literary-system{margin:1.3em 0;padding:.8em 1em;border-left:3px solid var(--lime);background:color-mix(in srgb,var(--panel) 88%,var(--lime) 12%);font: .82em/1.6 var(--font-ui);letter-spacing:.025em;color:inherit}
+.literary-caption{margin:1.25em auto;max-width:36em;text-align:center;font: .82em/1.55 var(--font-ui);letter-spacing:.025em;opacity:.75}
+.literary-glitch{font-family:monospace;letter-spacing:.035em;text-shadow:1px 0 color-mix(in srgb,var(--lime) 35%,transparent)}
+.literary-emphasis{font-weight:700}
+.literary-important{font-weight:700;text-decoration:underline;text-decoration-color:var(--lime);text-underline-offset:.22em;text-decoration-thickness:2px}
+.literary-callout{margin:1.3em 0;padding:1em 1.2em;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--panel) 88%,var(--lime) 12%)}
+.editor-detect-styles{width:100%;justify-content:center}
 .rich-editor{--write-ink:var(--ink);min-width:0;max-width:100%;color:var(--cream)}
 .editor-topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:58px;padding:9px clamp(12px,2vw,24px);background:color-mix(in srgb,var(--ink) 96%,transparent);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
 .editor-topbar-context,.editor-topbar-actions{display:flex;align-items:center;gap:8px;min-width:0}.editor-back-link,.editor-breadcrumb{font-size:12px;color:var(--muted);text-decoration:none}.editor-back-link:hover{color:var(--lime)}.editor-breadcrumb{max-width:min(26vw,320px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cream)}

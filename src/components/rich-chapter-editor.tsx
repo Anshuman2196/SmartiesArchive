@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
+import { detectLiteraryTreatment } from "@/lib/literary-detection";
 import { normalizeChapterPaste } from "@/lib/chapter-paste";
 import { expandInlineMarkdown, markdownRunsForPreview } from "@/lib/markdown-preview";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
@@ -132,6 +133,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [emojiSearch, setEmojiSearch] = useState("");
   const [emojiCategory, setEmojiCategory] = useState("People");
   const [activeTreatment, setActiveTreatment] = useState("narration");
+  const [detectionNotice, setDetectionNotice] = useState("");
   const [imageNotice, setImageNotice] = useState("");
   const [importNotice, setImportNotice] = useState("");
   const markdownRef = useRef<HTMLInputElement>(null);
@@ -260,6 +262,25 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const activeBlock = editor?.isActive("heading") ? "heading" : editor?.isActive("literaryBlock") ? "literaryBlock" : "paragraph";
   const changeIndent = (amount: number) => { if (!editor) return; const current = Number(editor.getAttributes(activeBlock).indent ?? 0); editor.chain().focus().updateAttributes(activeBlock, { indent: Math.max(0, Math.min(4, current + amount)) }).run(); };
   const applyTreatment = (treatment: string) => { if (!editor) return; if (editor.isActive("literaryBlock")) editor.chain().focus().updateAttributes("literaryBlock", { treatment }).run(); else editor.chain().focus().wrapIn("literaryBlock", { treatment }).run(); };
+  const autoDetectTreatments = () => {
+    if (!editor) return;
+    const { state, view } = editor;
+    const matches: Array<{ pos: number; treatment: string }> = [];
+    state.doc.forEach((node, pos) => {
+      const treatment = detectLiteraryTreatment(node.toJSON());
+      if (treatment) matches.push({ pos, treatment });
+    });
+    if (!matches.length) { setDetectionNotice("No clear style cues found in plain paragraphs."); return; }
+    let transaction = state.tr;
+    for (const { pos, treatment } of matches.reverse()) {
+      const paragraph = transaction.doc.nodeAt(pos);
+      if (!paragraph) continue;
+      const wrapper = state.schema.nodes.literaryBlock.create({ treatment }, paragraph);
+      transaction = transaction.replaceWith(pos, pos + paragraph.nodeSize, wrapper);
+    }
+    view.dispatch(transaction.scrollIntoView());
+    setDetectionNotice(`Styled ${matches.length} ${matches.length === 1 ? "paragraph" : "paragraphs"}. Review the result; Undo restores the previous formatting.`);
+  };
   const insertMedia = (item: { src: string; previewSrc: string }) => { if (!editor) return; if (editor.isActive("imageBlock")) editor.chain().focus().updateAttributes("imageBlock", item).run(); else editor.chain().focus().insertContent({ type: "imageBlock", attrs: { ...item, alt: "", caption: "", width: 100, align: "center" } }).run(); setMediaOpen(false); setImageNotice("Image inserted or replaced at the cursor."); };
   const upload = async (file?: File) => {
     if (!file) return;
@@ -488,8 +509,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             {selectedImage && <div className="image-inspector" aria-label="Selected image settings"><strong>Image settings</strong><label>Alternative text<input value={String(editor.getAttributes("imageBlock").alt ?? "")} maxLength={300} onChange={(event) => updateImage("alt", event.target.value)}/></label><label>Caption<input value={String(editor.getAttributes("imageBlock").caption ?? "")} maxLength={500} onChange={(event) => updateImage("caption", event.target.value)}/></label><label>Width<input type="range" min="15" max="100" value={Number(editor.getAttributes("imageBlock").width ?? 100)} onChange={(event) => updateImage("width", Number(event.target.value))}/></label><label>Alignment<select value={String(editor.getAttributes("imageBlock").align ?? "center")} onChange={(event) => updateImage("align", event.target.value)}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>{toolbarButton("Remove selected image", () => editor.chain().focus().deleteSelection().run())}</div>}
           </>}
           {sidebarTab === "literary" && <>
+            <button type="button" className="pill editor-detect-styles" onClick={autoDetectTreatments}>Auto-detect styles in chapter</button>
+            <p className="editor-sidebar-help">Finds clear dialogue, letter openings, and system notices in plain paragraphs. Existing styles stay as written.</p>
+            {detectionNotice && <p className="editor-sidebar-help" role="status">{detectionNotice}</p>}
             <label className="editor-control">Literary style<select aria-label="Literary text style" value={treatmentValue} onChange={(event) => { setActiveTreatment(event.target.value); applyTreatment(event.target.value); }}>{literaryTreatments.map((treatment) => <option key={treatment} value={treatment}>{treatmentLabel(treatment)}</option>)}</select></label>
-            <p className="editor-sidebar-help">Wrap the current paragraph in a reusable literary treatment. Whispers use subdued type; other treatments keep readable contrast.</p>
+            <p className="editor-sidebar-help">Choose a style for the current paragraph when the wording needs your judgment.</p>
           </>}
           {sidebarTab === "document" && <>
             <div className="editor-control-group">{toolbarButton("Insert divider", () => editor.chain().focus().setHorizontalRule().run())}{toolbarButton("Insert code block", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock"))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Clear formatting", () => editor.chain().focus().unsetAllMarks().clearNodes().run())}</div>
