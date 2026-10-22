@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, type FormEventHandler, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { useFormStatus } from "react-dom";
 import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import Image from "next/image";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
-import { RichChapterEditor } from "@/components/rich-chapter-editor";
 import { MangaPanelPicker } from "@/components/manga-panel-picker";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,9 @@ import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
 type ServerFormAction = (formData: FormData) => void | Promise<void>;
 type MixedBlock = { type: "prose" | "image" | "chat"; text: string; url?: string; alt?: string };
+const RichChapterEditor = dynamic(() => import("@/components/rich-chapter-editor").then((module) => module.RichChapterEditor), {
+  loading: () => <p className="editor-loading" role="status">Preparing the chapter editor…</p>,
+});
 
 export function ActionSubmit({ children, className = "pill primary", ariaLabel, pendingLabel = "Saving…" }: { children: ReactNode; className?: string; ariaLabel?: string; pendingLabel?: string }) {
   const { pending } = useFormStatus();

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
-import { PdfReader } from "@/components/pdf-reader";
 import { ReaderMedia } from "@/components/reader-media";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
@@ -17,6 +17,9 @@ type ChapterLink = { id: string; title: string; position: number };
 type Preferences = ReaderPreferences;
 const defaults = defaultReaderPreferences;
 const COMPLETION_THRESHOLD = 0.95;
+const PdfReader = dynamic(() => import("@/components/pdf-reader").then((module) => module.PdfReader), {
+  loading: () => <p className="pdf-reader-state" role="status">Preparing the PDF reader…</p>,
+});
 
 function Media({ url, alt }: { url: string; alt: string }) {
   if (!isSecureMediaUrl(url)) return null;
