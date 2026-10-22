@@ -15,6 +15,8 @@
 ## Implementation notes
 
 - Keep the compact 3 px spoiler radius. The global control-radius rule now targets named controls rather than every native button, so icon-only and inline controls retain their component-specific shape. Broader stylesheet consolidation remains an open audit item.
+- For unlisted stories, keep route-level `noindex,nofollow` metadata and exclude them from the sitemap. Do not add a static `X-Robots-Tag` to all `/work/*` responses because that would also suppress indexing of public stories; keep P2-7 partial until a route-aware header can distinguish visibility without an unnecessary database lookup.
+- Keep publication state separate from visibility. A draft with Public visibility is not readable until published, so studio status labels explicitly say “Not live” for drafts without changing the stored visibility value.
 - New reader progress writes update `updated_at`; a lower-position chapter cannot replace a reader's furthest saved chapter.
 - Reader completion is classified at the story level: a completed earlier chapter stays in Currently reading, and the last published chapter determines Recently finished.
 - The editor's first autosave updates the URL to preserve its new-chapter state through the server refresh.

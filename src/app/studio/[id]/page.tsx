@@ -13,7 +13,7 @@ import { deleteChapter, deleteWork, publishWork, unpublishWork } from "@/app/act
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import { getPublishChecklist } from "@/lib/publishing-checklist";
-import { workVisibilityLabel } from "@/lib/work-visibility";
+import { workStatusLabel } from "@/lib/work-visibility";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 import { DismissibleNotice } from "@/components/dismissible-notice";
 import type { Metadata } from "next";
@@ -101,7 +101,7 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
 
   return <main id="main-content" tabIndex={-1} className="shell studio-page">
     <Link href="/studio" className="byline studio-back-link"><ArrowLeft size={15} aria-hidden="true"/> Creator Studio</Link>
-    <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${workVisibilityLabel(work.visibility)}` : `Draft · ${workVisibilityLabel(work.visibility)}`}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit pendingLabel="Publishing…">Publish story</ActionSubmit></ActionForm>}</div></header>
+    <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{workStatusLabel(work.state, work.visibility)}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit pendingLabel="Publishing…">Publish story</ActionSubmit></ActionForm>}</div></header>
     {message && <DismissibleNotice message={message.message} error={message.error} hrefWithoutStatus={cleanStatusHref}/>}
     <PublishChecklist workId={id} items={checklist}/>
     {work.state === "published" && workDraft && <div className="revision-callout"><div><span className="eyebrow">Unpublished changes</span><p>Published readers still see the existing story details.</p></div><ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story changes</ActionSubmit></ActionForm></div>}

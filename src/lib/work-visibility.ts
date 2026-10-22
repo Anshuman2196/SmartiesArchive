@@ -7,3 +7,8 @@ export function workVisibilityLabel(visibility: WorkVisibility): string {
     default: return "Public";
   }
 }
+
+export function workStatusLabel(state: "draft" | "published", visibility: WorkVisibility): string {
+  const visibilityLabel = workVisibilityLabel(visibility);
+  return state === "published" ? `Published · ${visibilityLabel}` : `Draft · Not live · ${visibilityLabel}`;
+}
