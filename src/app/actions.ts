@@ -109,8 +109,8 @@ export async function signOut(_previous: AuthActionState): Promise<AuthActionSta
   try {
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
-    if (error) return { kind: "error", message: "We couldn't sign you out right now. Please try again." };
-  } catch { return { kind: "error", message: "We couldn't sign you out right now. Please try again." }; }
+    if (error) return { kind: "error", message: "We couldn’t sign you out right now. Please try again." };
+  } catch { return { kind: "error", message: "We couldn’t sign you out right now. Please try again." }; }
   redirect("/");
 }
 
@@ -389,11 +389,11 @@ export async function toggleBookmark(workId: string, saved: boolean): Promise<{ 
     const result = saved
       ? await supabase.from("user_bookmarks").insert({ user_id: user.id, work_id: workId })
       : await supabase.from("user_bookmarks").delete().eq("user_id", user.id).eq("work_id", workId);
-    if (result.error) return { ok: false, saved: !saved, message: "We couldn't update your bookmark. Please try again." };
+    if (result.error) return { ok: false, saved: !saved, message: "We couldn’t update your bookmark. Please try again." };
     revalidatePath(`/work/${workId}`);
     revalidatePath("/shelf");
     return { ok: true, saved, message: "" };
-  } catch { return { ok: false, saved: !saved, message: "We couldn't update your bookmark. Please try again." }; }
+  } catch { return { ok: false, saved: !saved, message: "We couldn’t update your bookmark. Please try again." }; }
 }
 
 export async function saveReadingProgress(workId: string, chapterId: string, progress: number): Promise<boolean> {
@@ -584,7 +584,7 @@ export async function saveChapterReview(_previous: ReviewActionState, form: Form
     revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
     return { kind: "success", message: "Review saved." };
   } catch {
-    return { kind: "error", message: "We couldn't save your review. Please try again." };
+    return { kind: "error", message: "We couldn’t save your review. Please try again." };
   }
 }
 
@@ -601,13 +601,13 @@ export async function deleteChapterReview(_previous: ReviewActionState, form: Fo
     const { error } = await supabase.from("chapter_reviews").delete().eq("work_id", parsed.data.workId).eq("chapter_id", parsed.data.chapterId).eq("user_id", user.id);
     if (error) {
       console.warn("[chapter-review] delete rejected", { code: error.code ?? "unknown" });
-      return { kind: "error", message: "We couldn't delete your review. Please try again." };
+      return { kind: "error", message: "We couldn’t delete your review. Please try again." };
     }
     revalidatePath(`/work/${parsed.data.workId}`);
     revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
     return { kind: "success", message: "Review deleted." };
   } catch {
-    return { kind: "error", message: "We couldn't delete your review. Please try again." };
+    return { kind: "error", message: "We couldn’t delete your review. Please try again." };
   }
 }
 
@@ -624,11 +624,11 @@ export async function restoreChapterReview(_previous: ReviewActionState, form: F
     ]);
     if (!work || work.author_id === user.id || !chapter) return { kind: "error", message: "This chapter is not available for reviews right now." };
     const { error } = await supabase.from("chapter_reviews").upsert({ work_id: parsed.data.workId, chapter_id: parsed.data.chapterId, user_id: user.id, rating: parsed.data.rating, body: parsed.data.body }, { onConflict: "chapter_id,user_id" });
-    if (error) return { kind: "error", message: "We couldn't restore your review. Please try again." };
+    if (error) return { kind: "error", message: "We couldn’t restore your review. Please try again." };
     revalidatePath(`/work/${parsed.data.workId}`);
     revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
     return { kind: "success", message: "Review restored." };
   } catch {
-    return { kind: "error", message: "We couldn't restore your review. Please try again." };
+    return { kind: "error", message: "We couldn’t restore your review. Please try again." };
   }
 }

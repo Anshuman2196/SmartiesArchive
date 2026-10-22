@@ -21,6 +21,6 @@ test("post-auth destinations stay on this app and reject auth loops and secrets"
 test("common auth failures map to safe friendly copy", () => {
   assert.match(friendlyAuthError({ message: "Invalid login credentials" }), /could not be verified/i);
   assert.match(friendlyAuthError({ message: "over_email_send_rate_limit", status: 429 }, "recovery"), /too many attempts/i);
-  assert.match(friendlyAuthError({ message: "TypeError: fetch failed" }), /couldn't reach/i);
+  assert.match(friendlyAuthError({ message: "TypeError: fetch failed" }), /couldn’t reach/i);
   assert.doesNotMatch(friendlyAuthError(new Error("Database internal secret")), /Database|secret/i);
 });

@@ -1,8 +1,8 @@
 export type AuthStatus = "callback_error" | "service_error" | "password_updated";
 
 const authStatusMessages: Record<AuthStatus, string> = {
-  callback_error: "We couldn't verify that link. It may have expired or already been used; try signing in or request a fresh email link.",
-  service_error: "We couldn't reach the authentication service. Please try again in a moment.",
+  callback_error: "We couldn’t verify that link. It may have expired or already been used; try signing in or request a fresh email link.",
+  service_error: "We couldn’t reach the authentication service. Please try again in a moment.",
   password_updated: "Your password has been updated. You can now sign in with it.",
 };
 
@@ -35,10 +35,10 @@ export function friendlyAuthError(error: unknown, purpose: "login" | "signup" | 
   if (/email.?not.?confirmed|email not verified/.test(text)) return "Confirm your email address using the link we sent before signing in.";
   if (/expired|invalid.*(token|link|otp)|token.*(expired|invalid)|otp_expired/.test(text)) return "That link is invalid or has expired. Request a fresh email link and try again.";
   if (/weak password|password should be/.test(text)) return "Choose a stronger password and try again.";
-  if (/fetch failed|network|timeout|failed to fetch|offline/.test(text)) return "We couldn't reach the authentication service. Check your connection and try again.";
-  if (purpose === "login") return "We couldn't sign you in. Check your details and try again.";
-  if (purpose === "signup") return "We couldn't create your account. Check your details and try again.";
-  if (purpose === "recovery") return "We couldn't send a recovery email right now. Please try again later.";
-  if (purpose === "password") return "We couldn't update your password. Check the requirements and try again.";
-  return "We couldn't verify that email link. Request a fresh link and try again.";
+  if (/fetch failed|network|timeout|failed to fetch|offline/.test(text)) return "We couldn’t reach the authentication service. Check your connection and try again.";
+  if (purpose === "login") return "We couldn’t sign you in. Check your details and try again.";
+  if (purpose === "signup") return "We couldn’t create your account. Check your details and try again.";
+  if (purpose === "recovery") return "We couldn’t send a recovery email right now. Please try again later.";
+  if (purpose === "password") return "We couldn’t update your password. Check the requirements and try again.";
+  return "We couldn’t verify that email link. Request a fresh link and try again.";
 }
