@@ -90,7 +90,7 @@ html,body{background:var(--ink)}body{font-family:var(--font-ui)}.serif{font-fami
 .reader-progress{position:sticky;top:132px;z-index:12}
 .reader-topbar{position:sticky;top:70px;z-index:11;background:var(--page-bg)}
 .editor-topbar{top:70px}
-@media(max-width:760px){.reader-topbar{top:66px}.reader-progress{top:128px}.editor-topbar{top:66px}}
+@media(max-width:850px){.nav{height:66px}.brand{font-size:18px}.reader-topbar{top:66px}.reader-progress{top:128px}.editor-topbar{top:66px}}
 @media(max-width:600px){.reader-progress{top:120px}.reader-toc[data-open="true"] ol{display:grid;overflow:visible;max-height:45vh;overflow-y:auto}.reader-toc[data-open="true"] li{min-width:0}}
 
 .rich-editor-heading textarea{display:block;width:100%;max-width:none;min-height:52px;overflow:hidden;resize:none;overflow-wrap:anywhere;background:var(--ink);border:1px solid var(--line);color:var(--cream);padding:12px;font:clamp(22px,3vw,30px)/1.2 var(--font-ui)}
