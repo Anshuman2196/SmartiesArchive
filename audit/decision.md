@@ -10,6 +10,7 @@
 - Preserve existing story/chapter behavior and stored content formats unless an audit identifies a defect. Keep existing Supabase rows and migrations compatible.
 - Treat browser-observed defects as actionable. Mark viewport and interaction results for browser confirmation when they cannot be established from code or supplied screenshots.
 - Keep the `[AUDIT]` stories, bookmarks, and other hosted Supabase records untouched during local code remediation. Audit notes identify cleanup candidates, but removing live records is destructive and not part of a local code change.
+- Remove unreferenced story media only after the related database mutation succeeds. Storage cleanup must page through the complete work folder before deletion so media beyond the first 1,000 objects is not orphaned; any listing error aborts cleanup rather than risking partial deletion.
 - Track each finding as fixed, partial, or deferred in `progress-tracker.md`; compiling alone does not count as verification.
 
 ## Implementation notes

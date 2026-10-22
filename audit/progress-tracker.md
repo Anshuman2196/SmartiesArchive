@@ -129,7 +129,7 @@ These requests are now explicitly included in the plan:
 - [x] Story summaries, tags, content warnings, and covers
 - [x] Conflict checks using updated timestamps
 - [x] Private story-media uploads with signed URLs
-- [~] Replaced/deleted media is not automatically cleaned up
+- [x] Replaced or deleted story media is cleaned up after story/chapter changes; cleanup now paginates through every object in the work folder before removing unreferenced files.
 - [x] Optional publish checklist for missing cover, warnings, or incomplete chapters
 
 ### Writing and content formats

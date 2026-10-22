@@ -450,17 +450,23 @@ function collectStoryMediaReferences(value: unknown, userId: string, workId: str
 
 async function removeStoryMediaObjects(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, workId: string, keep = new Set<string>()) {
   const folder = `${userId}/${workId}`;
-  const { data, error } = await supabase.storage.from(storyMediaBucket).list(folder, { limit: 1000 });
-  if (error) {
-    console.warn("[story-media-cleanup] list rejected", { message: error.message });
-    return;
+  const storage = supabase.storage.from(storyMediaBucket);
+  const files: Array<{ name: string }> = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await storage.list(folder, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+    if (error) {
+      console.warn("[story-media-cleanup] list rejected", { message: error.message });
+      return;
+    }
+    files.push(...(data ?? []));
+    if ((data ?? []).length < 1000) break;
   }
-  const removable = (data ?? [])
+  const removable = files
     .filter((item) => storyMediaObjectPattern.test(item.name))
     .map((item) => `${folder}/${item.name}`)
     .filter((objectName) => !keep.has(objectName));
   if (!removable.length) return;
-  const { error: removeError } = await supabase.storage.from(storyMediaBucket).remove(removable);
+  const { error: removeError } = await storage.remove(removable);
   if (removeError) console.warn("[story-media-cleanup] remove rejected", { message: removeError.message });
 }
 
