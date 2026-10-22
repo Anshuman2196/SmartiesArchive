@@ -62,6 +62,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const first = published[0];
   const resumeId = progress?.chapter_id && published.some((chapter) => chapter.id === progress.chapter_id) ? progress.chapter_id : undefined;
   const displayChapters = isOwner ? chapters : published;
+  const includesIllustratedChapters = published.some((chapter) => ["image", "comic", "pdf"].includes(chapter.format ?? ""));
   const visibilityLabel = workVisibilityLabel(work.visibility);
 
   return <main id="main-content" tabIndex={-1} className="shell story-page">
@@ -69,7 +70,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     <div className="story-detail">
       <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private" : work.visibility === "unlisted" ? "Shared by link" : "Public"}</span><h1 className="serif">{work.title}</h1>
         {author && <p className="story-byline">By <Link href={`/author/${author.username}`}>{author.display_name}</Link></p>}
-        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{work.state === "draft" && <span>Draft</span>}{(isOwner || work.visibility !== "public") && <span>{visibilityLabel}</span>}{displayChapters.some((chapter) => chapter.format && chapter.format !== "prose") && <span>Includes illustrated chapters</span>}</div>
+        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{work.state === "draft" && <span>Draft</span>}{(isOwner || work.visibility !== "public") && <span>{visibilityLabel}</span>}{includesIllustratedChapters && <span>Includes illustrated chapters</span>}</div>
         {(work.tags?.length ?? 0) > 0 && <ul className="story-tags" aria-label="Story tags">{work.tags?.map((tag) => <li key={tag}>{tag}</li>)}</ul>}
         {(work.content_warnings?.length ?? 0) > 0 && <details className="content-warnings"><summary>Content notes</summary><ul>{work.content_warnings?.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
         <div className="story-actions">{first && <ResumeLink workId={work.id} firstChapterId={first.id} savedChapterId={resumeId} chapterIds={published.map((chapter) => chapter.id)} allowGuestLocal={!user}/>}{isOwner && <Link className="pill" href={`/studio/${work.id}`}>Manage story</Link>}{work.state === "published" && work.visibility !== "private" && <ShareButton iconOnly/>}{user ? <BookmarkButton workId={work.id} initialSaved={!!bookmark} iconOnly/> : work.state === "published" && <Link className="text-action" href={`/auth?mode=login&next=${encodeURIComponent(`/work/${work.id}`)}`}>Sign in to bookmark</Link>}</div>

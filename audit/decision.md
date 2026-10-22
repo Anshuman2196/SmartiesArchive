@@ -74,3 +74,4 @@
 - The home hero and static genre/cover artwork are shipped as WebP; the hero uses a prioritized Next image while the CSS layer keeps its existing shade and framing.
 - Give the rich-text editing canvas its own visible keyboard focus ring using the existing `--focus-ring` token; the editor had explicitly removed its outline, and it is not covered by the global focus selector for buttons, links, and form fields. Confirm keyboard behavior in a browser.
 - Keep editor formatting tabs, image-picker close/upload controls at least 44 px tall at desktop as well as mobile widths, matching the audit's target size across the entire editor rather than only its narrow layout.
+- Treat the story's “Includes illustrated chapters” badge as a summary of published visual formats only (`image`, `comic`, `pdf`); chat and mixed formats are not necessarily illustrated, and owner-only drafts should not describe the reader-facing published story.
