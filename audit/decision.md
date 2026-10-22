@@ -14,6 +14,7 @@
 
 ## Implementation notes
 
+- Keep the compact 3 px spoiler radius. The global control-radius rule now targets named controls rather than every native button, so icon-only and inline controls retain their component-specific shape. Broader stylesheet consolidation remains an open audit item.
 - New reader progress writes update `updated_at`; a lower-position chapter cannot replace a reader's furthest saved chapter.
 - Reader completion is classified at the story level: a completed earlier chapter stays in Currently reading, and the last published chapter determines Recently finished.
 - The editor's first autosave updates the URL to preserve its new-chapter state through the server refresh.
