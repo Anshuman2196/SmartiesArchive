@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 import { MoreHorizontal } from "lucide-react";
 import { deleteChapter, discardChapterRevision, duplicateChapter, publishChapter, reorderChapter, unpublishChapter } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+function ConfirmActionSubmit({ children, pendingLabel }: { children: string; pendingLabel: string }) {
+  const { pending } = useFormStatus();
+  return <Button type="submit" variant="destructive" disabled={pending} aria-live="polite">{pending ? pendingLabel : children}</Button>;
+}
 
 export function ChapterActionsMenu({ workId, chapterId, title, state, hasDraft, index, count }: {
   workId: string;
@@ -41,7 +47,7 @@ export function ChapterActionsMenu({ workId, chapterId, title, state, hasDraft, 
     {pending && <span className="chapter-action-pending" role="status" aria-live="polite">Saving chapter changes…</span>}
     <AlertDialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
       <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{confirmAction === "unpublish" ? "Unpublish this chapter?" : confirmAction === "discard" ? "Discard this revision?" : state === "published" ? "Delete this published chapter?" : "Delete draft chapter?"}</AlertDialogTitle><AlertDialogDescription>{confirmAction === "unpublish" ? `Readers will no longer be able to open “${title}”. The chapter will remain saved as a draft.` : confirmAction === "discard" ? `Permanently discard unpublished changes to “${title}”? The published chapter remains available.` : state === "published" ? `Readers will immediately lose access to “${title}”. Its reviews, saved reading progress, and any unpublished revision will also be deleted. This cannot be undone.` : `Permanently delete “${title}”? This cannot be undone.`}</AlertDialogDescription></AlertDialogHeader>
-        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><form action={confirmAction === "unpublish" ? unpublishChapter : confirmAction === "discard" ? discardChapterRevision : deleteChapter}><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/>{confirmAction === "delete" && state === "draft" && <input type="hidden" name="draftOnly" value="1"/>}<Button type="submit" variant="destructive">{confirmAction === "unpublish" ? "Unpublish chapter" : confirmAction === "discard" ? "Discard revision" : state === "published" ? "Delete chapter" : "Delete draft"}</Button></form></AlertDialogFooter>
+        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><form action={confirmAction === "unpublish" ? unpublishChapter : confirmAction === "discard" ? discardChapterRevision : deleteChapter}><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/>{confirmAction === "delete" && state === "draft" && <input type="hidden" name="draftOnly" value="1"/>}<ConfirmActionSubmit pendingLabel={confirmAction === "unpublish" ? "Unpublishing…" : confirmAction === "discard" ? "Discarding…" : "Deleting…"}>{confirmAction === "unpublish" ? "Unpublish chapter" : confirmAction === "discard" ? "Discard revision" : state === "published" ? "Delete chapter" : "Delete draft"}</ConfirmActionSubmit></form></AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   </>;
