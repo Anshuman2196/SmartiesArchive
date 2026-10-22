@@ -441,7 +441,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()} title="More chapter actions"><MoreHorizontal size={19} aria-hidden="true"/></button>
           {overflowOpen && <div ref={overflowMenuRef} id="editor-overflow-menu" className="editor-overflow-menu" role="menu" aria-label="More chapter actions" onKeyDown={handleOverflowKeyDown}>
             {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
-            {menuButton(preview ? "Return to writing" : "Preview chapter", togglePreview)}
+            {menuButton(preview ? "Return to writing" : "Preview current edits", togglePreview)}
             {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
             {menuButton("Import Markdown file", () => markdownRef.current?.click())}
             <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
@@ -481,7 +481,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
           {toolbarButton("Link", setLink, editor.isActive("link"))}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
         </div>}
-        {preview ? <article className="rich-editor-preview"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
+        {preview ? <article className="rich-editor-preview prose-content rich-reader"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas prose-content rich-reader"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
         <footer className="editor-writing-footer"><span>{status}</span><details><summary>Chapter details</summary><span>{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read · private draft</span></details></footer>
       </main>
       <aside id="editor-format-sidebar" className="editor-format-sidebar" role="dialog" aria-modal="false" aria-labelledby="editor-format-title" aria-hidden={!sidebarOpen} inert={!sidebarOpen} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeSidebar(); } }}>

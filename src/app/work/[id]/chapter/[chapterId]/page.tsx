@@ -12,8 +12,9 @@ type ChapterLink = { id: string; title: string; position: number };
 type Work = { id: string; title: string; author_id: string; content_warnings?: string[] };
 type Author = { username: string; display_name: string };
 
-export default async function ChapterPage({ params }: { params: Promise<{ id: string; chapterId: string }> }) {
+export default async function ChapterPage({ params, searchParams }: { params: Promise<{ id: string; chapterId: string }>; searchParams: Promise<{ preview?: string }> }) {
   const { id, chapterId } = await params;
+  const { preview } = await searchParams;
   const supabase = await createClient();
   const [{ data: { user } }, { data: visibleChapter }, { data: visibleWork }] = await Promise.all([
     supabase.auth.getUser(),
@@ -32,8 +33,14 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
   if (!work && viaUnlistedLink) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
   if (!work) notFound();
   const isOwner = user?.id === work.author_id;
+  const wantsDraftPreview = isOwner && preview === "draft";
+  const { data: chapterDraft } = wantsDraftPreview
+    ? await supabase.from("chapter_drafts").select("title,body,format,content").eq("work_id", id).eq("chapter_id", chapterId).maybeSingle()
+    : { data: null };
+  const previewingDraft = wantsDraftPreview && (chapter.state === "draft" || !!chapterDraft);
+  const displayedChapter = chapterDraft ?? chapter;
   const contentPromise = (async () => {
-    let nextContent = normalizeReaderContent(chapter.content, chapter.body, work.author_id, id);
+    let nextContent = normalizeReaderContent(displayedChapter.content, displayedChapter.body, work.author_id, id);
     if (nextContent.type === "rich") nextContent = { ...nextContent, document: await signRichDocument(nextContent.document, supabase) as typeof nextContent.document };
     if (nextContent.type === "pdf") {
       const signedUrl = await signStoryMediaUrl(supabase, nextContent.url);
@@ -44,10 +51,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
   const listResultPromise = viaUnlistedLink
     ? supabase.rpc("read_unlisted_chapters", { p_work_id: id })
     : supabase.from("chapters").select("id,title,position").eq("work_id", id).order("position");
-  const savedPromise = user
+  const savedPromise = user && !previewingDraft
     ? supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()
     : Promise.resolve({ data: null });
-  const bookmarkPromise = user
+  const bookmarkPromise = user && !previewingDraft
     ? supabase.from("user_bookmarks").select("work_id").eq("user_id", user.id).eq("work_id", id).maybeSingle()
     : Promise.resolve({ data: null });
   const authorPromise = supabase.from("profiles").select("username,display_name").eq("id", work.author_id).maybeSingle();
@@ -64,10 +71,10 @@ export default async function ChapterPage({ params }: { params: Promise<{ id: st
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} contentWarnings={work.content_warnings ?? []} chapterTitle={chapter.title} content={content} chapters={chapters} authenticated={!!user} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
-      <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} contentWarnings={work.content_warnings ?? []} chapterTitle={displayedChapter.title} content={content} chapters={chapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+      {!previewingDraft && <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
         <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
-      </Suspense>
+      </Suspense>}
     </ReaderExperience>
   </>;
 }

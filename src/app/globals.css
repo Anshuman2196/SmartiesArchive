@@ -200,3 +200,14 @@ body,.home,.footer{background:var(--ink);color:var(--cream)}
 .rich-editor-canvas,.rich-editor-preview{line-height:1.5}
 .rich-editor-canvas .tiptap p,.rich-editor-preview p{margin-bottom:.65em}
 @media(max-width:600px){.rich-editor-canvas,.rich-editor-preview{line-height:1.5}}
+
+/* Match editor and preview prose to the reader's default typography. */
+.rich-editor-canvas,.rich-editor-preview{--reader-spacing:.5em;--page-ink:#e8e5da;--page-muted:#a9afa8;max-width:900px;color:var(--page-ink);font:16px/1.4 var(--font-ui)}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) p{white-space:pre-wrap;margin:0 0 var(--reader-spacing,.5em)}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) p:empty::before{content:"\00a0"}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h1{font:400 1.9em/1.15 var(--font-ui);margin:1.5em 0 .55em}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h2{font:400 1.55em/1.15 var(--font-ui);margin:1.4em 0 .55em}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h3{font:400 1.25em/1.15 var(--font-ui);margin:1.3em 0 .5em}
+.reader-draft-notice{max-width:900px;margin:0 auto 26px;padding:12px 16px;border:1px solid color-mix(in srgb,var(--page-ink) 18%,transparent);color:var(--page-muted);font:12px/1.5 var(--font-ui)}
+.reader-draft-notice a{color:var(--page-ink);text-decoration:underline;text-underline-offset:3px}
+.chapter-edit-links{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}

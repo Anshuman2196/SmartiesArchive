@@ -80,7 +80,7 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -97,7 +97,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const current = chapters.findIndex((chapter) => chapter.id === chapterId);
   const previous = current > 0 ? chapters[current - 1] : undefined;
   const next = current >= 0 ? chapters[current + 1] : undefined;
-  const completed = progress >= COMPLETION_THRESHOLD;
+  const completed = !previewingDraft && progress >= COMPLETION_THRESHOLD;
 
   useEffect(() => {
     if (contentWarnings.length === 0) return;
@@ -111,7 +111,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         const parsed = JSON.parse(stored) as Partial<Preferences>;
         setPreferences(normalizeReaderPreferences(parsed));
       }
-      if (!authenticated) {
+      if (!authenticated && !previewingDraft) {
         const local = localStorage.getItem(`smarties-reading:${workId}`);
         if (local) {
           const parsed = JSON.parse(local) as { chapterId?: string; progress?: number };
@@ -123,10 +123,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       }
     } catch { /* Use defaults if browser storage is unavailable. */ }
     setPreferencesReady(true);
-  }, [authenticated, chapterId, workId]);
+  }, [authenticated, chapterId, previewingDraft, workId]);
 
   useEffect(() => {
-    if (!preferencesReady || !warningsAccepted || restoredChapter.current === chapterId) return;
+    if (previewingDraft || !preferencesReady || !warningsAccepted || restoredChapter.current === chapterId) return;
     const frame = window.requestAnimationFrame(() => {
       const article = articleRef.current;
       if (!article) return;
@@ -139,7 +139,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       window.setTimeout(() => { restoringProgress.current = false; }, 150);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [chapterId, preferencesReady, warningsAccepted]);
+  }, [chapterId, preferencesReady, previewingDraft, warningsAccepted]);
 
   useEffect(() => {
     if (preferencesReady) {
@@ -152,6 +152,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   }, [chapterId]);
 
   const persistProgress = useCallback((value: number) => {
+    if (previewingDraft) return;
     setProgress(value);
     progressRef.current = value;
     if (Date.now() - lastLocalSave.current > 800) {
@@ -165,10 +166,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         setSaveMessage(ok ? "Progress saved" : "Progress could not be saved");
       }, 1200);
     }
-  }, [authenticated, chapterId, workId]);
+  }, [authenticated, chapterId, previewingDraft, workId]);
 
   const flushProgress = useCallback((value = progressRef.current) => {
-    if (!authenticated || !Number.isFinite(value)) return;
+    if (previewingDraft || !authenticated || !Number.isFinite(value)) return;
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
@@ -177,9 +178,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
     const body = new Blob([payload], { type: "application/json" });
     if (navigator.sendBeacon?.("/api/reader/progress", body)) return;
     void fetch("/api/reader/progress", { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true }).catch(() => undefined);
-  }, [authenticated, chapterId, workId]);
+  }, [authenticated, chapterId, previewingDraft, workId]);
 
   useEffect(() => {
+    if (previewingDraft) return;
     const saveLatest = () => {
       try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Progress storage is optional. */ }
       flushProgress();
@@ -193,7 +195,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       saveLatest();
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [chapterId, flushProgress, workId]);
+  }, [chapterId, flushProgress, previewingDraft, workId]);
 
   const onScroll = useCallback(() => {
     if (restoringProgress.current) return;
@@ -206,9 +208,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   }, [persistProgress]);
 
   useEffect(() => {
+    if (previewingDraft) return;
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [onScroll]);
+  }, [onScroll, previewingDraft]);
 
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => setPreferences((previousValue) => ({ ...previousValue, [key]: value }));
   const progressPercent = Math.round(progress * 100);
@@ -234,8 +237,8 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       <div className={styles.readerActionBar} aria-label="Reader actions">
         <Link href={`/work/${workId}`} className={`${styles.readerAction} ${styles.readerBack}`} aria-label={`Open story details for ${storyTitle}`} title="Story details"><ArrowLeft size={18} aria-hidden="true"/></Link>
         <button type="button" className={`${styles.readerAction} ${styles.tocButton}`} aria-label="Open chapter contents" title="Chapters" aria-expanded={tocOpen} aria-controls="table-of-contents" onClick={() => setTocOpen((open) => !open)}><List size={18} aria-hidden="true"/><span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></button>
-        {authenticated ? <BookmarkButton workId={workId} initialSaved={initialSaved} iconOnly/> : <Link href={`/auth?mode=login&next=${encodeURIComponent(`/work/${workId}/chapter/${chapterId}`)}`} className={styles.readerAction} aria-label="Sign in to bookmark" title="Sign in to bookmark"><Bookmark size={18} aria-hidden="true"/></Link>}
-        <ShareButton title={`${storyTitle} — ${chapterTitle}`} iconOnly/>
+        {!previewingDraft && (authenticated ? <BookmarkButton workId={workId} initialSaved={initialSaved} iconOnly/> : <Link href={`/auth?mode=login&next=${encodeURIComponent(`/work/${workId}/chapter/${chapterId}`)}`} className={styles.readerAction} aria-label="Sign in to bookmark" title="Sign in to bookmark"><Bookmark size={18} aria-hidden="true"/></Link>)}
+        {!previewingDraft && <ShareButton title={`${storyTitle} — ${chapterTitle}`} iconOnly/>}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
           <DialogTrigger asChild><button type="button" className={styles.readerAction} aria-label="Reading settings" title="Reading settings"><Settings2 size={18} aria-hidden="true"/></button></DialogTrigger>
           <DialogContent id="reader-preferences" className={`${styles.preferencesDialog} reader-tools`} data-theme={preferences.theme} showCloseButton={false}>
@@ -263,7 +266,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>
         <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => { setTocOpen(false); flushProgress(); }}>{chapter.title}</Link></li>)}</ol>
       </aside>
-      <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div></header>
+      <div className="reader-main">{previewingDraft && <p className="reader-draft-notice" role="status">Saved draft preview · Only you can see these changes. <Link href={`/studio/${workId}?chapter=${chapterId}`}>Return to editor</Link></p>}<header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1>{!previewingDraft && <div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div>}</header>
         <article ref={articleRef} className={`reader-article reader-font-${preferences.font} ${styles.readerArticle}`} aria-label={`${chapterTitle} content`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
         {completed && <section className={styles.completionCard} aria-live="polite" aria-label="Chapter completion">
           <span className="eyebrow">Chapter complete</span>
