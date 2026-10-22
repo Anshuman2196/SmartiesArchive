@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { persistReadingProgress } from "@/lib/reading-progress";
 
 const progressPayload = z.object({
   workId: z.uuid(),
@@ -16,12 +17,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
-  const { error } = await supabase.from("reading_progress").upsert({
-    user_id: user.id,
-    work_id: parsed.data.workId,
-    chapter_id: parsed.data.chapterId,
-    progress: parsed.data.progress,
-  }, { onConflict: "user_id,work_id" });
-  if (error) return NextResponse.json({ ok: false }, { status: 500 });
+  const saved = await persistReadingProgress(supabase, user.id, parsed.data.workId, parsed.data.chapterId, parsed.data.progress);
+  if (!saved) return NextResponse.json({ ok: false }, { status: 500 });
   return new NextResponse(null, { status: 204 });
 }

@@ -12,6 +12,14 @@ import { deleteChapter, deleteWork, publishWork, unpublishWork } from "@/app/act
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { getPublishChecklist } from "@/lib/publishing-checklist";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: work } = await supabase.from("works").select("title").eq("id", id).maybeSingle();
+  return { title: work ? `Writing ${work.title}` : "Creator Studio", robots: { index: false, follow: false } };
+}
 
 type Chapter = { id: string; title: string; body: string; format: ChapterFormat; content: unknown; position: number; state: "draft" | "published"; updated_at: string };
 
@@ -31,12 +39,13 @@ const statusCopy: Record<string, { message: string; error?: boolean }> = {
   chapter_created: { message: "Chapter draft created." },
   chapter_saved: { message: "Chapter draft saved." },
   chapter_draft_saved: { message: "Revision draft saved. Readers still see the published chapter." },
-  chapter_published: { message: "Chapter revision published." },
+  chapter_published: { message: "Chapter published." },
   chapter_unpublished: { message: "Chapter unpublished and kept as a draft." },
+  revision_discarded: { message: "Unpublished chapter changes discarded." },
   chapter_deleted: { message: "Chapter deleted. Its saved reading progress was removed." },
   chapter_duplicated: { message: "A draft copy of the chapter was created." },
   reordered: { message: "Chapter order updated." },
-  published: { message: "Story published with the saved metadata." },
+  published: { message: "Story is live for readers." },
   unpublished: { message: "Story unpublished. Its content and drafts are preserved." },
   work_deleted: { message: "Story deleted." },
 };
@@ -81,8 +90,8 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
 
   return <main className="shell studio-page">
     <Link href="/studio" className="byline studio-back-link">← Your studio</Link>
-    <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${work.visibility}` : `Draft · ${work.visibility}`}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story</ActionSubmit></ActionForm>}</div></header>
-    {message && <p className={`notice ${message.error ? "auth-error" : ""}`} role={message.error ? "alert" : "status"}>{message.message}</p>}
+    <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${work.visibility}` : `Draft · ${work.visibility}`}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit pendingLabel="Publishing…">Publish story</ActionSubmit></ActionForm>}</div></header>
+    {message && <p className={`notice ${message.error ? "auth-error" : "auth-success"}`} role={message.error ? "alert" : "status"}>{message.message}</p>}
     <PublishChecklist items={checklist}/>
     {work.state === "published" && workDraft && <div className="revision-callout"><div><span className="eyebrow">Unpublished changes</span><p>Published readers still see the existing story details.</p></div><ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story changes</ActionSubmit></ActionForm></div>}
     <Tabs defaultValue={query.view === "details" ? "details" : "chapters"} className="studio-workspace">

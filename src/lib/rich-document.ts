@@ -29,6 +29,7 @@ export function safeRichDocumentErrorMessage(error: RichDocumentValidationError)
   const field = error.diagnostic.attribute ? labels[error.diagnostic.attribute] : undefined;
   const block = error.diagnostic.path.match(/content\[(\d+)\]/)?.[1];
   const where = block ? ` near item ${Number(block) + 1}` : "";
+  if (error.diagnostic.rule === "invalid_image_reference") return `This image could not be attached${where}. Remove it and insert it again from the story's image picker; your other writing remains open and unsaved changes stay here.`;
   if (error.diagnostic.rule === "empty_document") return "Add some chapter text before saving. Your current draft is still in the editor.";
   if (field) return `Check the ${field}${where}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
   if (error.diagnostic.rule === "invalid_text_style_attrs" && error.diagnostic.attribute && /^[a-z][a-zA-Z0-9_]{0,31}$/.test(error.diagnostic.attribute)) {

@@ -48,8 +48,6 @@
 .reader-page[data-theme="sepia"]{--page-bg:#302a21;--page-ink:#eee0c5;--page-muted:#c1ad8c}
 .reader-page[data-theme="dark"]{background:var(--page-bg)}
 .palette-select-label select{max-width:158px;min-height:34px;padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--cream);font-size:11px}
-:root[data-palette="royal"] .pill.primary{background:#4169e1;border-color:#4169e1;color:#fff}
-:root[data-palette="wine"] .pill.primary{background:#72263d;border-color:#72263d;color:#fff}
 :root[data-palette="royal"] .eyebrow,:root[data-palette="wine"] .eyebrow{color:var(--lime)}
 
 /* Structured chapter editor and identical reader rendering */

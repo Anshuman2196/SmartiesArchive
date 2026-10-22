@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
@@ -53,34 +54,41 @@ export function BookmarkButton({ workId, initialSaved, iconOnly = false }: { wor
 
 export function ShareButton({ title, iconOnly = false }: { title?: string; iconOnly?: boolean }) {
   const [message, setMessage] = useState("");
-  const share = async () => {
-    const url = window.location.href;
+  const [open, setOpen] = useState(false);
+  const copy = async () => {
     try {
-      if (navigator.share) await navigator.share({ title: title || document.title, url });
-      else { await navigator.clipboard.writeText(url); setMessage("Link copied."); }
+      await navigator.clipboard.writeText(window.location.href);
+      setMessage("Link copied.");
+      setOpen(false);
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") return;
-      setMessage("We couldn't share that link. Copy it from your browser address bar.");
+      setMessage("We couldn't copy the link. Copy it from your browser address bar.");
     }
   };
-  return <div className="reader-action-wrap"><button type="button" className="pill" onClick={share} aria-label="Share story" title="Share story">{iconOnly ? <Share2 size={18} aria-hidden="true"/> : "Share link"}</button>{message && <span role="status" className="reader-action-message">{message}</span>}</div>;
+  const share = async () => {
+    if (!navigator.share) { setMessage("Device sharing is not available here. Copy the link instead."); return; }
+    try { await navigator.share({ title: title || document.title, url: window.location.href }); setOpen(false); }
+    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) setMessage("We couldn't open the share sheet."); }
+  };
+  return <div className="reader-action-wrap"><button type="button" className="pill" onClick={() => { setMessage(""); setOpen(true); }} aria-label="Share story" title="Share story">{iconOnly ? <Share2 size={18} aria-hidden="true"/> : "Share link"}</button>{message && <span role="status" className="reader-action-message">{message}</span>}<Dialog open={open} onOpenChange={setOpen}><DialogContent className="reader-share-dialog"><DialogHeader><DialogTitle>Share this chapter</DialogTitle><DialogDescription>Copy a link or open your device share options.</DialogDescription></DialogHeader><div className="reader-share-actions"><button type="button" className="pill primary" onClick={() => void copy()}>Copy link</button><button type="button" className="pill" onClick={() => void share()}>Share…</button></div><DialogClose asChild><button type="button" className="text-action">Close</button></DialogClose></DialogContent></Dialog></div>;
 }
 
-export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds = [] }: { workId: string; firstChapterId?: string; savedChapterId?: string; chapterIds?: string[] }) {
+export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds = [], allowGuestLocal = true }: { workId: string; firstChapterId?: string; savedChapterId?: string; chapterIds?: string[]; allowGuestLocal?: boolean }) {
   const [href, setHref] = useState(savedChapterId ? `/work/${workId}/chapter/${savedChapterId}` : firstChapterId ? `/work/${workId}/chapter/${firstChapterId}` : `/work/${workId}`);
   const [label, setLabel] = useState(savedChapterId ? "Resume reading" : "Start reading");
   useEffect(() => {
+    if (!allowGuestLocal) return;
     try {
       const saved = localStorage.getItem(`smarties-reading:${workId}`);
       if (!saved) return;
       const state = JSON.parse(saved) as { chapterId?: string };
       if (state.chapterId && chapterIds.includes(state.chapterId)) { setHref(`/work/${workId}/chapter/${state.chapterId}`); setLabel("Resume reading"); }
     } catch { /* Ignore malformed local reader history. */ }
-  }, [chapterIds, workId]);
+  }, [allowGuestLocal, chapterIds, workId]);
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
 export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
+  const router = useRouter();
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
@@ -104,12 +112,27 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const completed = !previewingDraft && progress >= COMPLETION_THRESHOLD;
 
   useEffect(() => {
+    if (previewingDraft || !warningsAccepted) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, button, [role=dialog]"))) return;
+      if (event.key === "ArrowLeft" && previous) { event.preventDefault(); router.push(`/work/${workId}/chapter/${previous.id}`); }
+      if (event.key === "ArrowRight" && next) { event.preventDefault(); router.push(`/work/${workId}/chapter/${next.id}`); }
+      if (event.key.toLowerCase() === "s") { event.preventDefault(); settingsButtonRef.current?.click(); }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [next, previous, previewingDraft, router, warningsAccepted, workId]);
+
+  useEffect(() => {
     if (contentWarnings.length === 0) return;
     try { setWarningsAccepted(localStorage.getItem(`smarties-warning:${workId}`) === "accepted"); } catch { /* Show the gate when storage is unavailable. */ }
   }, [contentWarnings.length, workId]);
 
   useEffect(() => {
     try {
+      if (authenticated) localStorage.removeItem(`smarties-reading:${workId}`);
       const stored = localStorage.getItem("smarties-reader-preferences");
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<Preferences>;
@@ -161,7 +184,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
     progressRef.current = value;
     if (Date.now() - lastLocalSave.current > 800) {
       lastLocalSave.current = Date.now();
-      try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: value })); } catch { /* Guest progress is best effort. */ }
+      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: value })); } catch { /* Guest progress is best effort. */ }
     }
     if (authenticated) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -187,7 +210,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   useEffect(() => {
     if (previewingDraft) return;
     const saveLatest = () => {
-      try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Progress storage is optional. */ }
+      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Guest progress is best effort. */ }
       flushProgress();
     };
     const saveWhenHidden = () => { if (document.visibilityState === "hidden") saveLatest(); };
@@ -223,7 +246,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       const article = articleRef.current;
       if (!article) return;
       const bounds = article.getBoundingClientRect();
-      setSettingsShortcutVisible(bounds.top <= 140 && bounds.bottom > 0);
+      const pager = document.querySelector(".chapter-pager");
+      const pagerBounds = pager?.getBoundingClientRect();
+      const pagerVisible = !!pagerBounds && pagerBounds.top < window.innerHeight && pagerBounds.bottom > 0;
+      setSettingsShortcutVisible(bounds.top <= 140 && bounds.bottom > 0 && !pagerVisible);
     };
     updateShortcut();
     window.addEventListener("scroll", updateShortcut, { passive: true });
@@ -287,13 +313,14 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       </div>
       <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
     </nav>
+    {!previewingDraft && <div className={`reader-progress ${styles.readerProgress}`} role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div>}
     {settingsShortcutVisible && <button ref={settingsShortcutRef} type="button" className={styles.settingsShortcut} aria-label="Reading settings" aria-haspopup="dialog" onClick={() => openSettings(settingsShortcutRef)}><Settings2 size={18} aria-hidden="true"/><span>Reading settings</span></button>}
     <div className={`reader-layout ${styles.readerLayout}`}>
       <aside id="table-of-contents" className={`reader-toc ${styles.readerToc}`} data-open={tocOpen}>
         <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>
         <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => { setTocOpen(false); flushProgress(); }}>{chapter.title}</Link></li>)}</ol>
       </aside>
-      <div className="reader-main">{previewingDraft && <p className="reader-draft-notice" role="status">Saved draft preview · Only you can see these changes. <Link href={`/studio/${workId}?chapter=${chapterId}`}>Return to editor</Link></p>}<header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1>{!previewingDraft && <div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div>}</header>
+      <div className="reader-main">{previewingDraft && <p className="reader-draft-notice" role="status">Saved draft preview · Only you can see these changes. <Link href={`/studio/${workId}?chapter=${chapterId}`}>Return to editor</Link></p>}<header className="reader-chapter-heading" style={{ maxWidth: `${preferences.width}px` }}><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1></header>
         <article ref={articleRef} className={`reader-article reader-font-${preferences.font} ${styles.readerArticle}`} aria-label={`${chapterTitle} content`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
         {completed && <section className={styles.completionCard} aria-live="polite" aria-label="Chapter completion">
           <span className="eyebrow">Chapter complete</span>
@@ -304,5 +331,5 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}>← Previous<span>{previous.title}</span></Link> : <span/>}{next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details →</Link>}</nav>
       </div>
     </div>
-  </main>{children}</>;
+  </main><div className="reader-secondary" data-theme={preferences.theme}>{children}</div></>;
 }

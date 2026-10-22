@@ -5,7 +5,7 @@ export function richNodeTag(node: RichNode): string | null {
     case "doc": return "div";
     case "text": return "span";
     case "paragraph": return "p";
-    case "heading": return [1, 2, 3, 4, 5, 6].includes(Number(node.attrs?.level)) ? `h${node.attrs?.level}` : null;
+    case "heading": return Number(node.attrs?.level) === 1 ? "h2" : [2, 3, 4, 5, 6].includes(Number(node.attrs?.level)) ? `h${Math.min(Number(node.attrs?.level), 6)}` : null;
     case "bulletList": return "ul";
     case "orderedList": return "ol";
     case "listItem": return "li";

@@ -3,6 +3,9 @@ import Link from "next/link";
 import { getShelf, type ShelfItem } from "@/lib/shelf";
 import styles from "./page.module.css";
 import { CoverFallback } from "@/components/cover-fallback";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Your shelf" };
 
 function formatDate(value: string | null): string {
   if (!value) return "";

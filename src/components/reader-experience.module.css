@@ -27,6 +27,11 @@
   align-items: center;
 }
 
+.readerProgress {
+  width: min(100%, 1320px);
+  margin-inline: auto;
+}
+
 .readerBack,
 .tocButton {
   min-height: 44px;
@@ -126,6 +131,25 @@
   cursor: pointer;
 }
 
+.readerPage[data-theme="light"] .warningGate {
+  --panel: #f7f8f3;
+  --line: #17252138;
+  --cream: #172521;
+  --muted: #40564f;
+  --lime: #315f4a;
+  background: #f7f8f3;
+  color: #172521;
+}
+
+.readerPage[data-theme="sepia"] .warningGate {
+  --panel: #3a3024;
+  --line: #eee0c538;
+  --cream: #eee0c5;
+  --muted: #c1ad8c;
+  background: #3a3024;
+  color: #eee0c5;
+}
+
 .settingsShortcut:hover,
 .settingsShortcut:focus-visible {
   border-color: var(--lime);
@@ -155,6 +179,11 @@
 }
 
 .readerSaveStatus {
+  width: 104px;
+  overflow: hidden;
+  justify-content: flex-end;
+  text-align: right;
+  white-space: nowrap;
   min-height: 20px;
   display: inline-flex;
   align-items: center;

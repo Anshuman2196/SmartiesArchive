@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut, type AuthActionState } from "@/app/actions";
 import { PaletteSelector } from "@/components/palette-selector";
 
@@ -16,6 +17,9 @@ export function MobileNavigation({ username, displayName, isAdmin }: { username?
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const wasOpenRef = useRef(false);
   const [state, action, pending] = useActionState(signOut, { kind: "idle" } satisfies AuthActionState);
+  const pathname = usePathname();
+
+  useEffect(() => { setOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (open) firstLinkRef.current?.focus();
@@ -27,7 +31,7 @@ export function MobileNavigation({ username, displayName, isAdmin }: { username?
     const closeOnEscapeOrResize = (event: KeyboardEvent) => {
       if (event.key === "Escape" && open) setOpen(false);
     };
-    const closeOnDesktop = () => { if (window.innerWidth > 760) setOpen(false); };
+    const closeOnDesktop = () => { if (window.innerWidth > 800) setOpen(false); };
     window.addEventListener("keydown", closeOnEscapeOrResize);
     window.addEventListener("resize", closeOnDesktop);
     return () => {

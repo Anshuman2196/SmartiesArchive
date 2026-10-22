@@ -5,8 +5,16 @@ import { CoverFallback } from "@/components/cover-fallback";
 import { signStoryMediaUrls } from "@/lib/story-media";
 import { createClient } from "@/lib/supabase/server";
 import styles from "./page.module.css";
+import type { Metadata } from "next";
 
 type AuthorWork = { id: string; title: string; summary: string; cover_url: string | null; tags: string[] };
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createClient();
+  const { data: profile } = await supabase.from("profiles").select("display_name").eq("username", username).maybeSingle();
+  return profile ? { title: `${profile.display_name} — Author`, description: `Published stories by ${profile.display_name}.` } : { title: "Author not found" };
+}
 
 export default async function AuthorPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;

@@ -29,6 +29,7 @@ export function friendlyAuthError(error: unknown, purpose: "login" | "signup" | 
   const text = source.toLowerCase();
   const status = typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 0;
   if (status === 429 || /rate.?limit|too many requests/.test(text)) return "Too many attempts. Please wait a little while before trying again.";
+  if (purpose === "signup" && /already registered|already exists|user_already_exists|email_exists/.test(text)) return "If this address is eligible for a new account, check your email for next steps. If you already have an account, sign in or reset your password.";
   if (/already registered|already exists|user_already_exists|email_exists/.test(text)) return "An account may already exist with this email. Try signing in or use password recovery.";
   if (/invalid login credentials|invalid credentials|email or password/.test(text)) return "Email or password could not be verified. If you just registered, confirm your email first.";
   if (/email.?not.?confirmed|email not verified/.test(text)) return "Confirm your email address using the link we sent before signing in.";

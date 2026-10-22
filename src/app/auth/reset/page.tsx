@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { PasswordUpdateForm } from "@/app/auth/reset/password-form";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Reset your password" };
 
 export default async function ResetPasswordPage() {
   try {

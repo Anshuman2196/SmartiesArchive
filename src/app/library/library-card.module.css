@@ -1,9 +1,9 @@
-.list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,2.5vw,34px);border-top:1px solid var(--line);padding-top:26px}
-.card{display:block;min-width:0;color:var(--cream)}
-.poster{position:relative;width:100%;aspect-ratio:3/4;background:var(--panel-raised);overflow:hidden}
+.list{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--line);padding-top:4px}
+.card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:20px;padding:20px 0;border-bottom:1px solid var(--line);min-width:0;color:var(--cream)}
+.poster{position:relative;width:112px;aspect-ratio:2/3;background:var(--panel-raised);overflow:hidden}
 .posterImage{object-fit:cover;transition:transform .35s ease}
 .card:hover .posterImage{transform:scale(1.025)}
-.body{padding:17px 0 0;min-width:0}
+.body{padding:0;min-width:0}
 .title{margin:0 0 11px;font:800 clamp(22px,2.3vw,31px)/1.05 var(--font-ui);letter-spacing:-.055em;text-transform:uppercase;overflow-wrap:anywhere}
 .summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-width:58ch;margin:0 0 15px;color:var(--muted);font-size:14px;line-height:1.55}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
@@ -12,6 +12,6 @@
 .meta{display:flex;flex-wrap:wrap;gap:5px 13px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1.5}
 .author{color:var(--cream)}
 .openStory{display:none}
-@media(max-width:760px){.list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1000px){.card{grid-template-columns:124px minmax(0,1fr);gap:24px}.poster{width:124px}}
 @media(max-width:540px){.list{grid-template-columns:1fr;gap:0;padding-top:4px}.card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:16px;padding:19px 0;border-bottom:1px solid var(--line)}.poster{width:112px}.body{padding:0}.title{font-size:22px}.summary{font-size:12px;margin-bottom:10px}.tags{margin-bottom:8px}.meta{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.posterImage{transition:none}}

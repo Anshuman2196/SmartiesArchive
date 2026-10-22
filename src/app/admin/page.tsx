@@ -3,6 +3,9 @@ import { adminUnpublishChapter, adminUnpublishWork } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import styles from "./page.module.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Archive administration", robots: { index: false, follow: false } };
 
 type Count = { count: number };
 type Profile = { username: string; display_name: string } | null;

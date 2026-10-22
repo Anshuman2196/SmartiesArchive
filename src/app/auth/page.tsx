@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { authStatusMessage, safeNextPath } from "@/lib/auth-feedback";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Your account" };
 
 type AuthMode = "login" | "signup" | "recover";
 

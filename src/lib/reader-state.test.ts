@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences } from "./reader-state.ts";
 
 test("reader settings are restored only within supported ranges", () => {
-  assert.deepEqual(defaultReaderPreferences, { theme: "dark", font: "sans", size: 16, leading: 1.4, spacing: 0.5, width: 900 });
+  assert.deepEqual(defaultReaderPreferences, { theme: "dark", font: "serif", size: 18, leading: 1.7, spacing: 1, width: 760 });
   assert.deepEqual(normalizeReaderPreferences(null), defaultReaderPreferences);
   assert.deepEqual(normalizeReaderPreferences({ theme: "sepia", font: "sans", size: 99, leading: 0.2, spacing: 99, width: 900 }), { theme: "sepia", font: "sans", size: 28, leading: 1.4, spacing: 2.5, width: 900 });
 });

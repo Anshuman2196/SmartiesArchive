@@ -113,7 +113,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [title, setTitle] = useState(initialTitle);
   const [chapterId, setChapterId] = useState(initialChapterId);
   const [updatedAt, setUpdatedAt] = useState(initialUpdatedAt ?? "");
-  const [status, setStatus] = useState("Unsaved draft");
+  const [status, setStatus] = useState(initialChapterId ? "Saved" : "Unsaved draft");
   const [saveError, setSaveError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [documentRevision, setDocumentRevision] = useState(0);
@@ -136,7 +136,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [detectionNotice, setDetectionNotice] = useState("");
   const [imageNotice, setImageNotice] = useState("");
   const [importNotice, setImportNotice] = useState("");
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkValue, setLinkValue] = useState("");
+  const [linkError, setLinkError] = useState("");
   const markdownRef = useRef<HTMLInputElement>(null);
+  const linkInputRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentRef = useRef<RichDocument>(initialDocument);
@@ -156,6 +160,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const sidebarWasOpenRef = useRef(false);
   const overflowWasOpenRef = useRef(false);
   const shortcutHelpWasOpenRef = useRef(false);
+  const linkDialogWasOpenRef = useRef(false);
   const router = useRouter();
 
   const shortcutExtension = useMemo(() => createEditorShortcutExtension(shortcutCallbacksRef), []);
@@ -164,13 +169,14 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     handlePaste(view, event) {
       const text = event.clipboardData?.getData("text/plain");
       if (!text || view.state.selection.$from.parent.type.name === "codeBlock") return false;
-      const lines = normalizeChapterPaste(text).split("\n");
-      const content = lines.flatMap((line, index) => [
-        ...(index ? [view.state.schema.nodes.hardBreak.create()] : []),
-        ...(line ? [view.state.schema.text(line)] : []),
-      ]);
-      const node = view.state.schema.nodes.paragraph.create(null, content);
-      const transaction = view.state.tr.replaceSelection(new Slice(Fragment.from(node), 0, 0)).scrollIntoView();
+      const paragraphs = normalizeChapterPaste(text).split(/\n\s*\n/).filter((paragraph) => paragraph.length > 0).map((paragraph) => {
+        const content = paragraph.split("\n").flatMap((line, index) => [
+          ...(index ? [view.state.schema.nodes.hardBreak.create()] : []),
+          ...(line ? [view.state.schema.text(line)] : []),
+        ]);
+        return view.state.schema.nodes.paragraph.create(null, content);
+      });
+      const transaction = view.state.tr.replaceSelection(new Slice(Fragment.fromArray(paragraphs), 0, 0)).scrollIntoView();
       const candidate = transaction.doc.toJSON() as RichDocument;
       let nodeCount = 0;
       let oversized = false;
@@ -189,6 +195,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     if (busy.current) return false;
     const revision = revisionRef.current;
     busy.current = true; setStatus("Saving draft…");
+    // Preserve the first-chapter composer across the server refresh triggered by
+    // revalidatePath. The studio page uses this query to keep the new editor mounted.
+    if (!chapterId && typeof window !== "undefined") {
+      window.history.replaceState(window.history.state, "", `/studio/${workId}?new=1`);
+    }
     let result: Awaited<ReturnType<typeof saveRichChapter>>;
     try { result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt); }
     catch { result = { ok: false, message: "The save could not reach the server. Your writing is still here; retry when connected." }; }
@@ -205,6 +216,28 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
 
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, saveFinished, save]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
+  useEffect(() => {
+    const guardLink = (event: MouseEvent) => {
+      if (!dirty || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      event.preventDefault();
+      event.stopPropagation();
+      void save().then((saved) => { if (saved) router.push(`${url.pathname}${url.search}${url.hash}`); });
+    };
+    const guardBack = () => {
+      if (!dirty) return;
+      if (!window.confirm("This chapter has unsaved changes. Save them before leaving?")) { window.history.forward(); return; }
+      void save();
+    };
+    document.addEventListener("click", guardLink, true);
+    window.addEventListener("popstate", guardBack);
+    return () => { document.removeEventListener("click", guardLink, true); window.removeEventListener("popstate", guardBack); };
+  }, [dirty, router, save]);
   useEffect(() => { setShortcutPlatform(detectShortcutPlatform()); }, []);
   const restoreFocus = useCallback((target: HTMLElement | null, fallback: HTMLElement | null = null) => {
     window.requestAnimationFrame(() => {
@@ -281,7 +314,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     view.dispatch(transaction.scrollIntoView());
     setDetectionNotice(`Styled ${matches.length} ${matches.length === 1 ? "paragraph" : "paragraphs"}. Review the result; Undo restores the previous formatting.`);
   };
-  const insertMedia = (item: { src: string; previewSrc: string }) => { if (!editor) return; if (editor.isActive("imageBlock")) editor.chain().focus().updateAttributes("imageBlock", item).run(); else editor.chain().focus().insertContent({ type: "imageBlock", attrs: { ...item, alt: "", caption: "", width: 100, align: "center" } }).run(); setMediaOpen(false); setImageNotice("Image inserted or replaced at the cursor."); };
+  const insertMedia = (item: { src: string; previewSrc: string }) => { if (!editor) return; const attrs = { src: item.src, previewSrc: item.previewSrc, alt: "", caption: "", width: 100, align: "center" }; if (editor.isActive("imageBlock")) editor.chain().focus().updateAttributes("imageBlock", attrs).run(); else editor.chain().focus().insertContent({ type: "imageBlock", attrs }).run(); setMediaOpen(false); setImageNotice("Image inserted or replaced at the cursor."); };
   const upload = async (file?: File) => {
     if (!file) return;
     setImageNotice("Preparing secure upload…");
@@ -318,7 +351,15 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   };
   const openImagePicker = () => { setSidebarTab("insert"); openSidebar(); setMediaError(""); setMediaOpen(true); void loadMedia(); };
   const insertEmoji = (emoji: string) => { editor?.chain().focus().insertContent(emoji).run(); setEmojiOpen(false); setEmojiSearch(""); };
-  const setLink = () => { if (!editor) return; const href = window.prompt("Enter a website URL or internal story path (for example, /work/…):", editor.getAttributes("link").href ?? "https://"); if (href === null) return; if (!href) editor.chain().focus().unsetLink().run(); else editor.chain().focus().setLink({ href }).run(); };
+  const setLink = () => { if (!editor) return; setLinkValue(editor.getAttributes("link").href ?? ""); setLinkError(""); setLinkDialogOpen(true); };
+  const submitLink = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const href = linkValue.trim();
+    if (href && (!/^(https:|mailto:|\/)/i.test(href) || href.startsWith("//") || /[\\\u0000-\u001f]/.test(href))) { setLinkError("Use an HTTPS, mailto, or internal story link."); return; }
+    if (!href) editor.chain().focus().unsetLink().run();
+    else editor.chain().focus().setLink({ href }).run();
+    setLinkDialogOpen(false);
+  };
   const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().focus().updateAttributes("imageBlock", { [key]: value }).run();
 
   if (!editor) return <div className="rich-editor-loading" role="status">Preparing your writing space…</div>;
@@ -429,6 +470,16 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
   const closeShortcutHelp = () => setShortcutHelpOpen(false);
 
+  useEffect(() => {
+    if (linkDialogOpen) {
+      linkDialogWasOpenRef.current = true;
+      window.requestAnimationFrame(() => linkInputRef.current?.focus());
+    } else if (linkDialogWasOpenRef.current && editor) {
+      linkDialogWasOpenRef.current = false;
+      window.requestAnimationFrame(() => editor.commands.focus());
+    }
+  }, [editor, linkDialogOpen]);
+
   return <section ref={editorRootRef} className={`${styles.editorRoot} rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} role="region" aria-labelledby="rich-editor-label">
     <h1 id="rich-editor-label" className={styles.visuallyHidden}>Chapter writing editor</h1>
     <header className="editor-topbar">
@@ -445,7 +496,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
             {menuButton("Import Markdown file", () => markdownRef.current?.click())}
             <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
-            {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" role="menuitem" type="submit" disabled={dirty || !!saveError} onClick={closeOverflow}>Publish saved draft</button></form>}
+            {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" role="menuitem" type="submit" disabled={dirty || !!saveError}>Publish saved draft</button></form>}
             {menuButton("Download recovery copy", downloadRecovery)}
           </div>}
         </div>
@@ -453,6 +504,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     </header>
     <input ref={markdownRef} className="sr-only" type="file" accept=".md,.markdown,text/markdown" aria-label="Markdown chapter file" onChange={(event) => void importMarkdown(event.target.files?.[0])}/>
     {importNotice && <div className="editor-import-notice" role="status">{importNotice}<button type="button" aria-label="Dismiss import message" onClick={() => setImportNotice("")}>×</button></div>}
+    {linkDialogOpen && <div className="editor-dialog-backdrop"><section className="editor-link-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-link-title" aria-describedby="editor-link-help"><h2 id="editor-link-title">Add or edit link</h2><p id="editor-link-help">Use an HTTPS address, an email link, or an internal story path. Leave blank to remove the link.</p><form onSubmit={submitLink}><label htmlFor="editor-link-address">Link address</label><input ref={linkInputRef} id="editor-link-address" type="text" inputMode="url" autoComplete="url" value={linkValue} onChange={(event) => setLinkValue(event.target.value)} aria-invalid={!!linkError} aria-describedby={linkError ? "editor-link-error" : "editor-link-help"}/>{linkError && <p id="editor-link-error" role="alert">{linkError}</p>}<div><button type="button" className="pill" onClick={() => setLinkDialogOpen(false)}>Cancel</button><button type="submit" className="pill primary">Apply link</button></div></form></section></div>}
     {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
     {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" aria-describedby="editor-shortcut-help-description" onKeyDown={(event) => {
       if (event.key === "Escape") { event.preventDefault(); closeShortcutHelp(); return; }
@@ -475,14 +527,15 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     </div>}
     <div className="editor-workspace">
       <main className="editor-writing-column">
-        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><input id="rich-chapter-title" placeholder="Untitled chapter" value={title} maxLength={120} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
+        <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><textarea id="rich-chapter-title" rows={1} placeholder="Untitled chapter" value={title} maxLength={120} onInput={(event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`; }} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
         {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
           {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"))}
           <label className="sr-only" htmlFor="selection-text-color">Text color</label><input id="selection-text-color" type="color" aria-label="Selected text color" value={textStyle.color ?? "#f1eadb"} onChange={(event) => setTextColor(event.target.value)}/>
           {toolbarButton("Link", setLink, editor.isActive("link"))}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}<button type="button" className="editor-tool-button" onClick={formattingMore} aria-label="More formatting">More</button>
         </div>}
+        {preview && <p className="editor-preview-banner" role="status">Previewing current edits · Return to writing from More chapter actions.</p>}
         {preview ? <article className="rich-editor-preview prose-content rich-reader"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas prose-content rich-reader"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
-        <footer className="editor-writing-footer"><span>{status}</span><details><summary>Chapter details</summary><span>{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read · private draft</span></details></footer>
+        <footer className="editor-writing-footer"><span>{status}</span><span className="editor-word-count">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</span></footer>
       </main>
       <aside id="editor-format-sidebar" className="editor-format-sidebar" role="dialog" aria-modal="false" aria-labelledby="editor-format-title" aria-hidden={!sidebarOpen} inert={!sidebarOpen} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeSidebar(); } }}>
         <div className="editor-sidebar-heading"><span id="editor-format-title" className="eyebrow">Formatting controls</span><button ref={formatCloseRef} type="button" className={`${styles.dialogClose} editor-sidebar-close`} onClick={closeSidebar} aria-label="Close formatting panel">Close</button></div>

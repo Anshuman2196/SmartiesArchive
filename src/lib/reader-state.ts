@@ -1,6 +1,6 @@
 export type ReaderPreferences = { theme: "dark" | "light" | "sepia"; font: "serif" | "sans"; size: number; leading: number; spacing: number; width: number };
 
-export const defaultReaderPreferences: ReaderPreferences = { theme: "dark", font: "sans", size: 16, leading: 1.4, spacing: 0.5, width: 900 };
+export const defaultReaderPreferences: ReaderPreferences = { theme: "dark", font: "serif", size: 18, leading: 1.7, spacing: 1, width: 760 };
 
 const bounded = (value: unknown, fallback: number, min: number, max: number, precision = 0) => {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;

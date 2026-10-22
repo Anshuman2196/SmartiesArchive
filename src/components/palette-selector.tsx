@@ -11,18 +11,27 @@ export const palettes = [
 ] as const;
 export type PaletteId = (typeof palettes)[number]["id"];
 
+function readPalette(): PaletteId {
+  if (typeof document !== "undefined") {
+    const value = document.documentElement.dataset.palette;
+    if (palettes.some((item) => item.id === value)) return value as PaletteId;
+  }
+  return "cinema";
+}
+
 export function PaletteSelector() {
   const [palette, setPalette] = useState<PaletteId>("cinema");
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("smarties-palette");
-      if (saved === "cinema" || saved === "archive" || saved === "royal" || saved === "wine" || saved === "original") setPalette(saved);
-    } catch { /* Keep the default if storage is unavailable. */ }
+    const sync = () => setPalette(readPalette());
+    sync();
+    window.addEventListener("smarties-palette-change", sync);
+    return () => window.removeEventListener("smarties-palette-change", sync);
   }, []);
-  useEffect(() => { document.documentElement.dataset.palette = palette; }, [palette]);
   const select = (value: string) => {
     if (value !== "cinema" && value !== "archive" && value !== "original" && value !== "royal" && value !== "wine") return;
     setPalette(value);
+    document.documentElement.dataset.palette = value;
+    window.dispatchEvent(new Event("smarties-palette-change"));
     try { localStorage.setItem("smarties-palette", value); } catch { /* Theme remains active for this visit. */ }
   };
   return <label className="palette-select-label"><span>Theme</span><select aria-label="Application color palette" value={palette} onChange={(event) => select(event.target.value)}>{palettes.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>;

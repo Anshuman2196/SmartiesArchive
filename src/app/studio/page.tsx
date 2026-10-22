@@ -7,6 +7,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus } from "lucide-react";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import { deleteWork } from "@/app/actions";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Creator Studio" };
 
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status } = await searchParams;

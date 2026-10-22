@@ -14,6 +14,9 @@ import {
   type LibrarySearchParams,
   type LibraryWork,
 } from "@/lib/library-filters";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Library", description: "Browse stories in the Smarties Archive." };
 
 const sortLabels = {
   newest: "Newest first",
@@ -64,14 +67,19 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
 
   try {
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("works")
-      .select("id,title,summary,cover_url,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
-      .eq("visibility", "public")
-      .eq("state", "published")
-      .order("created_at", { ascending: false })
-      .limit(100);
-    const works = (data ?? []) as unknown as LibraryWork[];
+    const works: LibraryWork[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const { data, error } = await supabase
+        .from("works")
+        .select("id,title,summary,cover_url,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
+        .eq("visibility", "public")
+        .eq("state", "published")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + 99);
+      if (error) throw error;
+      works.push(...((data ?? []) as unknown as LibraryWork[]));
+      if (!data || data.length < 100) break;
+    }
     const workIds = works.map((work) => work.id);
     const [{ data: chapterRows }, coverUrls] = await Promise.all([
       workIds.length ? supabase.from("chapters").select("work_id,body").in("work_id", workIds).eq("state", "published") : Promise.resolve({ data: [] as PublishedChapterSummary[] }),
@@ -119,7 +127,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {filteredWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{filteredWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
       <LibraryPoster work={work} eager={index < 3}/>
       <div className={styles.body}>
-        <h3 className={styles.title}>{work.title}</h3>
+        <h2 className={styles.title}>{work.title}</h2>
         {work.summary && <p className={styles.summary}>{work.summary}</p>}
         <LibraryTags work={work}/>
         <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{work.content_warnings.length > 0 && <span>Content notes</span>}</div>

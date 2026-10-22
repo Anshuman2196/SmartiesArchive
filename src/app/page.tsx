@@ -68,7 +68,7 @@ export default async function HomePage() {
       <div className="cinema-section-head"><div><span className="cinema-label">From the archive</span><h2 id="programme-title">More to discover</h2></div><Link href="/library">View the library</Link></div>
       <div className="cinema-programme-grid">{more.map((work, index) => <Link href={`/work/${work.id}`} className="cinema-programme-item" key={work.id}>
         <div className="cinema-programme-poster">{work.coverPreviewUrl ? <Image src={work.coverPreviewUrl} alt="" fill sizes="(max-width: 760px) 110px, 280px" unoptimized/> : <CoverFallback title={work.title}/>}</div>
-        <div className="cinema-programme-info"><span>{String(index + 2).padStart(2, "0")}</span><h3>{work.title}</h3><p>{work.profiles?.display_name ?? "A reader"}</p></div>
+        <div className="cinema-programme-info"><span>{String(index + 1).padStart(2, "0")}</span><h3>{work.title}</h3><p>{work.profiles?.display_name ?? "A reader"}</p></div>
       </Link>)}</div>
     </section>}
     {genres.length > 0 && <section className="shell cinema-genres" aria-labelledby="genre-title">

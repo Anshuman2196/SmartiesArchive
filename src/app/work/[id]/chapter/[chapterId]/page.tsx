@@ -6,11 +6,28 @@ import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
+import type { Metadata } from "next";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number };
 type Work = { id: string; title: string; author_id: string; content_warnings?: string[] };
 type Author = { username: string; display_name: string };
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ id: string; chapterId: string }>; searchParams: Promise<{ preview?: string }> }): Promise<Metadata> {
+  const { id, chapterId } = await params;
+  const { preview } = await searchParams;
+  const supabase = await createClient();
+  let [{ data: chapter }, { data: work }] = await Promise.all([
+    supabase.from("chapters").select("title,state").eq("id", chapterId).eq("work_id", id).maybeSingle(),
+    supabase.from("works").select("title,visibility,state").eq("id", id).maybeSingle(),
+  ]);
+  if (!chapter) chapter = (await supabase.rpc("read_unlisted_chapter", { p_work_id: id, p_chapter_id: chapterId })).data?.[0] ?? null;
+  if (!work) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
+  if (!chapter || !work) return { title: "Chapter not found", robots: { index: false, follow: false } };
+  const hidden = work.visibility !== "public" || work.state !== "published" || chapter.state !== "published" || preview === "draft";
+  const title = `${chapter.title} — ${work.title}`;
+  return { title, description: `Read ${chapter.title} from ${work.title} in Smarties Archive.`, robots: hidden ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title, type: "article", images: ["/images/archive-cover-default.png"] } };
+}
 
 export default async function ChapterPage({ params, searchParams }: { params: Promise<{ id: string; chapterId: string }>; searchParams: Promise<{ preview?: string }> }) {
   const { id, chapterId } = await params;

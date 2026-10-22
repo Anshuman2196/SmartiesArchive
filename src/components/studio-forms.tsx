@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type FormEventHandler, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
@@ -15,17 +15,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 type ServerFormAction = (formData: FormData) => void | Promise<void>;
+type MixedBlock = { type: "prose" | "image" | "chat"; text: string; url?: string; alt?: string };
 
-export function ActionSubmit({ children, className = "pill primary", ariaLabel }: { children: ReactNode; className?: string; ariaLabel?: string }) {
+export function ActionSubmit({ children, className = "pill primary", ariaLabel, pendingLabel = "Saving…" }: { children: ReactNode; className?: string; ariaLabel?: string; pendingLabel?: string }) {
   const { pending } = useFormStatus();
-  return <button className={className} type="submit" disabled={pending} aria-label={ariaLabel}>{pending ? "Saving…" : children}</button>;
+  return <button className={className} type="submit" disabled={pending} aria-label={ariaLabel}>{pending ? pendingLabel : children}</button>;
 }
 
 export function ActionForm({ action, children, className }: { action: ServerFormAction; children: ReactNode; className?: string }) {
   return <form action={action} className={className}>{children}</form>;
 }
 
-function ManagedForm({ action, children, className }: { action: ServerFormAction; children: ReactNode; className?: string }) {
+function ManagedForm({ action, children, className, onSubmit }: { action: ServerFormAction; children: ReactNode; className?: string; onSubmit?: FormEventHandler<HTMLFormElement> }) {
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
   useEffect(() => {
@@ -38,7 +39,7 @@ function ManagedForm({ action, children, className }: { action: ServerFormAction
     try { await action(data); }
     finally { setDirty(false); setPending(false); }
   };
-  return <form className={className} action={submit} onChange={() => setDirty(true)} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
+  return <form className={className} action={submit} onSubmit={onSubmit} onChange={() => setDirty(true)} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
 }
 
 type EditableWork = { id: string; title: string; summary: string; visibility: string; cover_url: string; tags: string[]; content_warnings: string[]; expectedUpdatedAt: string };
@@ -78,9 +79,9 @@ export function WorkMetadataForm({ work, previewCoverUrl }: { work: EditableWork
 const formatHelp: Record<ChapterFormat, string> = {
   prose: "Rich text with headings, literary styles, images, and formatting.",
   image: "Paste one HTTPS image URL. Add descriptive alt text below.",
-  comic: "Add one HTTPS image URL per line. Optionally add | and a panel caption.",
+  comic: "Upload and order manga page images, then add optional captions.",
   chat: "Add one message per line in Speaker: message format.",
-  mixed: 'Paste a JSON array of blocks, for example: [{"type":"prose","text":"..."},{"type":"image","url":"https://…","alt":"…"}].',
+  mixed: "Build a chapter from prose, images, and chat blocks. Add blocks in the order readers should see them.",
   pdf: "Upload one PDF manga file. PDFs stay private and are rendered in the custom reader.",
 };
 
@@ -108,17 +109,33 @@ function PdfAssetPicker({ workId, initialValue }: { workId: string; initialValue
 export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, body, format, mediaAlt, content, isRevision }: { workId: string; chapterId?: string; expectedUpdatedAt?: string; title?: string; body?: string; format?: ChapterFormat; mediaAlt?: string; content?: unknown; isRevision?: boolean }) {
   const [selectedFormat, setSelectedFormat] = useState<ChapterFormat>(format ?? "prose");
   const action = chapterId ? saveChapter : createChapter;
-  const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument } | undefined;
+  const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument; blocks?: Array<{ type: string; text?: string; url?: string; alt?: string; messages?: Array<{ speaker: string; text: string }> }> } | undefined;
+  const [formatError, setFormatError] = useState("");
+  const [mixedBlocks, setMixedBlocks] = useState<MixedBlock[]>(() => raw?.type === "mixed" ? (raw.blocks ?? []).map((block) => ({ type: block.type as MixedBlock["type"], text: block.type === "chat" ? (block.messages ?? []).map((message) => `${message.speaker}: ${message.text}`).join("\n") : block.text ?? "", url: block.url, alt: block.alt })) : [{ type: "prose", text: "" }]);
+  const mixedPayload = mixedBlocks.map((block) => block.type === "prose" ? { type: "prose", text: block.text } : block.type === "image" ? { type: "image", url: block.url ?? "", alt: block.alt ?? "" } : { type: "chat", messages: block.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => { const separator = line.indexOf(":"); return { speaker: line.slice(0, separator).trim(), text: line.slice(separator + 1).trim() }; }) });
+  const validateSpecialFormat: FormEventHandler<HTMLFormElement> = (event) => {
+    setFormatError("");
+    if (selectedFormat === "chat") {
+      const source = new FormData(event.currentTarget).get("content");
+      const badLine = typeof source === "string" ? source.split(/\r?\n/).findIndex((line) => { if (!line.trim()) return false; const separator = line.indexOf(":"); return separator < 1 || !line.slice(0, separator).trim() || !line.slice(separator + 1).trim() || line.slice(0, separator).trim().length > 60 || line.slice(separator + 1).trim().length > 2000; }) : -1;
+      if (badLine >= 0) { event.preventDefault(); setFormatError(`Add a speaker name and colon to line ${badLine + 1}, for example “Mira: hello”. Your text is still here.`); }
+    }
+    if (selectedFormat === "mixed") {
+      const invalid = mixedBlocks.findIndex((block) => block.type === "chat" ? block.text.split(/\r?\n/).some((line) => { if (!line.trim()) return false; const separator = line.indexOf(":"); return separator < 1 || !line.slice(0, separator).trim() || !line.slice(separator + 1).trim(); }) : block.type === "prose" ? !block.text.trim() : (() => { try { return new URL(block.url ?? "").protocol !== "https:"; } catch { return true; } })());
+      if (!mixedBlocks.length || invalid >= 0) { event.preventDefault(); setFormatError(invalid >= 0 ? `Check the content in block ${invalid + 1}. Use non-empty prose, HTTPS image links, and chat lines in Speaker: message format. Your writing is still here.` : "Add at least one content block before saving."); }
+    }
+  };
   const initialDocument = raw?.type === "rich" && raw.document?.type === "doc" ? raw.document : legacyTextToRichDocument(raw?.type === "prose" && typeof raw.text === "string" ? raw.text : body ?? "");
   return <div className="chapter-composer">
     <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{name === "image" ? "Single image" : name === "comic" ? "Manga / comic" : name === "chat" ? "Chat fiction" : name[0].toUpperCase() + name.slice(1)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</FieldDescription></Field></FieldGroup>
-    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form">
+    {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form" onSubmit={validateSpecialFormat}>
       <input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/>
       <FieldGroup>
         <Field><FieldLabel htmlFor={chapterId ? "edit-chapter-title" : "new-chapter-title"}>Chapter title</FieldLabel><Input id={chapterId ? "edit-chapter-title" : "new-chapter-title"} name="title" defaultValue={title} maxLength={120} required/></Field>
         {selectedFormat === "image" && <Field><FieldLabel htmlFor="media-alt">Image description</FieldLabel><Input id="media-alt" name="mediaAlt" defaultValue={mediaAlt} maxLength={300}/></Field>}
-        {selectedFormat === "pdf" ? <PdfAssetPicker workId={workId} initialValue={raw?.type === "pdf" && typeof raw.url === "string" ? raw.url : body ?? ""}/> : selectedFormat === "comic" ? <MangaPanelPicker workId={workId} initialValue={body ?? ""}/> : <Field><FieldLabel htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</FieldLabel><Textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></Field>}
+        {selectedFormat === "pdf" ? <PdfAssetPicker workId={workId} initialValue={raw?.type === "pdf" && typeof raw.url === "string" ? raw.url : body ?? ""}/> : selectedFormat === "comic" ? <MangaPanelPicker workId={workId} initialValue={body ?? ""}/> : selectedFormat === "mixed" ? <div className="mixed-block-builder"><input type="hidden" name="content" value={JSON.stringify(mixedPayload)}/>{mixedBlocks.map((block, index) => <section className="mixed-block-card" key={index}><div><strong>Block {index + 1}</strong><NativeSelect aria-label={`Block ${index + 1} type`} value={block.type} onChange={(event) => setMixedBlocks((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, type: event.target.value as MixedBlock["type"], text: "" } : item))}><NativeSelectOption value="prose">Prose</NativeSelectOption><NativeSelectOption value="image">Image</NativeSelectOption><NativeSelectOption value="chat">Chat</NativeSelectOption></NativeSelect><button type="button" className="text-action" onClick={() => setMixedBlocks((items) => items.filter((_, itemIndex) => itemIndex !== index))} aria-label={`Remove block ${index + 1}`}>Remove</button></div>{block.type === "image" ? <><Input aria-label={`Image URL for block ${index + 1}`} type="url" placeholder="https://…" value={block.url ?? ""} onChange={(event) => setMixedBlocks((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, url: event.target.value } : item))}/><Input aria-label={`Image description for block ${index + 1}`} placeholder="Image description" value={block.alt ?? ""} onChange={(event) => setMixedBlocks((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, alt: event.target.value } : item))}/></> : <Textarea aria-label={block.type === "chat" ? `Chat messages for block ${index + 1}` : `Prose for block ${index + 1}`} placeholder={block.type === "chat" ? "Speaker: message" : "Write this section…"} value={block.text} onChange={(event) => setMixedBlocks((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}/>}</section>)}<button type="button" className="pill" onClick={() => setMixedBlocks((items) => [...items, { type: "prose", text: "" }])}>Add content block</button></div> : <Field><FieldLabel htmlFor={chapterId ? "edit-chapter-content" : "new-chapter-content"}>Chapter content</FieldLabel><Textarea id={chapterId ? "edit-chapter-content" : "new-chapter-content"} name="content" defaultValue={body} required maxLength={100000} className="chapter-source" placeholder="Add chapter content…"/></Field>}
       </FieldGroup>
+      {formatError && <p className="notice auth-error" role="alert">{formatError}</p>}
       {isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}
       <ActionSubmit>{chapterId ? isRevision ? "Save revision draft" : "Save chapter draft" : "Create chapter draft"}</ActionSubmit>
     </ManagedForm>}

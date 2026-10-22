@@ -12,7 +12,7 @@ type WorkRow = {
   content_warnings: string[];
   profiles: { username: string; display_name: string } | null;
 };
-type ChapterRow = { id: string; title: string };
+type ChapterRow = { id: string; title: string; work_id: string; position: number; state: string };
 
 export type ShelfItem = {
   id: string;
@@ -27,6 +27,7 @@ export type ShelfItem = {
   progressUpdatedAt: string | null;
   chapterTitle: string | null;
   chapterId: string | null;
+  finished?: boolean;
 };
 
 export type ShelfData =
@@ -55,8 +56,8 @@ export function classifyShelfItems(items: ShelfItem[]): Extract<ShelfData, { sta
 
   for (const item of items) {
     if (item.bookmarkCreatedAt) shelf.bookmarked.push(item);
-    if (item.progress !== null && item.progress > 0 && item.progress < 1) shelf.currentlyReading.push(item);
-    if (item.progress !== null && item.progress >= 1) shelf.recentlyFinished.push(item);
+    if (item.progress !== null && item.progress > 0 && !(item.finished ?? item.progress >= 1)) shelf.currentlyReading.push(item);
+    if (item.progress !== null && (item.finished ?? item.progress >= 1)) shelf.recentlyFinished.push(item);
   }
 
   shelf.bookmarked.sort((left, right) => byNewest(left.bookmarkCreatedAt, right.bookmarkCreatedAt));
@@ -85,12 +86,14 @@ export async function getShelf(): Promise<ShelfData> {
     const chapterIds = [...new Set(progress.map((row) => row.chapter_id))];
     const [{ data: workRows, error: workError }, { data: chapterRows, error: chapterError }] = await Promise.all([
       supabase.from("works").select("id,title,summary,cover_url,tags,content_warnings,profiles(username,display_name)").in("id", workIds),
-      chapterIds.length ? supabase.from("chapters").select("id,title").in("id", chapterIds) : Promise.resolve({ data: [] as ChapterRow[], error: null }),
+      chapterIds.length ? supabase.from("chapters").select("id,title,work_id,position,state").in("work_id", workIds).eq("state", "published").order("position") : Promise.resolve({ data: [] as ChapterRow[], error: null }),
     ]);
     if (workError || chapterError) return { status: "unavailable" };
 
     const works = (workRows ?? []) as unknown as WorkRow[];
     const chapters = new Map((chapterRows ?? []).map((chapter) => [chapter.id, chapter.title]));
+    const lastChapterByWork = new Map<string, string>();
+    for (const chapter of chapterRows ?? []) lastChapterByWork.set(chapter.work_id, chapter.id);
     const bookmarkByWork = new Map(bookmarks.map((bookmark) => [bookmark.work_id, bookmark.created_at]));
     const progressByWork = new Map(progress.map((entry) => [entry.work_id, entry]));
     const coverUrls = await signStoryMediaUrls(supabase, works.map((work) => work.cover_url));
@@ -109,6 +112,7 @@ export async function getShelf(): Promise<ShelfData> {
         progressUpdatedAt: savedProgress?.updated_at ?? null,
         chapterTitle: savedProgress ? chapters.get(savedProgress.chapter_id) ?? null : null,
         chapterId: savedProgress?.chapter_id ?? null,
+        finished: !!savedProgress && savedProgress.progress >= 0.95 && lastChapterByWork.get(work.id) === savedProgress.chapter_id,
       };
     });
 

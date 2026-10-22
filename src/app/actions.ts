@@ -10,6 +10,7 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
 import { storyMediaExtension, validStoryImageHeader, validStoryPdfHeader } from "@/lib/image-validation";
+import { persistReadingProgress } from "@/lib/reading-progress";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const siteOrigin = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -177,7 +178,7 @@ export async function saveWorkMetadata(form: FormData) {
     await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
     revalidatePath(`/studio/${workId}`);
     revalidatePath(`/work/${workId}`);
-    redirect(`/studio/${workId}?status=metadata_draft`);
+    redirect(`/studio/${workId}?view=details&status=metadata_draft`);
   }
   const { data, error } = await supabase.from("works").update(fields).eq("id", workId).eq("author_id", user.id).eq("updated_at", value(form, "expectedUpdatedAt")).select("id").maybeSingle();
   if (error || !data) redirect(`/studio/${workId}?status=conflict`);
@@ -186,7 +187,7 @@ export async function saveWorkMetadata(form: FormData) {
   revalidatePath(`/studio/${workId}`);
   revalidatePath(`/work/${workId}`);
   revalidatePath("/library");
-  redirect(`/studio/${workId}?status=metadata_saved`);
+  redirect(`/studio/${workId}?view=details&status=metadata_saved`);
 }
 
 export async function publishWork(form: FormData) {
@@ -295,6 +296,17 @@ export async function unpublishChapter(form: FormData) {
   redirect(`/studio/${workId}?status=chapter_unpublished`);
 }
 
+export async function discardChapterRevision(form: FormData) {
+  const workId = value(form, "workId"), chapterId = value(form, "chapterId");
+  if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
+  const { supabase, user } = await requireOwnedWork(workId);
+  const { data, error } = await supabase.from("chapter_drafts").delete().eq("work_id", workId).eq("chapter_id", chapterId).select("chapter_id").maybeSingle();
+  if (error || !data) redirect(`/studio/${workId}?status=save_error`);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
+  revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
+  redirect(`/studio/${workId}?status=revision_discarded`);
+}
+
 export async function deleteChapter(form: FormData) {
   const workId = value(form, "workId"), chapterId = value(form, "chapterId");
   const draftOnly = value(form, "draftOnly") === "1";
@@ -316,12 +328,20 @@ export async function duplicateChapter(form: FormData) {
   const workId = value(form, "workId"), chapterId = value(form, "chapterId");
   if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
   const { supabase } = await requireOwnedWork(workId);
-  const { data: source } = await supabase.from("chapters").select("id,title,body,format,content").eq("id", chapterId).eq("work_id", workId).maybeSingle();
+  const { data: source } = await supabase.from("chapters").select("id,title,body,format,content,position").eq("id", chapterId).eq("work_id", workId).maybeSingle();
   if (!source) redirect(`/studio/${workId}?status=not_found`);
   const { data: draft } = await supabase.from("chapter_drafts").select("title,body,format,content").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
   const selected = draft ?? source;
-  const { error } = await supabase.from("chapters").insert({ work_id: workId, title: `${selected.title.slice(0, 113)} (copy)`, body: selected.body, format: selected.format, content: selected.content, state: "draft" });
-  if (error) redirect(`/studio/${workId}?status=save_error`);
+  const { data: copy, error } = await supabase.from("chapters").insert({ work_id: workId, title: `${selected.title.slice(0, 113)} (copy)`, body: selected.body, format: selected.format, content: selected.content, state: "draft" }).select("id").single();
+  if (error || !copy) redirect(`/studio/${workId}?status=save_error`);
+  const { data: chapters } = await supabase.from("chapters").select("id").eq("work_id", workId).order("position");
+  if (chapters) {
+    const order = chapters.map((chapter) => chapter.id).filter((id) => id !== copy.id);
+    const sourceIndex = order.indexOf(chapterId);
+    order.splice(sourceIndex < 0 ? order.length : sourceIndex + 1, 0, copy.id);
+    const { error: reorderError } = await supabase.rpc("reorder_chapters", { p_work_id: workId, p_chapter_ids: order });
+    if (reorderError) console.warn("[studio-duplicate] inserted chapter could not be moved after its source", { code: reorderError.code ?? "unknown" });
+  }
   revalidatePath(`/studio/${workId}`);
   redirect(`/studio/${workId}?status=chapter_duplicated`);
 }
@@ -364,9 +384,9 @@ export async function saveReadingProgress(workId: string, chapterId: string, pro
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-    const { error } = await supabase.from("reading_progress").upsert({ user_id: user.id, work_id: workId, chapter_id: chapterId, progress }, { onConflict: "user_id,work_id" });
-    if (!error) revalidatePath("/shelf");
-    return !error;
+    const saved = await persistReadingProgress(supabase, user.id, workId, chapterId, progress);
+    if (saved) revalidatePath("/shelf");
+    return saved;
   } catch { return false; }
 }
 
@@ -528,6 +548,9 @@ export async function saveChapterReview(_previous: ReviewActionState, form: Form
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { kind: "error", message: "Sign in to leave a review." };
+    const { data: work, error: workError } = await supabase.from("works").select("author_id").eq("id", parsed.data.workId).maybeSingle();
+    if (workError || !work) return { kind: "error", message: "This chapter is not available for reviews right now." };
+    if (work?.author_id === user.id) return { kind: "error", message: "Authors cannot rate or review their own story." };
     const { error } = await supabase.from("chapter_reviews").upsert({
       work_id: parsed.data.workId,
       chapter_id: parsed.data.chapterId,
