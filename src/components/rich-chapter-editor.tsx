@@ -152,6 +152,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const titleRef = useRef(initialTitle);
   const revisionRef = useRef(0);
   const busy = useRef(false);
+  const createdChapterRoutePending = useRef(false);
   const shortcutCallbacksRef = useRef<EditorShortcutCallbacks>({});
   const editorRootRef = useRef<HTMLElement>(null);
   const formatToggleRef = useRef<HTMLButtonElement>(null);
@@ -215,11 +216,18 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     if (!result.ok) { setSaveError(result.message ?? "Draft could not be saved. Your writing is still here. Retry when ready."); setStatus("Not saved"); return false; }
     if (result.chapterId) {
       setChapterId(result.chapterId);
-      if (!chapterId && typeof window !== "undefined") window.history.replaceState(window.history.state, "", `/studio/${workId}?chapter=${result.chapterId}`);
+      if (!chapterId) createdChapterRoutePending.current = true;
     }
     if (result.updatedAt) setUpdatedAt(result.updatedAt);
     setSaveError("");
-    if (revision === revisionRef.current) { setDirty(false); setStatus("Saved"); return true; }
+    if (revision === revisionRef.current) {
+      const savedChapterId = result.chapterId ?? chapterId;
+      if (createdChapterRoutePending.current && savedChapterId && typeof window !== "undefined") {
+        window.history.replaceState(window.history.state, "", `/studio/${workId}?chapter=${savedChapterId}`);
+        createdChapterRoutePending.current = false;
+      }
+      setDirty(false); setStatus("Saved"); return true;
+    }
     setStatus("Unsaved changes");
     setSaveFinished((value) => value + 1);
     return false;
