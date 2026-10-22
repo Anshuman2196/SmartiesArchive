@@ -28,8 +28,8 @@ export function ChapterActionsMenu({ workId, chapterId, title, state, hasDraft, 
 
   return <>
     <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button variant="outline" size="icon" aria-label={`Actions for ${title}`} disabled={pending}><MoreHorizontal/></Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end"><DropdownMenuGroup>
+      <DropdownMenuTrigger asChild><Button className="studio-chapter-actions-trigger" variant="outline" size="icon" aria-label={`Actions for ${title}`} disabled={pending}><MoreHorizontal/></Button></DropdownMenuTrigger>
+      <DropdownMenuContent className="studio-chapter-actions-menu" align="end"><DropdownMenuGroup>
         <DropdownMenuItem disabled={pending || index === 0} onSelect={() => run(reorderChapter, "up")}>Move up</DropdownMenuItem>
         <DropdownMenuItem disabled={pending || index === count - 1} onSelect={() => run(reorderChapter, "down")}>Move down</DropdownMenuItem>
         {state === "published" && !hasDraft ? <DropdownMenuItem disabled={pending} onSelect={() => setConfirmAction("unpublish")}>Unpublish</DropdownMenuItem> : <DropdownMenuItem disabled={pending} onSelect={() => run(publishChapter)}>{state === "published" ? "Publish revision" : "Publish"}</DropdownMenuItem>}
