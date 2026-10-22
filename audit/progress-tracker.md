@@ -1,5 +1,21 @@
 # Smarties Archive Progress Tracker
 
+## 2026-10-23 light follow-up
+
+- [x] Reader audit wishlist: library tags now allow multiple selections. Repeated `tag` URL parameters are deduplicated case-insensitively, matched together, preserved in pagination and story-card links, and removable one at a time.
+- [x] Corrected a missing comma in the shared CSS selector for library active-filter controls; the intended alignment rule now applies.
+- [x] Focused library filter checks, TypeScript typecheck, ESLint on changed source files, and `git diff --check` pass. The local development server is listening again on port 3000.
+- [x] Browser pass (signed out, Chrome on `localhost:3000`, 1536px desktop plus 320/390/820/1100/1280px same-origin frames): home, library, filters, story page, content-notes gate, chapter reader, reading settings, shelf, and sign-in. No horizontal overflow at 320 or 390px.
+- [x] Display headings no longer split words mid-letter (“SOMETHIN-G”, library card “NOOSPH-ERE”, “RECORDIN-G”) and keep visible word gaps under tight tracking (“KEEPYOUR”, “ISOPEN”). Library card titles now take their intended size; a global `.section h2` rule had overridden them.
+- [x] Library filters apply client-side without jumping to the top or losing focus; empty parameters stay out of the URL, and chips/Clear all resync the checkboxes. Tag overflow reads “+N more”, matching content notes; the results header labels no longer wrap word-by-word at 320px.
+- [x] Content-notes gate: removed the empty band above the card (margin collapse through `<main>`), sized its heading as a heading, and restored list bullets.
+- [x] Reader: the sticky contents rail now sits below the sticky reader bar instead of clipping its first item; the reading-settings header keeps Reset/Close beside the title, and group legends are distinct from field labels. Fixed the Sans typeface preference reverting to serif on reload.
+- [x] Story page: chapter rows no longer repeat “Chapter” as metadata; readers see “Story” instead of “Public” in the eyebrow (owners still see visibility).
+- [x] Signed-out shelf intro now groups its text like the signed-in version (the button no longer sits in a flex row with the heading) and uses the shared uppercase display heading.
+- [x] Reader audit: moved the theme palette out of the desktop main nav into the site footer; the mobile menu keeps it.
+- [ ] Creator Studio and other signed-in flows were not browser-checked in this pass (no session in the browser; credentials are not entered by the assistant).
+- [ ] Hosted SmartiesArchive migrations and media/progress checks remain open as listed below. The future roadmap items under “Later, only if the group asks for it” are separate product work, not unresolved defects from the 2026-10-22 audit.
+
 ## 2026-10-22 audit remediation (active)
 
 Scope: resolve the reported reader, writer, consistency, accessibility, and robustness issues in `audit/*-2026-10-22.md` and the prior audit. Track each finding here as it is verified against code and fixed. P0/P1 data-loss and core reading/publishing issues are first, followed by P2 and P3 polish. Browser-only findings remain marked for manual confirmation unless the supplied screenshots or code provide enough evidence.

@@ -12,7 +12,7 @@ export function normalizeReaderPreferences(value: unknown): ReaderPreferences {
   const candidate = typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
   return {
     theme: candidate.theme === "light" || candidate.theme === "sepia" ? candidate.theme : "dark",
-    font: candidate.font === "serif" ? "serif" : defaultReaderPreferences.font,
+    font: candidate.font === "sans" || candidate.font === "serif" ? candidate.font : defaultReaderPreferences.font,
     size: bounded(candidate.size, defaultReaderPreferences.size, 16, 28),
     leading: bounded(candidate.leading, defaultReaderPreferences.leading, 1.4, 2.2, 1),
     spacing: bounded(candidate.spacing, defaultReaderPreferences.spacing, 0.5, 2.5, 1),

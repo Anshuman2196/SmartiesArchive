@@ -128,7 +128,7 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .editor-back-link,.editor-format-toggle,.editor-overflow>button[aria-label="More chapter actions"],.editor-overflow summary,.editor-selection-toolbar .editor-tool-button,.media-picker-grid button,.emoji-categories button,.emoji-grid button,.theme-swatch,.library-active-filters .tag a,.reader-spoiler{min-width:44px;min-height:44px}
 .reader-tools select,.reader-tools input[type="range"],.theme-swatch{min-height:var(--control-height)}
-.editor-control-group .editor-tool-button,.editor-overflow-menu .editor-tool-button,.editor-overflow-menu .editor-top-action
+.editor-control-group .editor-tool-button,.editor-overflow-menu .editor-tool-button,.editor-overflow-menu .editor-top-action,
 .library-active-filters .tag a{align-items:center;justify-content:center}
 .editor-loading{max-width:790px;min-height:60vh;margin:0 auto;padding:24px 0;color:var(--muted)}
 @media(max-width:600px){
@@ -157,3 +157,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .studio-chapter-workspace{display:grid;grid-template-columns:minmax(230px,.38fr) minmax(0,1fr);align-items:start;gap:24px;margin-top:24px}.studio-chapter-list{position:sticky;top:90px;max-height:calc(100vh - 110px);overflow:auto;margin-top:0}.studio-chapter-list .managed-list{margin-top:0}.studio-chapter-list .managed-list li{grid-template-columns:28px minmax(0,1fr);padding:12px 2px}.studio-chapter-list .chapter-row-actions{gap:6px}.studio-chapter-list .chapter-row-actions button,.studio-chapter-list .chapter-row-actions a{min-height:44px}.studio-chapter-editor{min-width:0}.studio-chapter-editor>.chapter-editor-panel{margin-top:0}
 @media(max-width:900px){.studio-chapter-workspace{grid-template-columns:minmax(0,1fr)}.studio-chapter-list{position:static;max-height:none;overflow:visible}}
 .chapter-format-history{display:grid;gap:10px;max-width:760px;margin:0 0 20px;padding:14px;border:1px solid var(--line);background:var(--panel)}.chapter-format-history-list{display:flex;gap:8px;flex-wrap:wrap}.chapter-format-history-list form{margin:0}.chapter-format-history-list button{min-height:44px}
+.library-tag-options{grid-column:1/-1;min-width:0;margin:0;padding:0;border:0}.library-tag-options legend{margin-bottom:8px;color:var(--cream);font-size:12px;font-weight:700}.library-tag-options>div{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow-y:auto}.library-tag-options label{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:7px 12px;border:1px solid var(--field-border);border-radius:var(--control-radius);background:var(--ink);color:var(--cream);font-size:12px;cursor:pointer}.library-tag-options label:has(input:checked){border-color:var(--lime);color:var(--lime)}.library-tag-options input{width:16px;height:16px;accent-color:var(--lime)}
+
+/* Display headings: never split words mid-letter, and keep word gaps visible under tight tracking. */
+.shell :is(h1,h2,h3){overflow-wrap:break-word}:is(h1,h2,h3){word-spacing:.12em}.cinema-community{grid-template-columns:minmax(380px,.9fr) minmax(0,1.1fr)}.cinema-community h2{font-size:clamp(36px,3.6vw,54px)}
+.library-results-heading{flex-wrap:wrap;row-gap:4px}.library-results-heading>*{white-space:nowrap}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
+.footer .palette-select-label select{width:auto;max-width:none}

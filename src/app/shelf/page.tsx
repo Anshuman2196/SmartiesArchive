@@ -47,7 +47,7 @@ function ShelfSection({ id, title, description, items, section, emptyMessage }: 
 export default async function ShelfPage() {
   const shelf = await getShelf();
 
-  if (shelf.status === "unauthenticated") return <main id="main-content" tabIndex={-1} className={`shell section ${styles.page}`}><div className={styles.intro}><span className="eyebrow">Your private shelf</span><h1 className="serif">Keep stories close.</h1><p>Sign in to collect bookmarks and pick up where you left off.</p><Link className="pill primary" href="/auth?mode=login&next=%2Fshelf">Sign in to view your shelf</Link></div></main>;
+  if (shelf.status === "unauthenticated") return <main id="main-content" tabIndex={-1} className={`shell section ${styles.page}`}><div className={styles.intro}><div><span className="eyebrow">Your private shelf</span><h1 className="serif">Keep stories close.</h1><p>Sign in to collect bookmarks and pick up where you left off.</p></div><Link className="pill primary" href="/auth?mode=login&next=%2Fshelf">Sign in to view your shelf</Link></div></main>;
   if (shelf.status === "unavailable") return <main id="main-content" tabIndex={-1} className={`shell section ${styles.page}`}><div className={styles.intro}><span className="eyebrow">Your private shelf</span><h1 className="serif">Your shelf is taking a moment.</h1><p className="notice">We could not load your saved stories right now. Please try again in a moment.</p><Link className="pill" href="/shelf">Try again</Link></div></main>;
 
   return <main id="main-content" tabIndex={-1} className={`shell section ${styles.page}`}>

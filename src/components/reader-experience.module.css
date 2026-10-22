@@ -1,4 +1,5 @@
 .readerPage {
+  display: flow-root;
   overflow-x: clip;
 }
 
@@ -13,10 +14,13 @@
 
 .warningGate h1 {
   margin: var(--space-3) 0;
+  font-size: clamp(26px, 3vw, 34px);
+  line-height: 1.15;
 }
 
 .warningGate ul {
   display: grid;
+  list-style: disc;
   gap: var(--space-2);
   margin: var(--space-6) 0;
   padding-left: 22px;
@@ -174,6 +178,12 @@
   min-width: 0;
 }
 
+/* Keep the sticky contents rail below both the site header (70px) and the sticky reader bar (62px). */
+.readerPage .readerToc {
+  top: 148px;
+  max-height: calc(100vh - 168px);
+}
+
 .tocHeader {
   display: flex;
   align-items: center;
@@ -224,6 +234,7 @@
 
 .preferenceHeader {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
@@ -279,10 +290,10 @@
 }
 
 .preferencesDialog .preferenceGroup legend {
-  margin-bottom: 1px;
+  margin-bottom: 10px;
   padding: 0;
-  color: var(--page-muted);
-  font: 12px var(--font-ui);
+  color: var(--page-ink);
+  font: 700 12px var(--font-ui);
   letter-spacing: .7px;
   text-transform: uppercase;
 }
@@ -296,6 +307,7 @@
   color: var(--page-muted);
   font: 12px var(--font-ui);
   letter-spacing: .25px;
+  text-transform: none;
 }
 
 .preferencesDialog .preferenceGroup label select,
