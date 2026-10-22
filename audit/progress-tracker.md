@@ -37,7 +37,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | --- | --- | --- |
 | B-01–B-04, B-09, B-12–B-15, B-19, B-24–B-25 | `[x]` | Improve reader defaults and theme contrast, sticky progress/toolbars, settings overlap behavior, saved-status width, guest privacy, owner resume/bookmark, shared theme scope, and reading-width alignment. |
 | B-05–B-08 | `[~]` | Story-level completion and shared progress persistence now update timestamps and retain the furthest chapter. Needs live reader/shelf verification. |
-| B-16–B-17, B-20, B-23–B-30, B-32 | `[~]` | Loading/metadata, dialog naming, mobile contents, theme scope, numbering, serif heading styling, copy/share, keyboard navigation, library density, and author-review suppression received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
+| B-16–B-17, B-20, B-23–B-30, B-32 | `[~]` | Loading/metadata, persistent story/author context, image zoom/fullscreen, dialog naming, mobile contents, theme scope, numbering, serif heading styling, copy/share, keyboard navigation, library density, and author-review suppression received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
 | B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
 | B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
 
@@ -69,9 +69,9 @@ These requests are now explicitly included in the plan:
 | --- | --- | --- |
 | Keyboard shortcuts for formatting | `[x]` Centralized platform-aware shortcut map and help dialog are implemented | Keep expanding only if a new formatting command needs coverage |
 | Text formatting | `[x]` Rich editor already supports headings, marks, lists, alignment, typography, literary treatments, spoilers, and more | Polish discoverability and shortcut coverage |
-| Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, and alignment already exist | Improve image insertion UX and add zoom/fullscreen in the reader |
+| Images between text | `[x]` Inline image blocks with upload, captions, alt text, width, and alignment already exist | Reader images and manga panels open in an accessible zoom/fullscreen viewer |
 | PDF support for manga | `[~]` PDF chapter format, private upload validation, signed media, custom PDF.js reader, and page controls are implemented | Apply the migration and verify with a real PDF in the configured Supabase project |
-| Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, and removal are implemented on the existing comic model | Add reader zoom/fullscreen polish later if needed |
+| Image-only manga | `[x]` Batch image upload, ordering, alt text, captions, removal, and reader zoom/fullscreen are implemented on the existing comic model | Continue polish only if new reader feedback identifies a gap |
 | UI fixes | `[x]` Mobile navigation, skip link, touch targets, focus states, wrapping, and password error associations are implemented | Continue visual polish only after real-device checks |
 | Reviews and ratings | `[x]` Chapter-level rating/review flow is implemented with one review per member per chapter | Migration, RLS, authenticated create/update/delete actions, chapter review UI, and story-page summaries are covered; run the database test in the configured Supabase environment |
 | Tags and library filters | `[x]` URL-driven tag, warning, sort, and clear-filter controls are implemented | Keep the simple array-backed model |
@@ -321,8 +321,8 @@ Cover only the flows that matter to this group:
 
 ## Next UI work
 
-- [ ] Add persistent story title/author context to the chapter reader
-- [ ] Add image zoom/fullscreen for comics and inline illustrations
+- [x] Add persistent story title/author context to the chapter reader
+- [x] Add image zoom/fullscreen for comics and inline illustrations
 - [ ] Run real-device checks at 320px, 375px, and 768px widths
 - [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
 
