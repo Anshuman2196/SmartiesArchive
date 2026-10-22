@@ -98,7 +98,7 @@ These requests are now explicitly included in the plan:
 - [x] Conflict checks using updated timestamps
 - [x] Private story-media uploads with signed URLs
 - [~] Replaced/deleted media is not automatically cleaned up
-- [ ] Optional publish checklist for missing cover, warnings, or incomplete chapters
+- [x] Optional publish checklist for missing cover, warnings, or incomplete chapters
 
 ### Writing and content formats
 
@@ -122,13 +122,13 @@ These requests are now explicitly included in the plan:
 - [x] Guest progress in local storage
 - [x] Authenticated reading progress in Supabase
 - [x] Story bookmarks in Supabase
-- [~] Progress save is debounced and can be lost during navigation
-- [~] Warnings are shown on story details but not enforced on direct chapter links
-- [~] Bookmarking has no shelf or bookmarks page
-- [ ] Chapter completion state and “continue” action
-- [ ] Reader action bar for contents, bookmark, share, settings, and story details
-- [ ] Story title and author context in the chapter reader
-- [ ] Image zoom/fullscreen for comics and illustrations
+- [~] Progress save is debounced and flushes on page hide, tab hide, and reader navigation; real browser/network-loss verification remains
+- [x] Content warnings are enforced on direct chapter links before reader content is sent to the client
+- [x] Bookmarking and reading progress appear on the personal shelf
+- [x] Chapter completion state and “continue” action
+- [x] Reader action bar for contents, bookmark, share, settings, and story details
+- [x] Story title and author context in the chapter reader
+- [x] Image zoom/fullscreen for comics and illustrations
 
 ### Library and discovery
 
