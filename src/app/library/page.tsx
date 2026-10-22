@@ -140,7 +140,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       <Link className="text-action" href="/library">Clear all</Link>
     </div>}
 
-    {!configured && <p className="notice">Connect your Supabase project to open the shelves.</p>}
+    {!configured && <p className="notice" role="status">The library is temporarily unavailable. Please try again in a moment.</p>}
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
