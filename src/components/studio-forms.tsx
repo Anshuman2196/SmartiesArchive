@@ -43,10 +43,43 @@ function ManagedForm({ action, children, className, onSubmit }: { action: Server
     try { await action(data); }
     finally { setDirty(false); setPending(false); }
   };
-  return <form className={className} action={submit} onSubmit={onSubmit} onChange={() => setDirty(true)} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
+  return <form className={className} action={submit} onSubmit={onSubmit} onChange={() => setDirty(true)} onClick={(event) => { if (event.target instanceof Element && event.target.closest(".chip-remove")) setDirty(true); }} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
 }
 
 type EditableWork = { id: string; title: string; summary: string; visibility: string; cover_url: string; tags: string[]; content_warnings: string[]; expectedUpdatedAt: string };
+
+function ChipField({ name, label, description, initialValues, placeholder, maxItems, maxLength }: { name: string; label: string; description: string; initialValues: string[]; placeholder: string; maxItems: number; maxLength: number }) {
+  const [items, setItems] = useState(() => initialValues.map((item) => item.trim()).filter(Boolean).slice(0, maxItems));
+  const [entry, setEntry] = useState("");
+  const [message, setMessage] = useState("");
+  const add = (raw: string) => {
+    const candidates = raw.split(",").map((item) => item.trim()).filter(Boolean);
+    if (!candidates.length) return;
+    const next = [...items];
+    let warning = "";
+    for (const candidate of candidates) {
+      if (candidate.length > maxLength) { warning = `Each ${label.toLowerCase().replace(/s$/, "")} must be ${maxLength} characters or fewer.`; continue; }
+      if (next.some((item) => item.toLocaleLowerCase() === candidate.toLocaleLowerCase())) continue;
+      if (next.length >= maxItems) { warning = `Add up to ${maxItems} ${label.toLowerCase()}.`; break; }
+      next.push(candidate);
+    }
+    setItems(next);
+    setMessage(warning);
+    setEntry("");
+  };
+  return <div className="field chip-field">
+    <label htmlFor={`${name}-entry`}>{label}</label>
+    <input type="hidden" name={name} value={items.join(", ")}/>
+    <div className="chip-entry-wrap">
+      <div className="chip-list" aria-label={`${label} added`}>
+        {items.map((item, index) => <span className="studio-chip" key={`${item}-${index}`}>{item}<button type="button" className="chip-remove" aria-label={`Remove ${item}`} onClick={() => { setItems((values) => values.filter((_, itemIndex) => itemIndex !== index)); setMessage(""); }}>×</button></span>)}
+        <input id={`${name}-entry`} className="chip-entry" value={entry} maxLength={maxLength} placeholder={items.length ? "Add another…" : placeholder} aria-describedby={`${name}-description${message ? ` ${name}-message` : ""}`} onChange={(event) => { setEntry(event.target.value); setMessage(""); if (event.target.value.includes(",")) add(event.target.value); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === ",") { event.preventDefault(); add(entry); } else if (event.key === "Backspace" && !entry && items.length) setItems((values) => values.slice(0, -1)); }} onBlur={() => { if (entry.trim()) add(entry); }}/>
+      </div>
+    </div>
+    <p id={`${name}-description`} className="field-hint">{description} Press Enter or comma after each item. {items.length}/{maxItems} added.</p>
+    {message && <p id={`${name}-message`} className="field-error" role="status">{message}</p>}
+  </div>;
+}
 
 function CoverAssetPicker({ workId, initialValue, initialPreview }: { workId: string; initialValue: string; initialPreview?: string }) {
   const [value, setValue] = useState(initialValue);
@@ -72,8 +105,8 @@ export function WorkMetadataForm({ work, previewCoverUrl }: { work: EditableWork
       <Field><FieldLabel htmlFor="edit-work-title">Title</FieldLabel><Input id="edit-work-title" name="title" defaultValue={work.title} required maxLength={120}/></Field>
       <Field><FieldLabel htmlFor="edit-work-summary">Synopsis</FieldLabel><Textarea id="edit-work-summary" name="summary" defaultValue={work.summary} maxLength={2000}/></Field>
       <Field><FieldTitle>Cover image</FieldTitle><CoverAssetPicker workId={work.id} initialValue={work.cover_url} initialPreview={previewCoverUrl}/></Field>
-      <Field><FieldLabel htmlFor="edit-work-tags">Tags</FieldLabel><Input id="edit-work-tags" name="tags" defaultValue={work.tags.join(", ")} placeholder="fantasy, found family"/><FieldDescription>Separate up to 20 tags with commas.</FieldDescription></Field>
-      <Field><FieldLabel htmlFor="edit-work-warnings">Content warnings</FieldLabel><Input id="edit-work-warnings" name="contentWarnings" defaultValue={work.content_warnings.join(", ")} placeholder="violence, grief"/><FieldDescription>Separate up to 20 notes with commas.</FieldDescription></Field>
+      <ChipField name="tags" label="Tags" initialValues={work.tags} placeholder="fantasy" maxItems={20} maxLength={32} description="Use short, consistent tags to help readers find your story."/>
+      <ChipField name="contentWarnings" label="Content warnings" initialValues={work.content_warnings} placeholder="violence" maxItems={20} maxLength={80} description="Add the story-level content warnings readers should know about."/>
       <Field><FieldLabel htmlFor="edit-work-visibility">Visibility</FieldLabel><NativeSelect id="edit-work-visibility" name="visibility" defaultValue={work.visibility}><NativeSelectOption value="public">Public — listed in library</NativeSelectOption><NativeSelectOption value="unlisted">Shared by link — not listed in the library</NativeSelectOption><NativeSelectOption value="private">Private — only you</NativeSelectOption></NativeSelect></Field>
     </FieldGroup>
     <ActionSubmit>Save story details</ActionSubmit>
