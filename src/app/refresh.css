@@ -128,6 +128,7 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 .editor-back-link,.editor-format-toggle,.editor-overflow>button[aria-label="More chapter actions"],.editor-overflow summary,.editor-selection-toolbar .editor-tool-button,.media-picker-grid button,.emoji-categories button,.emoji-grid button,.theme-swatch,.library-active-filters .tag a,.reader-spoiler{min-width:44px;min-height:44px}
 .reader-tools select,.reader-tools input[type="range"],.theme-swatch{min-height:var(--control-height)}
+.editor-control-group .editor-tool-button,.editor-overflow-menu .editor-tool-button,.editor-overflow-menu .editor-top-action,.editor-overflow-menu .editor-publish-form button{min-height:var(--control-height)}
 .library-active-filters .tag a{align-items:center;justify-content:center}
 .editor-loading{max-width:790px;min-height:60vh;margin:0 auto;padding:24px 0;color:var(--muted)}
 @media(max-width:600px){
