@@ -33,3 +33,31 @@ html,body{background:var(--ink)}body{font-family:var(--font-ui)}.serif{font-fami
 @media(max-width:680px){.studio-index-page .section-head{align-items:flex-start}.studio-index-page .studio-work-item{grid-template-columns:1fr;gap:0;padding-bottom:20px}.studio-index-page .studio-work-item .studio-work-row{padding-bottom:14px}.studio-index-page .studio-work-row{grid-template-columns:1fr;gap:0}.studio-index-page .studio-work-row h3{margin-top:10px}.studio-index-page .studio-work-row p{grid-column:1}.studio-chapter-heading{align-items:flex-start;flex-direction:column}.studio-workspace .managed-list li{grid-template-columns:26px minmax(0,1fr) auto;gap:10px}.studio-workspace .chapter-row-actions{grid-column:3}.studio-workspace .chapter-row-actions [data-slot=button][data-variant=ghost]{display:none}}
 .studio-publish-status{display:flex;align-items:flex-start;flex-direction:column;gap:12px;margin:12px 0 18px}.studio-publish-status>[data-slot=alert]{max-width:620px}.studio-publish-dialog{max-width:min(680px,calc(100vw - 32px));max-height:min(80vh,720px);overflow:auto}
 .chapter-composer>[data-slot=field-group]{max-width:620px;margin:0 0 25px}.chapter-composer>.studio-edit-form [data-slot=field-group]{gap:22px}.chapter-composer>.studio-edit-form [data-slot=field-group]+button{margin-top:24px}
+
+/* Actions follow the square cinema control language across public and studio pages. */
+[data-slot="button"],.danger-button,.icon-action,.mobile-nav-toggle,.chapter-more>summary,.editor-tool-button,.editor-top-action,.editor-sidebar-tabs button,.editor-sidebar-close,.editor-popover-head button,.editor-save-error button{border-radius:0}
+.danger-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;font-size:13px;font-weight:700;white-space:nowrap}
+.studio-back-link{display:inline-flex;align-items:center;min-height:32px}
+.studio-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:26px}
+.studio-head-copy{min-width:0}
+.studio-head h1{overflow-wrap:anywhere}
+.studio-head .muted{margin-bottom:0}
+.studio-top-actions{width:auto;flex:0 0 auto;justify-content:flex-end;gap:10px}
+.studio-top-actions form{margin:0}
+.studio-top-actions .pill,.studio-top-actions .danger-button{min-height:44px}
+.studio-workspace .chapter-row-actions{justify-content:flex-end;gap:8px}
+.studio-workspace .chapter-row-actions .danger-button{min-height:36px;padding:7px 10px;font-size:12px}
+.studio-workspace .chapter-row-actions [data-slot="button"]{font-size:12px}
+.studio-workspace .chapter-edit-links [data-slot="button"]{min-height:44px}
+@media(max-width:760px){
+  .studio-head{align-items:stretch;flex-direction:column;gap:20px}
+  .studio-top-actions{justify-content:flex-start;flex-wrap:wrap}
+  .studio-index-page .section-head{flex-wrap:wrap}
+}
+@media(max-width:680px){
+  .studio-workspace .managed-list li{grid-template-columns:26px minmax(0,1fr);align-items:start}
+  .studio-workspace .chapter-row-actions{grid-column:2;justify-content:flex-start;flex-wrap:wrap;margin-top:4px}
+  .studio-workspace .chapter-row-actions [data-slot="button"][data-variant="ghost"]{display:inline-flex}
+  .studio-workspace .chapter-edit-title{align-items:flex-start;flex-direction:column}
+  .studio-workspace .chapter-edit-links{justify-content:flex-start}
+}
