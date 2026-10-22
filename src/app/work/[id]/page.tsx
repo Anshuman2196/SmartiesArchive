@@ -66,7 +66,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   return <main id="main-content" tabIndex={-1} className="shell story-page">
     <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <CoverFallback title={work.title} className="story-cover story-cover-placeholder"/>}</div>
     <div className="story-detail">
-      <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private work" : work.visibility === "unlisted" ? "Shared by link" : "From the public archive"}</span><h1 className="serif">{work.title}</h1>
+      <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private" : work.visibility === "unlisted" ? "Shared by link" : "Public"}</span><h1 className="serif">{work.title}</h1>
         {author && <p className="story-byline">By <Link href={`/author/${author.username}`}>{author.display_name}</Link></p>}
         <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{work.state === "draft" && <span>Draft</span>}{(isOwner || work.visibility !== "public") && <span>{visibilityLabel}</span>}{displayChapters.some((chapter) => chapter.format && chapter.format !== "prose") && <span>Includes illustrated chapters</span>}</div>
         {(work.tags?.length ?? 0) > 0 && <ul className="story-tags" aria-label="Story tags">{work.tags?.map((tag) => <li key={tag}>{tag}</li>)}</ul>}
