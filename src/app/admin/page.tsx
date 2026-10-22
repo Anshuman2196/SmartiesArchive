@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { adminUnpublishChapter, adminUnpublishWork } from "@/app/admin/actions";
 import { requireAdmin } from "@/lib/admin";
+import { workVisibilityLabel, type WorkVisibility } from "@/lib/work-visibility";
 import { ConfirmSubmit } from "@/components/confirm-submit";
 import styles from "./page.module.css";
 import type { Metadata } from "next";
@@ -12,8 +13,8 @@ type Profile = { username: string; display_name: string } | null;
 type Work = {
   id: string;
   title: string;
-  visibility: string;
-  state: string;
+  visibility: WorkVisibility;
+  state: "draft" | "published";
   updated_at: string;
   profiles: Profile;
   chapters?: Count[];
@@ -22,7 +23,7 @@ type Chapter = {
   id: string;
   work_id: string;
   title: string;
-  state: string;
+  state: "draft" | "published";
   updated_at: string;
   works: { title: string } | null;
 };
@@ -99,11 +100,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     </section>
 
     <TableSection title="Stories" count={works.length} defaultOpen>
-      {works.length === 0 ? <div className={styles.empty}>No stories have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Story</th><th>Author</th><th>Access</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{works.map((work) => <tr key={work.id}><td><span className={styles.title}>{work.title}</span><span className={styles.meta}>{countFrom(work.chapters)} {countFrom(work.chapters) === 1 ? "chapter" : "chapters"}</span></td><td>{work.profiles?.display_name ?? "Unknown"}<span className={styles.meta}>@{work.profiles?.username ?? "unknown"}</span></td><td><span className={styles.badge}>{work.visibility}</span></td><td><span className={styles.badge}>{work.state}</span></td><td>{formatDate(work.updated_at)}</td><td>{work.state === "published" && <form action={adminUnpublishWork}><input type="hidden" name="workId" value={work.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${work.title} from readers? The author's content will be kept.`}>Hide story</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
+      {works.length === 0 ? <div className={styles.empty}>No stories have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Story</th><th>Author</th><th>Access</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{works.map((work) => <tr key={work.id}><td><span className={styles.title}>{work.title}</span><span className={styles.meta}>{countFrom(work.chapters)} {countFrom(work.chapters) === 1 ? "chapter" : "chapters"}</span></td><td>{work.profiles?.display_name ?? "Unknown"}<span className={styles.meta}>@{work.profiles?.username ?? "unknown"}</span></td><td><span className={styles.badge}>{workVisibilityLabel(work.visibility)}</span></td><td><span className={styles.badge}>{work.state === "published" ? "Published" : "Draft"}</span></td><td>{formatDate(work.updated_at)}</td><td>{work.state === "published" && <form action={adminUnpublishWork}><input type="hidden" name="workId" value={work.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${work.title} from readers? The author's content will be kept.`}>Hide story</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
     </TableSection>
 
     <TableSection title="Chapters" count={chapters.length}>
-      {chapters.length === 0 ? <div className={styles.empty}>No chapters have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Chapter</th><th>Story</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{chapters.map((chapter) => <tr key={chapter.id}><td className={styles.title}>{chapter.title}</td><td>{chapter.works?.title ?? "Unknown story"}</td><td><span className={styles.badge}>{chapter.state}</span></td><td>{formatDate(chapter.updated_at)}</td><td>{chapter.state === "published" && <form action={adminUnpublishChapter}><input type="hidden" name="workId" value={chapter.work_id}/><input type="hidden" name="chapterId" value={chapter.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${chapter.title} from readers? The author's draft will be kept.`}>Hide chapter</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
+      {chapters.length === 0 ? <div className={styles.empty}>No chapters have been created yet.</div> : <div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Chapter</th><th>Story</th><th>State</th><th>Updated</th><th><span className="sr-only">Action</span></th></tr></thead><tbody>{chapters.map((chapter) => <tr key={chapter.id}><td className={styles.title}>{chapter.title}</td><td>{chapter.works?.title ?? "Unknown story"}</td><td><span className={styles.badge}>{chapter.state === "published" ? "Published" : "Draft"}</span></td><td>{formatDate(chapter.updated_at)}</td><td>{chapter.state === "published" && <form action={adminUnpublishChapter}><input type="hidden" name="workId" value={chapter.work_id}/><input type="hidden" name="chapterId" value={chapter.id}/><ConfirmSubmit className={styles.danger} phrase={`Hide ${chapter.title} from readers? The author's draft will be kept.`}>Hide chapter</ConfirmSubmit></form>}</td></tr>)}</tbody></table></div>}
     </TableSection>
 
     <TableSection title="Members" count={members.length}>
