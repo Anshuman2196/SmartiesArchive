@@ -58,6 +58,7 @@ html,body{background:var(--ink)}body{font-family:var(--font-ui)}.serif{font-fami
 .studio-chapter-actions-trigger{min-width:44px;min-height:44px}
 .studio-chapter-actions-menu [data-slot="dropdown-menu-item"]{min-height:44px}
 .editor-sidebar-tabs button,.editor-popover-head button,.editor-popover .upload-image-button{min-height:44px}
+.editor-stats,.editor-sidebar-tabs button,.editor-sidebar-help,.editor-control,.editor-control-group .editor-tool-button,.editor-document-stats,.editor-writing-footer,.editor-publish-hint,.editor-save-error,.chapter-action-pending{font-size:12px}
 .studio-workspace .chapter-edit-links [data-slot="button"]{min-height:44px}
 @media(max-width:760px){
   .studio-head{align-items:stretch;flex-direction:column;gap:20px}
