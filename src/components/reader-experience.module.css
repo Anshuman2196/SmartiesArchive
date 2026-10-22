@@ -266,7 +266,7 @@
 .preferenceHint {
   margin: 0;
   color: var(--page-muted);
-  font: 11px/1.55 var(--font-ui);
+  font: 12px/1.55 var(--font-ui);
 }
 
 .resetButton {
@@ -276,7 +276,7 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 18%, transparent);
   background: transparent;
   color: var(--page-muted);
-  font: 11px var(--font-ui);
+  font: 12px var(--font-ui);
   cursor: pointer;
   border-radius: var(--control-radius);
 }
