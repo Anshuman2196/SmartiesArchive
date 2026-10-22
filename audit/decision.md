@@ -72,3 +72,4 @@
 - Middleware uses Supabase SSR `getClaims()` before returning the response, which validates JWT claims locally when supported and preserves refresh-cookie handling without fetching the full user profile from Auth on every request.
 - Content-warning acceptance is stored in a same-site, HttpOnly cookie scoped to the story. The chapter page returns a standalone gate before serializing reader content to the client; the gate follows the reader tone saved in local preferences.
 - The home hero and static genre/cover artwork are shipped as WebP; the hero uses a prioritized Next image while the CSS layer keeps its existing shade and framing.
+- Give the rich-text editing canvas its own visible keyboard focus ring using the existing `--focus-ring` token; the editor had explicitly removed its outline, and it is not covered by the global focus selector for buttons, links, and form fields. Confirm keyboard behavior in a browser.
