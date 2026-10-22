@@ -604,6 +604,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           {sidebarTab === "document" && <>
             <div className="editor-control-group">{toolbarButton("Insert divider", () => editor.chain().focus().setHorizontalRule().run())}{toolbarButton("Insert code block", () => editor.chain().focus().toggleCodeBlock().run(), editor.isActive("codeBlock"))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Clear formatting", () => editor.chain().focus().unsetAllMarks().clearNodes().run())}</div>
             <p className="editor-document-stats">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</p>
+            <button type="button" className="pill" onClick={downloadRecovery}>Download recovery copy</button>
           </>}
         </div>
       </aside>
