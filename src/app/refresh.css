@@ -1,5 +1,5 @@
 /* Cinema: visual identity for the archive. Earlier palettes remain selectable. */
-:root{--font-ui:"Archivo Variable",Arial,Helvetica,sans-serif;--font-reading:Georgia,"Times New Roman",serif}
+:root{--font-ui:"Archivo Variable",Arial,Helvetica,sans-serif;--font-reading:Georgia,"Times New Roman",serif;--field-border:#767676}
 :root{--ink:#101010;--panel:#1b1b1a;--panel-raised:#282522;--sage:#292522;--sage-light:#c9bfb2;--lime:#ff765f;--cream:#f3f0e9;--muted:#bdb8af;--line:#f3f0e92e;--paper:#e8e0d3;--clay:#ff765f;--ochre:#ffb782;--content-width:1280px;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;--space-8:32px;--space-12:48px;--space-18:72px;--space-24:96px}
 :root[data-palette="original"]{--ink:#1a1d1b;--panel:#222724;--panel-raised:#303a33;--sage:#303a33;--sage-light:#a8b59c;--lime:#d4f36a;--cream:#f2f0e8;--muted:#a9afa8;--line:#ffffff19;--paper:#f2f0e8;--clay:#d4f36a;--ochre:#d4f36a}
 html,body{background:var(--ink)}body{font-family:var(--font-ui)}.serif{font-family:var(--font-ui);font-style:normal}.serif em,.home em{font-style:normal}.shell{max-width:var(--content-width)}.shell.section{padding-inline:28px}.eyebrow,.cinema-label{color:var(--lime);font:700 11px/1.4 var(--font-ui);letter-spacing:.12em;text-transform:uppercase}.muted,.byline{color:var(--muted)}
@@ -141,3 +141,4 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .studio-overline{font-size:12px}
 .palette-select-label select{font-size:12px}
 .reader-topbar,.reader-save-status,.reader-tools label,.reader-tools legend,.reader-tools select,.reader-media figcaption,.reader-action-message{font-size:12px}
+.field input,.field textarea,.field select,.auth-form input,.studio-edit-form input,.studio-edit-form textarea,.studio-edit-form select,.library-search-field input,.library-filter-grid select,.reader-tools select,.palette-select-label select,.editor-control input:not([type=color]),.editor-control select,.image-inspector input:not([type=range]),.image-inspector select,.editor-link-dialog input,.rich-editor-heading textarea{border-color:var(--field-border)}
