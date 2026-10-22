@@ -21,7 +21,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | Finding | Status | Change / remaining work |
 | --- | --- | --- |
 | W-01 | `[~]` | Preserve the new-chapter composer across the first save by retaining `?new=1`; confirm in browser. |
-| W-02 | `[~]` | Improve the image validation error and normalize inserted image attributes. Original save failure has no confirmed root cause; needs a real upload/save reproduction. |
+| W-02 | `[~]` | Improve the image validation error and normalize inserted image attributes. Source inspection confirms uploads create `<user>/<work>/<UUID>.<image extension>` references and rich-document validation expects that shape; no static mismatch is evident. The original save failure still needs an upload → insert → set alt → save reproduction. |
 | W-03 | `[~]` | Guard in-app link navigation and browser Back while dirty; browser Back restores the editor entry before prompting, but interaction behavior still needs browser confirmation. |
 | W-04–W-05 | `[x]` | Preserve invalid chat input with inline validation; keep publish form mounted through submit. |
 | W-06, W-13–W-14 | `[x]` | Restore list and quote styles and map document H1 headings to H2 in reader output. |
