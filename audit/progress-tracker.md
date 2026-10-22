@@ -45,7 +45,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | --- | --- | --- |
 | Writer audit P1-1–P1-3 | `[~]` | Added a persistent quick toolbar with text style/heading levels 1–6, undo/redo, inline styles, lists, task list, quote, 2×2 table insertion, link, image, and spoiler controls. Preview and publish are visible, with an explanation when publishing is disabled. Verify discoverability, narrow-screen fit, and commands in the browser. |
 | Writer audit P1-4–P1-5 | `[~]` | Dirty prose navigation guards and an in-app validated link dialog are implemented. Managed-form navigation guard and failed-save back-navigation still need browser confirmation. |
-| Writer audit P2-6–P2-8, P2-10–P2-14, P3-15–P3-18 | `[~]` | Visible word count, save feedback, image alt editing, structured mixed blocks, action feedback, and other authoring polish have code changes. Image-alt prompting/checklist coverage, non-prose previews and format changes, banner dismissal, published-chapter deletion affordance, warning/tag chips, paste-format notice, and recovery-copy discoverability remain open or browser-unverified. |
+| Writer audit P2-6–P2-8, P2-10–P2-14, P3-15–P3-18 | `[~]` | Visible word count, save feedback, image alt editing, structured mixed blocks, action feedback, and other authoring polish have code changes. Published chapters can now be deleted with a confirmation that explains loss of reader access, reviews, progress, and pending revision. Image-alt prompting/checklist coverage, non-prose previews and format changes, banner dismissal, warning/tag chips, paste-format notice, and recovery-copy discoverability remain open or browser-unverified. |
 
 ### Reader findings
 
