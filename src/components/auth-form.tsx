@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, MailCheck } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { register, requestPasswordReset, resendConfirmation, signIn, type AuthActionState } from "@/app/actions";
 
@@ -11,7 +11,7 @@ const idle: AuthActionState = { kind: "idle" };
 function PasswordField({ id, label, name, autoComplete, error, required = true }: { id: string; label: string; name: string; autoComplete: string; error?: string; required?: boolean }) {
   const [visible, setVisible] = useState(false);
   const errorId = `${id}-error`;
-  return <div className="field"><label htmlFor={id}>{label}</label><div className="password-control"><input id={id} name={name} type={visible ? "text" : "password"} required={required} minLength={name === "password" && autoComplete === "new-password" ? 10 : undefined} maxLength={128} autoComplete={autoComplete} aria-invalid={!!error} aria-describedby={error ? errorId : undefined}/><button type="button" className="password-toggle" aria-label={visible ? "Hide password" : "Show password"} aria-pressed={visible} onClick={() => setVisible((value) => !value)}>{visible ? "Hide" : "Show"}</button></div>{error && <span id={errorId} className="field-error">{error}</span>}</div>;
+  return <div className="field"><label htmlFor={id}>{label}</label><div className="password-control"><input id={id} name={name} type={visible ? "text" : "password"} required={required} minLength={name === "password" && autoComplete === "new-password" ? 10 : undefined} maxLength={128} autoComplete={autoComplete} aria-invalid={!!error} aria-describedby={error ? errorId : undefined}/><button type="button" className="password-toggle" aria-label={visible ? "Hide password" : "Show password"} aria-pressed={visible} onClick={() => setVisible((value) => !value)}>{visible ? <EyeOff size={18} aria-hidden="true"/> : <Eye size={18} aria-hidden="true"/>}</button></div>{error && <span id={errorId} className="field-error">{error}</span>}</div>;
 }
 
 function Feedback({ state }: { state: AuthActionState }) {
@@ -60,7 +60,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
             <PasswordField id="signup-password" name="password" label="Password" autoComplete="new-password" error={signupState.fields?.password}/><span className="field-hint requirement">Use at least 10 characters.</span>
             <PasswordField id="signup-confirmation" name="confirmation" label="Confirm password" autoComplete="new-password" error={signupState.fields?.confirmation}/>
             <button className="pill primary auth-submit" type="submit" disabled={signupPending}>{signupPending && <span className="spinner" aria-hidden="true"/>}{signupPending ? "Creating your account…" : "Create account"}</button>
-          </form> : <div className="confirmation-card"><span className="confirmation-mark" aria-hidden="true">✳</span><h2 className="serif">Check your email.</h2><p>{signupState.message}</p>{signupState.email && <p className="confirmation-email">{signupState.email}</p>}<form action={resendAction}><input type="hidden" name="email" value={signupState.email ?? ""}/><input type="hidden" name="next" value={next}/><button className="text-action" type="submit" disabled={resendPending}>{resendPending ? "Sending a fresh link…" : "Resend confirmation email"}</button></form><Feedback state={resendState}/><Link href={modeLink("login")} className="pill auth-submit">Return to sign in</Link></div>}
+          </form> : <div className="confirmation-card"><MailCheck className="confirmation-mark" size={24} strokeWidth={1.7} aria-hidden="true"/><h2 className="serif">Check your email.</h2><p>{signupState.message}</p>{signupState.email && <p className="confirmation-email">{signupState.email}</p>}<form action={resendAction}><input type="hidden" name="email" value={signupState.email ?? ""}/><input type="hidden" name="next" value={next}/><button className="text-action" type="submit" disabled={resendPending}>{resendPending ? "Sending a fresh link…" : "Resend confirmation email"}</button></form><Feedback state={resendState}/><Link href={modeLink("login")} className="pill auth-submit">Return to sign in</Link></div>}
           <p className="auth-footnote">You may need to confirm your email address before signing in.</p>
         </> : <form action={loginAction} className="auth-form"><input type="hidden" name="next" value={next}/>
           <div className="field"><label htmlFor="login-email">Email address</label><input id="login-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!loginState.fields?.email} aria-describedby={loginState.fields?.email ? "login-email-error" : undefined}/>{loginState.fields?.email && <span id="login-email-error" className="field-error">{loginState.fields.email}</span>}</div>
