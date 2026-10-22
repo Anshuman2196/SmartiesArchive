@@ -50,7 +50,7 @@ export function BookmarkButton({ workId, initialSaved, iconOnly = false }: { wor
       const result = await toggleBookmark(workId, !saved);
       if (result.ok) setSaved(result.saved);
       else setMessage(result.message);
-    } catch { setMessage("We couldn't update your bookmark. Please try again."); }
+    } catch { setMessage("We couldn’t update your bookmark. Please try again."); }
   });
   return <div className="reader-action-wrap"><button type="button" className="pill" aria-label={saved ? "Remove bookmark" : "Bookmark story"} title={saved ? "Remove bookmark" : "Bookmark story"} aria-pressed={saved} disabled={pending} onClick={toggle}>{iconOnly ? <Bookmark size={18} fill={saved ? "currentColor" : "none"} aria-hidden="true"/> : pending ? "Saving…" : saved ? "Bookmarked" : "Bookmark story"}</button>{message && <span role="alert" className="reader-action-message">{message}</span>}</div>;
 }
@@ -64,13 +64,13 @@ export function ShareButton({ title, iconOnly = false }: { title?: string; iconO
       setMessage("Link copied.");
       setOpen(false);
     } catch (error) {
-      setMessage("We couldn't copy the link. Copy it from your browser address bar.");
+      setMessage("We couldn’t copy the link. Copy it from your browser address bar.");
     }
   };
   const share = async () => {
     if (!navigator.share) { setMessage("Device sharing is not available here. Copy the link instead."); return; }
     try { await navigator.share({ title: title || document.title, url: window.location.href }); setOpen(false); }
-    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) setMessage("We couldn't open the share sheet."); }
+    catch (error) { if (!(error instanceof Error && error.name === "AbortError")) setMessage("We couldn’t open the share sheet."); }
   };
   return <div className="reader-action-wrap"><button type="button" className="pill" onClick={() => { setMessage(""); setOpen(true); }} aria-label="Share story" title="Share story">{iconOnly ? <Share2 size={18} aria-hidden="true"/> : "Share link"}</button>{message && <span role="status" className="reader-action-message">{message}</span>}<Dialog open={open} onOpenChange={setOpen}><DialogContent className="reader-share-dialog"><DialogHeader><DialogTitle>Share this chapter</DialogTitle><DialogDescription>Copy a link or open your device share options.</DialogDescription></DialogHeader><div className="reader-share-actions"><button type="button" className="pill primary" onClick={() => void copy()}>Copy link</button><button type="button" className="pill" onClick={() => void share()}>Share…</button></div><DialogClose asChild><button type="button" className="text-action">Close</button></DialogClose></DialogContent></Dialog></div>;
 }

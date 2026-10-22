@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 type Chapter = { id: string; title: string; body: string; format: ChapterFormat; content: unknown; position: number; state: "draft" | "published"; updated_at: string };
 
 const statusCopy: Record<string, { message: string; error?: boolean }> = {
-  save_error: { message: "We couldn't save that change. Please try again.", error: true },
+  save_error: { message: "We couldn’t save that change. Please try again.", error: true },
   invalid_chapter: { message: "Check the chapter title and its format-specific content.", error: true },
   invalid_chapter_format: { message: "This chapter's draft formatting could not be verified, so it was not published. Your current published chapter remains unchanged; reopen the draft and correct its formatting before retrying.", error: true },
   conflict: { message: "This story changed in another session. Reload the page before saving again.", error: true },
