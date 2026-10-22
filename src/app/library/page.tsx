@@ -46,6 +46,23 @@ function LibraryTags({ work }: { work: LibraryWork }) {
   </div>;
 }
 
+function LibraryWarnings({ work }: { work: LibraryWork }) {
+  if (work.content_warnings.length === 0) return null;
+  return <div className={styles.warnings} aria-label={`Content notes for ${work.title}`}>
+    {work.content_warnings.slice(0, 3).map((warning) => <span className={styles.warning} key={warning}>{warning}</span>)}
+    {work.content_warnings.length > 3 && <span className={styles.warningMore}>+{work.content_warnings.length - 3} more</span>}
+  </div>;
+}
+
+function libraryStoryLinkLabel(work: LibraryWork) {
+  const warnings = work.content_warnings.slice(0, 3);
+  if (warnings.length === 0) return `Open story: ${work.title}`;
+
+  const remainingCount = work.content_warnings.length - warnings.length;
+  const remainingLabel = remainingCount > 0 ? `, and ${remainingCount} more` : "";
+  return `Open story: ${work.title}. Content notes: ${warnings.join(", ")}${remainingLabel}`;
+}
+
 function LibraryAuthor({ work }: { work: LibraryWork }) {
   return <span className={styles.author}>By {work.profiles?.display_name ?? "A reader"}</span>;
 }
@@ -144,13 +161,14 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
+    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work)}>
       <LibraryPoster work={work} eager={index < 3}/>
       <div className={styles.body}>
         <h2 className={styles.title}>{work.title}</h2>
         {work.summary && <p className={styles.summary}>{work.summary}</p>}
         <LibraryTags work={work}/>
-        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{work.content_warnings.length > 0 && <span>Content notes</span>}</div>
+        <LibraryWarnings work={work}/>
+        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span></div>
       </div>
     </Link>)}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
   </main>;
