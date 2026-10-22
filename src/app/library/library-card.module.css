@@ -25,3 +25,21 @@
 @media(max-width:540px){.list{grid-template-columns:1fr;gap:0;padding-top:var(--space-1)}.card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--space-4);padding:19px 0;border-bottom:1px solid var(--line)}.poster{width:112px}.body{padding:0}.card .title,.card.featuredCard .title{font-size:22px}.summary{font-size:12px;margin-bottom:10px}.tags{margin-bottom:var(--space-2)}.warnings{margin-bottom:var(--space-2)}.meta{font-size:12px}}
 @media(max-width:760px){.featuredGrid{grid-template-columns:1fr;gap:0}.featuredCard{grid-template-columns:112px minmax(0,1fr);gap:var(--space-4);padding:19px 0;border:0;border-bottom:1px solid var(--line);background:transparent}.featuredCard .posterLink{width:max-content}.featuredCard .poster{width:112px;aspect-ratio:2/3}}
 @media(prefers-reduced-motion:reduce){.posterImage{transition:none}}
+@media(min-width:761px){
+.card.featuredCard{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:var(--panel);transition:border-color .2s}
+.card.featuredCard:hover{border-color:color-mix(in srgb,var(--lime) 55%,var(--line))}
+.featuredCard .posterLink{width:100%;height:auto}
+.featuredCard .poster{width:100%;aspect-ratio:16/10;background:var(--panel-raised)}
+.featuredCard .posterImage{object-position:center 30%}
+.featuredCard .body{display:flex;flex:1;flex-direction:column;padding:18px 20px 20px}
+.card.featuredCard .title{margin-bottom:8px;font-size:clamp(20px,1.7vw,27px);line-height:1.05}
+.featuredCard .summary{margin-bottom:14px}
+.featuredCard .meta{margin-top:auto;padding-top:14px}
+.featuredCard .body>:nth-last-child(2){margin-bottom:16px}
+}
+/* Tags are filled pills; content notes stay outlined so the two read differently. */
+.card .tags,.card .warnings{gap:5px;margin:0 0 8px}
+.card .tag,.card .warning{min-height:0;padding:3px 9px;border-radius:999px;font-size:12px;line-height:1.5}
+.card .tag{border-color:transparent;background:color-mix(in srgb,var(--cream) 8%,transparent)}
+.card .tag:hover{border-color:var(--lime)}
+@media(prefers-reduced-motion:reduce){.card.featuredCard{transition:none}}
