@@ -46,7 +46,8 @@ This tracker is intentionally scoped for a private server project with about 20 
 | Finding group | Status | Change / remaining work |
 | --- | --- | --- |
 | P1-1–P1-4 | `[x]` | Add page metadata, palette pre-hydration, reader contrast tokens, and remove legacy Royal/Wine button overrides. |
-| P2-1, P2-3–P2-6, P2-8, P2-10–P2-12, P2-14 | `[x]` | Improve user-facing labels, control borders/tap targets, heading hierarchy, server-rendered warning gate, loading/error states, optimized WebP assets, metadata endpoints, mobile navigation, and signup feedback. |
+| P2-1, P2-3, P2-5–P2-6, P2-8, P2-10–P2-12, P2-14 | `[x]` | Improve user-facing labels, control borders, heading hierarchy, server-rendered warning gate, loading/error states, optimized WebP assets, metadata endpoints, mobile navigation, and signup feedback. |
+| P2-4 | `[~]` | Raise the audited editor, media, emoji, theme, filter-removal, and back controls to at least 44 px in CSS; confirm rendered sizes at 320/390 px. |
 | P2-2, P2-7, P2-9, P2-13, P2-15 | `[~]` | Styling consolidation, unlisted throttling, request/auth performance, copy consistency, and rate limiting remain. Unlisted story/chapter pages emit noindex metadata. |
 | P3-1 | `[x]` | Corrected README scope and migration count, and removed the empty `review-preview` route directory. |
 | P3-2–P3-10 | `[~]` | Skip link now targets the route's focusable main landmark; the editor's nested main landmark is a labelled section. Reduced-motion support, form boundary contrast, icon exceptions, production origin configuration, and sanitized signup callback destinations are addressed. Responsive checks, component bundle splitting, and performance review still need follow-up; browser verification is pending because localhost access was denied by the browser origin gate. |
