@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signStoryMediaUrls } from "@/lib/story-media";
 import styles from "./library-card.module.css";
@@ -175,10 +176,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     <LibraryToolbar filters={filters} tags={tags} warnings={warnings}/>
 
     {activeFilters && configured && <div className="library-active-filters" aria-label="Active filters">
-      {filters.q && <span className="tag">Search: {filters.q} <Link href={filterHref(filters, "q")} aria-label="Remove search filter">×</Link></span>}
-      {filters.tag && <span className="tag">Tag: {filters.tag} <Link href={filterHref(filters, "tag")} aria-label="Remove tag filter">×</Link></span>}
-      {filters.warning && <span className="tag">Content note: {filters.warning} <Link href={filterHref(filters, "warning")} aria-label="Remove content note filter">×</Link></span>}
-      {filters.excludeWarning && <span className="tag">Hidden note: {filters.excludeWarning} <Link href={filterHref(filters, "excludeWarning")} aria-label="Remove hidden content note filter">×</Link></span>}
+      {filters.q && <span className="tag">Search: {filters.q} <Link href={filterHref(filters, "q")} aria-label="Remove search filter"><X size={12} aria-hidden="true"/></Link></span>}
+      {filters.tag && <span className="tag">Tag: {filters.tag} <Link href={filterHref(filters, "tag")} aria-label="Remove tag filter"><X size={12} aria-hidden="true"/></Link></span>}
+      {filters.warning && <span className="tag">Content note: {filters.warning} <Link href={filterHref(filters, "warning")} aria-label="Remove content note filter"><X size={12} aria-hidden="true"/></Link></span>}
+      {filters.excludeWarning && <span className="tag">Hidden note: {filters.excludeWarning} <Link href={filterHref(filters, "excludeWarning")} aria-label="Remove hidden content note filter"><X size={12} aria-hidden="true"/></Link></span>}
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
       <Link className="text-action" href="/library">Clear all</Link>
     </div>}

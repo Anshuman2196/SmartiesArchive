@@ -8,6 +8,7 @@ import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import Image from "next/image";
+import { X } from "lucide-react";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
 import { MangaPanelPicker } from "@/components/manga-panel-picker";
@@ -126,7 +127,7 @@ function ChipField({ name, label, description, initialValues, placeholder, maxIt
     <input type="hidden" name={name} value={items.join(", ")}/>
     <div className="chip-entry-wrap">
       <div className="chip-list" aria-label={`${label} added`}>
-        {items.map((item, index) => <span className="studio-chip" key={`${item}-${index}`}>{item}<button type="button" className="chip-remove" aria-label={`Remove ${item}`} onClick={() => { setItems((values) => values.filter((_, itemIndex) => itemIndex !== index)); setMessage(""); }}>×</button></span>)}
+        {items.map((item, index) => <span className="studio-chip" key={`${item}-${index}`}>{item}<button type="button" className="chip-remove" aria-label={`Remove ${item}`} onClick={() => { setItems((values) => values.filter((_, itemIndex) => itemIndex !== index)); setMessage(""); }}><X size={13} aria-hidden="true"/></button></span>)}
         <input id={`${name}-entry`} className="chip-entry" value={entry} maxLength={maxLength} placeholder={items.length ? "Add another…" : placeholder} aria-describedby={`${name}-description${message ? ` ${name}-message` : ""}`} onChange={(event) => { setEntry(event.target.value); setMessage(""); if (event.target.value.includes(",")) add(event.target.value); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === ",") { event.preventDefault(); add(entry); } else if (event.key === "Backspace" && !entry && items.length) setItems((values) => values.slice(0, -1)); }} onBlur={() => { if (entry.trim()) add(entry); }}/>
       </div>
     </div>
