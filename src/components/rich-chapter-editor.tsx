@@ -205,7 +205,10 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     catch { result = { ok: false, message: "The save could not reach the server. Your writing is still here; retry when connected." }; }
     finally { busy.current = false; }
     if (!result.ok) { setSaveError(result.message ?? "Draft could not be saved. Your writing is still here. Retry when ready."); setStatus("Not saved"); return false; }
-    if (result.chapterId) setChapterId(result.chapterId);
+    if (result.chapterId) {
+      setChapterId(result.chapterId);
+      if (!chapterId && typeof window !== "undefined") window.history.replaceState(window.history.state, "", `/studio/${workId}?chapter=${result.chapterId}`);
+    }
     if (result.updatedAt) setUpdatedAt(result.updatedAt);
     setSaveError("");
     if (revision === revisionRef.current) { setDirty(false); setStatus("Saved"); return true; }

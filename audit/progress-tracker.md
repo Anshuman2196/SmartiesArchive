@@ -27,7 +27,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | W-06, W-13–W-14 | `[x]` | Restore list and quote styles and map document H1 headings to H2 in reader output. |
 | W-07–W-08, W-10–W-12, W-15, W-18–W-21 | `[x]` | Fix select clipping, title wrapping, editor status, paste paragraphs, mixed block editing, manga copy, action feedback, banner styling, and publish labels. |
 | W-09 | `[~]` | Remove the focus-mode `top: 0` override that placed the sticky editor bar over the site header. It now uses the existing header offset (70 px desktop / 66 px mobile); confirm in browser at desktop and tablet widths. |
-| W-16 | `[~]` | The first-save query is preserved through revalidation; browser Back restoration still needs direct interaction review. |
+| W-16 | `[~]` | Preserve the `?new=1` composer through the first revalidation, then replace it with the new `?chapter=<id>` URL once the save succeeds so browser Back cannot restore an empty composer. Verify the history behavior in browser. |
 | W-17, W-19–W-21, W-23–W-27, W-30–W-32 | `[x]` | Full-screen focus, success/publish feedback, destructive confirmation, discard revision, details tab, page titles, compact cover, link dialog, live word count, and preview state are implemented. |
 | W-28 | `[~]` | Fix the mobile formatting button's overlapping icon/“Aa” label, keep save status readable, raise toolbar targets to 44 px, and reduce the formatting sheet so editor text remains visible. CSS is updated; verify at 320/390 px in a browser. |
 | W-22 | `[x]` | Zero-chapter completeness is a warning, and each checklist row links to its relevant Details or Chapters tab. |
