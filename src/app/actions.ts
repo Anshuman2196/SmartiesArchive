@@ -213,14 +213,16 @@ export async function unpublishWork(form: FormData) {
 
 export async function deleteWork(form: FormData) {
   const workId = value(form, "workId");
+  const draftOnly = value(form, "draftOnly") === "1";
   const { supabase, user } = await requireOwnedWork(workId);
-  const { data, error } = await supabase.from("works").delete().eq("id", workId).eq("author_id", user.id).select("id").maybeSingle();
+  const deletion = supabase.from("works").delete().eq("id", workId).eq("author_id", user.id);
+  const { data, error } = await (draftOnly ? deletion.eq("state", "draft") : deletion).select("id").maybeSingle();
   if (error) {
     // Keep diagnostics useful while excluding database messages and content.
     console.warn("[studio-delete] work delete rejected", { code: error.code ?? "unknown" });
-    redirect(`/studio/${workId}?status=delete_failed`);
+    redirect(draftOnly ? "/studio?status=delete_failed" : `/studio/${workId}?status=delete_failed`);
   }
-  if (!data) redirect(`/studio/${workId}?status=delete_not_found`);
+  if (!data) redirect(draftOnly ? "/studio?status=delete_not_found" : `/studio/${workId}?status=delete_not_found`);
   await removeAllStoryMedia(supabase, user.id, workId);
   revalidatePath("/studio"); revalidatePath("/library");
   redirect("/studio?status=work_deleted");

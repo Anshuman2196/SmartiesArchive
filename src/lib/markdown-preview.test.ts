@@ -32,6 +32,17 @@ test("typed Markdown becomes the same rich document used by preview and saving",
   } finally { editor.destroy(); }
 });
 
+test("Markdown import preserves single newlines between dialogue lines", () => {
+  const editor = new Editor({ extensions: [StarterKit, Markdown.configure({ markedOptions: { breaks: true } })], content: { type: "doc", content: [{ type: "paragraph" }] } });
+  try {
+    const parsed = editor.markdown!.parse('Marcus put the file aside. "I need to tell you."\n"What now?"');
+    const saved = validateRichDocument(parsed, owner, work).document;
+    assert.equal(saved.content.length, 1);
+    assert.equal(saved.content[0].content?.[1].type, "hardBreak");
+    assert.equal(saved.content[0].content?.[2].text, '"What now?"');
+  } finally { editor.destroy(); }
+});
+
 test("ordinary prose and existing rich formatting keep their exact content", () => {
   const plain: RichDocument = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "  First  line" }, { type: "hardBreak" }, { type: "text", text: "Second line.  " }] }] };
   assert.deepEqual(markdownRunsForPreview(plain), []);

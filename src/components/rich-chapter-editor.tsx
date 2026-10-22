@@ -88,7 +88,7 @@ const paragraphIndent = Extension.create({
 
 const extensions = [
   StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: { openOnClick: false } }),
-  Markdown, TableKit, TaskList, TaskItem,
+  Markdown.configure({ markedOptions: { breaks: true } }), TableKit, TaskList, TaskItem,
   Highlight.configure({ multicolor: true }), TextStyleKit.configure({ lineHeight: false }), TextAlign.configure({ types: ["heading", "paragraph"] }),
   Superscript, Subscript, Placeholder.configure({ placeholder: "Begin the scene…" }), literaryBlock, imageNode, spoilerMark, paragraphIndent,
 ];
