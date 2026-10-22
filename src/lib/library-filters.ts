@@ -6,7 +6,7 @@ export type LibrarySearchParams = Record<string, string | string[] | undefined>;
 
 export type LibraryFilters = {
   q: string;
-  tag: string;
+  tags: string[];
   warning: string;
   excludeWarning: string;
   sort: LibrarySort;
@@ -40,10 +40,18 @@ export function normalizeLibraryValue(value: string): string {
 
 export function parseLibraryFilters(params: LibrarySearchParams): LibraryFilters {
   const sort = firstValue(params.sort);
+  const tagValues = Array.isArray(params.tag) ? params.tag : params.tag ? [params.tag] : [];
+  const seenTags = new Set<string>();
+  const tags = tagValues.map((tag) => tag.trim()).filter((tag) => {
+    const normalized = normalizeLibraryValue(tag);
+    if (!normalized || seenTags.has(normalized)) return false;
+    seenTags.add(normalized);
+    return true;
+  });
 
   return {
     q: firstValue(params.q).trim(),
-    tag: firstValue(params.tag).trim(),
+    tags,
     warning: firstValue(params.warning).trim(),
     excludeWarning: firstValue(params.excludeWarning).trim(),
     sort: sortSet.has(sort) ? (sort as LibrarySort) : "newest",
@@ -51,7 +59,7 @@ export function parseLibraryFilters(params: LibrarySearchParams): LibraryFilters
 }
 
 export function hasActiveLibraryFilters(filters: LibraryFilters): boolean {
-  return Boolean(filters.q || filters.tag || filters.warning || filters.excludeWarning || filters.sort !== "newest");
+  return Boolean(filters.q || filters.tags.length || filters.warning || filters.excludeWarning || filters.sort !== "newest");
 }
 
 function includesNormalized(values: string[], needle: string): boolean {
@@ -71,7 +79,7 @@ export function matchesLibraryFilters(work: LibraryWork, filters: LibraryFilters
 
   return (
     (!query || searchableText.some((value) => value.includes(query))) &&
-    (!filters.tag || includesNormalized(work.tags, filters.tag)) &&
+    (filters.tags.length === 0 || filters.tags.every((tag) => includesNormalized(work.tags, tag))) &&
     (!filters.warning || includesNormalized(work.content_warnings, filters.warning))
     && (!filters.excludeWarning || !includesNormalized(work.content_warnings, filters.excludeWarning))
   );

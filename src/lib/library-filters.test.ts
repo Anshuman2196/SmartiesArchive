@@ -36,7 +36,7 @@ const works: LibraryWork[] = [
 test("parses supported filters and falls back for unknown sort values", () => {
   assert.deepEqual(parseLibraryFilters({ q: " Mira ", tag: "Mystery", warning: "Violence", sort: "bad" }), {
     q: "Mira",
-    tag: "Mystery",
+    tags: ["Mystery"],
     warning: "Violence",
     excludeWarning: "",
     sort: "newest",
@@ -53,6 +53,9 @@ test("matches query text against title, author, summary, and tags", () => {
 
 test("matches tags and warnings without case sensitivity", () => {
   assert.equal(matchesLibraryFilters(works[0], parseLibraryFilters({ tag: "mystery", warning: "violence" })), true);
+  assert.deepEqual(parseLibraryFilters({ tag: [" mystery ", "Mystery", "Slow burn"] }).tags, ["mystery", "Slow burn"]);
+  assert.equal(matchesLibraryFilters(works[0], parseLibraryFilters({ tag: ["mystery", "slow burn"] })), true);
+  assert.equal(matchesLibraryFilters(works[0], parseLibraryFilters({ tag: ["mystery", "coming of age"] })), false);
   assert.equal(matchesLibraryFilters(works[1], parseLibraryFilters({ warning: "violence" })), false);
 });
 

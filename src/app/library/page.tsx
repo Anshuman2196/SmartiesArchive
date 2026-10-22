@@ -48,8 +48,8 @@ function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boo
 function LibraryTags({ work, filters }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters> }) {
   if (work.tags.length === 0) return null;
   return <div className={styles.tags} aria-label={`Tags for ${work.title}`}>
-    {work.tags.slice(0, 3).map((tag) => { const params = new URLSearchParams(); if (filters.q) params.set("q", filters.q); params.set("tag", tag); if (filters.warning) params.set("warning", filters.warning); if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning); if (filters.sort !== "newest") params.set("sort", filters.sort); return <Link className={`tag ${styles.tag}`} key={tag} href={`/library?${params.toString()}`}>{tag}</Link>; })}
-    {work.tags.length > 3 && <span className={styles.moreTags}>+{work.tags.length - 3}</span>}
+    {work.tags.slice(0, 3).map((tag) => { const params = new URLSearchParams(); if (filters.q) params.set("q", filters.q); for (const selected of filters.tags) params.append("tag", selected); if (!filters.tags.some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase())) params.append("tag", tag); if (filters.warning) params.set("warning", filters.warning); if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning); if (filters.sort !== "newest") params.set("sort", filters.sort); return <Link className={`tag ${styles.tag}`} key={tag} href={`/library?${params.toString()}`}>{tag}</Link>; })}
+    {work.tags.length > 3 && <span className={styles.moreTags}>+{work.tags.length - 3} more</span>}
   </div>;
 }
 
@@ -89,10 +89,10 @@ function LibraryStoryCard({ work, filters, rating, eager = false, featured = fal
   </article>;
 }
 
-function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning" | "excludeWarning"): string {
+function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning" | "excludeWarning", tagToRemove?: string): string {
   const params = new URLSearchParams();
   if (key !== "q" && filters.q) params.set("q", filters.q);
-  if (key !== "tag" && filters.tag) params.set("tag", filters.tag);
+  for (const tag of filters.tags) if (key !== "tag" || tag !== tagToRemove) params.append("tag", tag);
   if (key !== "warning" && filters.warning) params.set("warning", filters.warning);
   if (key !== "excludeWarning" && filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning);
   if (filters.sort !== "newest") params.set("sort", filters.sort);
@@ -103,7 +103,7 @@ function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | 
 function pageHref(filters: ReturnType<typeof parseLibraryFilters>, page: number): string {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
-  if (filters.tag) params.set("tag", filters.tag);
+  for (const tag of filters.tags) params.append("tag", tag);
   if (filters.warning) params.set("warning", filters.warning);
   if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning);
   if (filters.sort !== "newest") params.set("sort", filters.sort);
@@ -193,7 +193,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
 
     {activeFilters && configured && <div className="library-active-filters" aria-label="Active filters">
       {filters.q && <span className="tag">Search: {filters.q} <Link href={filterHref(filters, "q")} aria-label="Remove search filter"><X size={12} aria-hidden="true"/></Link></span>}
-      {filters.tag && <span className="tag">Tag: {filters.tag} <Link href={filterHref(filters, "tag")} aria-label="Remove tag filter"><X size={12} aria-hidden="true"/></Link></span>}
+      {filters.tags.map((tag) => <span className="tag" key={tag}>Tag: {tag} <Link href={filterHref(filters, "tag", tag)} aria-label={`Remove ${tag} tag filter`}><X size={12} aria-hidden="true"/></Link></span>)}
       {filters.warning && <span className="tag">Content note: {filters.warning} <Link href={filterHref(filters, "warning")} aria-label="Remove content note filter"><X size={12} aria-hidden="true"/></Link></span>}
       {filters.excludeWarning && <span className="tag">Hidden note: {filters.excludeWarning} <Link href={filterHref(filters, "excludeWarning")} aria-label="Remove hidden content note filter"><X size={12} aria-hidden="true"/></Link></span>}
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
