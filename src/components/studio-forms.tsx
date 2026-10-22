@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEventHandler, type ReactNode } fr
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
-import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
+import { createChapter, restoreChapterFormatVersion, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import Image from "next/image";
@@ -12,6 +12,7 @@ import { X } from "lucide-react";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { legacyTextToRichDocument, type RichDocument } from "@/lib/rich-document";
 import { MangaPanelPicker } from "@/components/manga-panel-picker";
+import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -200,11 +201,12 @@ function PdfAssetPicker({ workId, initialValue }: { workId: string; initialValue
 
 export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, body, format, mediaAlt, content, isRevision }: { workId: string; chapterId?: string; expectedUpdatedAt?: string; title?: string; body?: string; format?: ChapterFormat; mediaAlt?: string; content?: unknown; isRevision?: boolean }) {
   const [selectedFormat, setSelectedFormat] = useState<ChapterFormat>(format ?? "prose");
+  const [convertedFrom, setConvertedFrom] = useState<ChapterFormat | null>(null);
   const [specialText, setSpecialText] = useState(body ?? "");
   const action = chapterId ? saveChapter : createChapter;
-  const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument; blocks?: Array<{ type: string; text?: string; url?: string; alt?: string; messages?: Array<{ speaker: string; text: string }> }> } | undefined;
+  const raw = content as { type?: string; text?: string; url?: string; document?: RichDocument; blocks?: Array<{ type: string; text?: string; url?: string; alt?: string; messages?: Array<{ speaker: string; text: string }> }>; __formatHistory?: unknown[] } | undefined;
   const [formatError, setFormatError] = useState("");
-  const [mixedBlocks, setMixedBlocks] = useState<MixedBlock[]>(() => raw?.type === "mixed" ? (raw.blocks ?? []).map((block) => ({ type: block.type as MixedBlock["type"], text: block.type === "chat" ? (block.messages ?? []).map((message) => `${message.speaker}: ${message.text}`).join("\n") : block.text ?? "", url: block.url, alt: block.alt })) : [{ type: "prose", text: "" }]);
+  const [mixedBlocks, setMixedBlocks] = useState<MixedBlock[]>(() => raw?.type === "mixed" ? (raw.blocks ?? []).map((block) => ({ type: block.type as MixedBlock["type"], text: block.type === "chat" ? (block.messages ?? []).map((message) => `${message.speaker}: ${message.text}`).join("\n") : block.text ?? "", url: block.url, alt: block.alt })) : raw?.type === "image" ? [{ type: "image", text: "", url: raw.url, alt: typeof content === "object" && content !== null && "alt" in content && typeof content.alt === "string" ? content.alt : "" }] : raw?.type === "chat" ? [{ type: "chat", text: Array.isArray((content as { messages?: unknown[] }).messages) ? ((content as { messages: Array<{ speaker: string; text: string }> }).messages).map((message) => `${message.speaker}: ${message.text}`).join("\n") : body ?? "" }] : [{ type: "prose", text: body ?? "" }]);
   const mixedPayload = mixedBlocks.map((block) => block.type === "prose" ? { type: "prose", text: block.text } : block.type === "image" ? { type: "image", url: block.url ?? "", alt: block.alt ?? "" } : { type: "chat", messages: block.text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => { const separator = line.indexOf(":"); return { speaker: line.slice(0, separator).trim(), text: line.slice(separator + 1).trim() }; }) });
   const validateSpecialFormat: FormEventHandler<HTMLFormElement> = (event) => {
     setFormatError("");
@@ -221,8 +223,16 @@ export function ChapterComposer({ workId, chapterId, expectedUpdatedAt, title, b
     if (selectedFormat === "image") { try { if (new URL(String(new FormData(event.currentTarget).get("content") ?? "")).protocol !== "https:") throw new Error(); } catch { event.preventDefault(); setFormatError("Enter a valid HTTPS image URL before saving. Your writing is still here."); } }
   };
   const initialDocument = raw?.type === "rich" && raw.document?.type === "doc" ? raw.document : legacyTextToRichDocument(raw?.type === "prose" && typeof raw.text === "string" ? raw.text : body ?? "");
+  const downloadFormatHistory = () => {
+    if (!raw?.__formatHistory?.length) return;
+    const blob = new Blob([JSON.stringify({ chapter: title ?? "Untitled chapter", savedVersions: raw.__formatHistory }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "chapter-format-history.json"; anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   return <div className="chapter-composer">
-    <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} disabled={!!chapterId} onChange={(event) => setSelectedFormat(event.target.value as ChapterFormat)}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{chapterFormatLabel(name)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}{chapterId ? " Existing chapter format is preserved." : ""}</FieldDescription></Field></FieldGroup>
+    {raw?.__formatHistory?.length && chapterId ? <section className="chapter-format-history" aria-label="Saved chapter format history"><p className="field-hint">Previous saved versions are preserved with this chapter. Restore one or download the history.</p><div className="chapter-format-history-list">{raw.__formatHistory.map((entry, index) => { const saved = entry as { format?: string; savedAt?: string }; return <form action={restoreChapterFormatVersion} key={`${saved.savedAt ?? "version"}-${index}`} onSubmit={(event) => { if (!window.confirm(`Restore the saved ${chapterFormatLabel(saved.format ?? "prose")} version? The current saved version will also be kept in history.`)) event.preventDefault(); }}><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/><input type="hidden" name="versionIndex" value={index}/><Button type="submit" variant="outline">Restore {chapterFormatLabel(saved.format ?? "prose")} · {saved.savedAt ? new Date(saved.savedAt).toLocaleDateString() : `version ${index + 1}`}</Button></form>; })}<Button type="button" variant="outline" onClick={downloadFormatHistory}>Download format history</Button></div></section> : null}
+    <FieldGroup><Field><FieldLabel htmlFor={chapterId ? "edit-chapter-format" : "new-chapter-format"}>Chapter format</FieldLabel><NativeSelect id={chapterId ? "edit-chapter-format" : "new-chapter-format"} value={selectedFormat} onChange={(event) => { const next = event.target.value as ChapterFormat; if (chapterId && next !== selectedFormat) { if (!window.confirm("Change this chapter’s format? Unsaved edits in the current editor will be discarded. The last saved version will be preserved in this chapter’s format history and can be downloaded.")) return; setConvertedFrom(selectedFormat); } setSelectedFormat(next); }}>{Object.keys(formatHelp).map((name) => <NativeSelectOption key={name} value={name}>{chapterFormatLabel(name)}</NativeSelectOption>)}</NativeSelect><FieldDescription>{formatHelp[selectedFormat]}</FieldDescription>{convertedFrom && <p className="notice">Converted from {chapterFormatLabel(convertedFrom)}. Save to keep this format; the previous saved version will remain available in format history.</p>}</Field></FieldGroup>
     {selectedFormat === "prose" ? <><RichChapterEditor key={chapterId ?? "new"} workId={workId} initialDocument={initialDocument} initialTitle={title ?? ""} initialChapterId={chapterId} initialUpdatedAt={expectedUpdatedAt}/>{isRevision && <p className="notice">Published readers keep the previous snapshot until you publish this revision.</p>}</> : <ManagedForm action={action} className="studio-edit-form" onSubmit={validateSpecialFormat}>
       <input type="hidden" name="workId" value={workId}/>{chapterId && <><input type="hidden" name="chapterId" value={chapterId}/><input type="hidden" name="expectedUpdatedAt" value={expectedUpdatedAt}/></>}<input type="hidden" name="format" value={selectedFormat}/>
       <FieldGroup>

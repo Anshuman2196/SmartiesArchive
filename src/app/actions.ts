@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { chapterSchema, loginSchema, recoverySchema, registrationSchema, workEditSchema, workSchema } from "@/lib/validation";
 import { friendlyAuthError, safeNextPath } from "@/lib/auth-feedback";
-import { buildChapterContent } from "@/lib/chapter-content";
+import { buildChapterContent, chapterFormats } from "@/lib/chapter-content";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
@@ -263,22 +263,35 @@ export async function deleteWork(form: FormData) {
 const chapterIdSchema = z.uuid();
 const saveChapterSchema = chapterSchema.extend({ workId: z.uuid(), chapterId: z.uuid(), expectedUpdatedAt: z.string().refine((value) => Number.isFinite(Date.parse(value))) });
 
+function chapterContentWithoutFormatHistory(value: unknown): Record<string, unknown> {
+  const content = typeof value === "object" && value !== null && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : {};
+  delete content.__formatHistory;
+  return content;
+}
+
 export async function saveChapter(form: FormData) {
   const workId = value(form, "workId");
   const chapterId = value(form, "chapterId");
   const parsed = saveChapterSchema.safeParse({ workId, chapterId, title: value(form, "title"), content: value(form, "content"), format: value(form, "format") || "prose", expectedUpdatedAt: value(form, "expectedUpdatedAt") });
   if (!parsed.success) redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`);
   const { supabase, user } = await requireOwnedWork(workId);
-  let payload;
-  try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt"), user.id, workId); }
-  catch { redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`); }
-  const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at").eq("id", chapterId).eq("work_id", workId).maybeSingle();
+  const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at,title,format,body,content").eq("id", chapterId).eq("work_id", workId).maybeSingle();
   if (!chapter) redirect(`/studio/${workId}?status=not_found`);
-  const { data: draft } = await supabase.from("chapter_drafts").select("updated_at").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
+  const { data: draft } = await supabase.from("chapter_drafts").select("updated_at,title,format,body,content").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
   const isStaged = chapter.state === "published" || !!draft;
   const expected = isStaged ? draft?.updated_at ?? chapter.updated_at : chapter.updated_at;
   if (expected !== parsed.data.expectedUpdatedAt) redirect(`/studio/${workId}?chapter=${chapterId}&status=conflict`);
-  const contentFields = { title: parsed.data.title, body: payload.body, format: parsed.data.format, content: payload.content };
+  let payload;
+  try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt"), user.id, workId); }
+  catch { redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`); }
+  const previous = draft ?? chapter;
+  const previousContent = typeof previous.content === "object" && previous.content !== null && !Array.isArray(previous.content) ? previous.content as Record<string, unknown> : {};
+  const history = Array.isArray(previousContent.__formatHistory) ? previousContent.__formatHistory : [];
+  const formatHistory = previous.format !== parsed.data.format
+    ? [...history, { title: previous.title, format: previous.format, body: previous.body, content: chapterContentWithoutFormatHistory(previous.content), savedAt: new Date().toISOString() }]
+    : history;
+  const savedContent = { ...(payload.content as Record<string, unknown>), ...(formatHistory.length ? { __formatHistory: formatHistory } : {}) };
+  const contentFields = { title: parsed.data.title, body: payload.body, format: parsed.data.format, content: savedContent };
   if (isStaged) {
     const result = draft
       ? await supabase.from("chapter_drafts").update({ ...contentFields, updated_at: new Date().toISOString() }).eq("work_id", workId).eq("chapter_id", chapterId).eq("updated_at", expected).select("chapter_id").maybeSingle()
@@ -291,6 +304,41 @@ export async function saveChapter(form: FormData) {
   await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
   revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
   redirect(`/studio/${workId}?chapter=${chapterId}&status=${isStaged ? "chapter_draft_saved" : "chapter_saved"}`);
+}
+
+export async function restoreChapterFormatVersion(form: FormData) {
+  const workId = value(form, "workId"), chapterId = value(form, "chapterId"), index = Number(value(form, "versionIndex")), expectedUpdatedAt = value(form, "expectedUpdatedAt");
+  if (!z.uuid().safeParse(chapterId).success || !Number.isInteger(index) || index < 0 || !Number.isFinite(Date.parse(expectedUpdatedAt))) redirect(`/studio/${workId}?status=not_found`);
+  const { supabase, user } = await requireOwnedWork(workId);
+  const [{ data: chapter }, { data: draft }] = await Promise.all([
+    supabase.from("chapters").select("id,state,updated_at,title,format,body,content").eq("id", chapterId).eq("work_id", workId).maybeSingle(),
+    supabase.from("chapter_drafts").select("updated_at,title,format,body,content").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle(),
+  ]);
+  if (!chapter) redirect(`/studio/${workId}?status=not_found`);
+  const staged = chapter.state === "published" || !!draft;
+  const expected = staged ? draft?.updated_at ?? chapter.updated_at : chapter.updated_at;
+  if (expected !== expectedUpdatedAt) redirect(`/studio/${workId}?chapter=${chapterId}&status=conflict`);
+  const current = draft ?? chapter;
+  const currentContent = typeof current.content === "object" && current.content !== null && !Array.isArray(current.content) ? current.content as Record<string, unknown> : {};
+  const history = Array.isArray(currentContent.__formatHistory) ? currentContent.__formatHistory : [];
+  const selected = history[index];
+  if (typeof selected !== "object" || selected === null || Array.isArray(selected)) redirect(`/studio/${workId}?chapter=${chapterId}&status=not_found`);
+  const version = selected as Record<string, unknown>;
+  const parsedFormat = z.enum(chapterFormats).safeParse(version.format);
+  if (!parsedFormat.success || typeof version.title !== "string" || typeof version.body !== "string" || typeof version.content !== "object" || version.content === null || Array.isArray(version.content)) redirect(`/studio/${workId}?chapter=${chapterId}&status=not_found`);
+  const currentSource = { ...currentContent };
+  delete currentSource.__formatHistory;
+  const versionContent = { ...(version.content as Record<string, unknown>), __formatHistory: [...history, { title: current.title, format: current.format, body: current.body, content: currentSource, savedAt: new Date().toISOString() }] };
+  const fields = { title: version.title, format: parsedFormat.data, body: version.body, content: versionContent };
+  const result = staged
+    ? draft
+      ? await supabase.from("chapter_drafts").update({ ...fields, updated_at: new Date().toISOString() }).eq("work_id", workId).eq("chapter_id", chapterId).eq("updated_at", expected).select("chapter_id").maybeSingle()
+      : await supabase.from("chapter_drafts").insert({ work_id: workId, chapter_id: chapterId, ...fields }).select("chapter_id").maybeSingle()
+    : await supabase.from("chapters").update(fields).eq("id", chapterId).eq("work_id", workId).eq("state", "draft").eq("updated_at", expected).select("id").maybeSingle();
+  if (result.error || !result.data) redirect(`/studio/${workId}?chapter=${chapterId}&status=conflict`);
+  await cleanupUnreferencedStoryMedia(supabase, user.id, workId);
+  revalidatePath(`/studio/${workId}`); revalidatePath(`/work/${workId}`); revalidatePath(`/work/${workId}/chapter/${chapterId}`);
+  redirect(`/studio/${workId}?chapter=${chapterId}&status=chapter_format_restored`);
 }
 
 export async function publishChapter(form: FormData) {
@@ -561,13 +609,19 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
       return { ok: true, chapterId: data.id, updatedAt: data.updated_at };
     }
     if (!z.uuid().safeParse(chapterId).success || !Number.isFinite(Date.parse(expectedUpdatedAt))) return { ok: false, message: "Reload this chapter before saving." };
-    const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at").eq("id", chapterId).eq("work_id", workId).maybeSingle();
+    const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at,title,format,body,content").eq("id", chapterId).eq("work_id", workId).maybeSingle();
     if (!chapter) return { ok: false, message: "This chapter is no longer available." };
-    const { data: draft } = await supabase.from("chapter_drafts").select("updated_at").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
+    const { data: draft } = await supabase.from("chapter_drafts").select("updated_at,title,format,body,content").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
     const staged = chapter.state === "published" || !!draft;
     const currentVersion = draft?.updated_at ?? chapter.updated_at;
     if (currentVersion !== expectedUpdatedAt) return { ok: false, message: "This chapter changed in another session. Reload before saving." };
-    const fields = { title: parsedTitle.data, body: plainText, format: "prose", content: { type: "rich", document } };
+    const previous = draft ?? chapter;
+    const previousContent = typeof previous.content === "object" && previous.content !== null && !Array.isArray(previous.content) ? previous.content as Record<string, unknown> : {};
+    const history = Array.isArray(previousContent.__formatHistory) ? previousContent.__formatHistory : [];
+    const formatHistory = previous.format !== "prose"
+      ? [...history, { title: previous.title, format: previous.format, body: previous.body, content: chapterContentWithoutFormatHistory(previous.content), savedAt: new Date().toISOString() }]
+      : history;
+    const fields = { title: parsedTitle.data, body: plainText, format: "prose", content: { type: "rich", document, ...(formatHistory.length ? { __formatHistory: formatHistory } : {}) } };
     const result = staged
       ? draft
         ? await supabase.from("chapter_drafts").update({ ...fields, updated_at: new Date().toISOString() }).eq("work_id", workId).eq("chapter_id", chapterId).eq("updated_at", currentVersion).select("updated_at").single()

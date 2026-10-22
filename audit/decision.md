@@ -107,3 +107,5 @@
 - Use task-specific labels on authentication screens (Your account, Password recovery, New password) so each eyebrow names the current step and the reset screens do not repeat the same slogan.
 
 - Prune a repeated CSS selector only when every declaration on that selector is re-applied with the same value and importance later in the same media/supports context. Keep selectors with any differing declaration; this static deduplication does not replace visual review of the remaining editor cascade.
+
+- Allow existing chapters to change format only after warning that unsaved editor changes are discarded. Before saving the converted format, retain the previous saved title/body/content as history inside the chapter's JSON content, preserving references to private media so cleanup keeps those assets. Provide server-authorized restoration with optimistic concurrency and a JSON history download; readers continue to parse the active format and ignore the history metadata. This avoids a migration and keeps format conversion reversible.

@@ -44,6 +44,7 @@ const statusCopy: Record<string, { message: string; error?: boolean }> = {
   rate_limited: { message: "You’ve reached the chapter creation limit for this hour. Try again later.", error: true },
   chapter_saved: { message: "Chapter draft saved." },
   chapter_draft_saved: { message: "Revision draft saved. Readers still see the published chapter." },
+  chapter_format_restored: { message: "Saved chapter format restored as a draft." },
   chapter_published: { message: "Chapter published." },
   chapter_unpublished: { message: "Chapter unpublished and kept as a draft." },
   revision_discarded: { message: "Unpublished chapter changes discarded." },
