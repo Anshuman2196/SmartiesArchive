@@ -5,6 +5,7 @@ import { signStoryMediaUrls } from "@/lib/story-media";
 import { CoverFallback } from "@/components/cover-fallback";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { HomeContinueLink } from "@/components/home-continue-link";
+import { DismissibleNotice } from "@/components/dismissible-notice";
 
 type RecentWork = {
   id: string;
@@ -21,7 +22,8 @@ const genreArtwork = [
   { tag: "Dark Fantasy", image: "/images/genre-dark-fantasy.webp" },
 ];
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const { status } = await searchParams;
   let signedIn = false;
   let recentWorks: RecentWork[] = [];
   let genres: { tag: string; image: string; count: number }[] = [];
@@ -49,6 +51,7 @@ export default async function HomePage() {
   const studioHref = signedIn ? "/studio" : "/auth?mode=signup&next=%2Fstudio";
 
   return <main id="main-content" tabIndex={-1} className="home cinema-home">
+    {status === "signed_out" && <div className="shell"><DismissibleNotice message="You’re signed out." hrefWithoutStatus="/"/></div>}
     <section className="cinema-hero" aria-labelledby="home-title">
       <Image className="cinema-hero-image" src="/images/cinema-projection.webp" alt="" fill priority sizes="100vw"/>
       <div className="cinema-hero-shade" aria-hidden="true"/>

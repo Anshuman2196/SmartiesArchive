@@ -122,7 +122,7 @@ export async function signOut(_previous: AuthActionState): Promise<AuthActionSta
       cookieStore.set(name, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: `/work/${workId}`, maxAge: 0 });
     }
   } catch { /* Sign-out succeeded; browser-side reading state is still cleared on the redirect. */ }
-  redirect("/");
+  redirect("/?status=signed_out");
 }
 
 export async function createWorkRecord(form: FormData): Promise<{ ok: boolean; workId?: string; message?: string }> {

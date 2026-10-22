@@ -62,6 +62,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
 | B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
 | Reader completion navigation | `[~]` | The completion card keeps one primary continue/story-details action and adds links to review the completed chapter, visit the author's profile, and browse up to three story tags. The pager keeps Previous available; responsive and anchor behavior need browser confirmation. |
+| Auth feedback | `[~]` | Successful sign-out now returns home with a dismissible confirmation. Sign-in and account-creation screens explain that Creator Studio is where writers manage and publish stories when the requested destination is `/studio`; confirm both flows in the browser. |
 | Story-page mobile CTA | `[x]` | Place Start/Resume reading above the long summary while keeping tags and content notes ahead of the CTA. |
 
 ### Cross-cutting findings
