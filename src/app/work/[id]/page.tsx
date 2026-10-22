@@ -8,6 +8,7 @@ import { isSecureMediaUrl } from "@/lib/reader-state";
 import { signStoryMediaUrl } from "@/lib/story-media";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/current-user";
+import { workVisibilityLabel } from "@/lib/work-visibility";
 import type { Metadata } from "next";
 
 type Chapter = { id: string; title: string; position: number; state: "draft" | "published"; format?: string };
@@ -60,7 +61,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const first = published[0];
   const resumeId = progress?.chapter_id && published.some((chapter) => chapter.id === progress.chapter_id) ? progress.chapter_id : undefined;
   const displayChapters = isOwner ? chapters : published;
-  const visibilityLabel = work.visibility === "unlisted" ? "Shared by link" : work.visibility === "private" ? "Private" : "Public";
+  const visibilityLabel = workVisibilityLabel(work.visibility);
 
   return <main id="main-content" tabIndex={-1} className="shell story-page">
     <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <CoverFallback title={work.title} className="story-cover story-cover-placeholder"/>}</div>
