@@ -402,7 +402,7 @@ export async function saveReadingProgress(workId: string, chapterId: string, pro
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-    const saved = await persistReadingProgress(supabase, user.id, workId, chapterId, progress);
+    const saved = await persistReadingProgress(supabase, workId, chapterId, progress);
     if (saved) revalidatePath("/shelf");
     return saved;
   } catch { return false; }

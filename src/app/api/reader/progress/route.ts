@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
-  const saved = await persistReadingProgress(supabase, user.id, parsed.data.workId, parsed.data.chapterId, parsed.data.progress);
+  const saved = await persistReadingProgress(supabase, parsed.data.workId, parsed.data.chapterId, parsed.data.progress);
   if (!saved) return NextResponse.json({ ok: false }, { status: 500 });
   return new NextResponse(null, { status: 204 });
 }
