@@ -41,6 +41,7 @@ const statusCopy: Record<string, { message: string; error?: boolean }> = {
   metadata_draft: { message: "Details saved as a private draft. Readers will keep seeing the published version until you publish these changes." },
   metadata_saved: { message: "Story details saved." },
   chapter_created: { message: "Chapter draft created." },
+  rate_limited: { message: "You’ve reached the chapter creation limit for this hour. Try again later.", error: true },
   chapter_saved: { message: "Chapter draft saved." },
   chapter_draft_saved: { message: "Revision draft saved. Readers still see the published chapter." },
   chapter_published: { message: "Chapter published." },

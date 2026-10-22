@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
 import { storyMediaExtension, validStoryImageHeader, validStoryPdfHeader } from "@/lib/image-validation";
 import { persistReadingProgress } from "@/lib/reading-progress";
+import { consumeUserActionRateLimit } from "@/lib/action-rate-limit";
 import { getSiteOrigin } from "@/lib/site-origin";
 import { cookies } from "next/headers";
 
@@ -162,6 +163,7 @@ export async function createChapter(form: FormData) {
   let payload;
   try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt")); }
   catch { return redirect(`/studio/${workId}?status=invalid_chapter`); }
+  if (!await consumeUserActionRateLimit(supabase, "chapter_create")) return redirect(`/studio/${workId}?status=rate_limited`);
   const { error } = await supabase.from("chapters").insert({ work_id: workId, title: parsed.data.title, body: payload.body, format: parsed.data.format, content: payload.content, state: "draft" });
   if (error) redirect(`/studio/${workId}?status=save_error`);
   revalidatePath(`/studio/${workId}`);
@@ -360,6 +362,7 @@ export async function duplicateChapter(form: FormData) {
   const { data: source } = await supabase.from("chapters").select("id,title,body,format,content,position").eq("id", chapterId).eq("work_id", workId).maybeSingle();
   if (!source) redirect(`/studio/${workId}?status=not_found`);
   const { data: draft } = await supabase.from("chapter_drafts").select("title,body,format,content").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
+  if (!await consumeUserActionRateLimit(supabase, "chapter_create")) redirect(`/studio/${workId}?status=rate_limited`);
   const selected = draft ?? source;
   const { data: copy, error } = await supabase.from("chapters").insert({ work_id: workId, title: `${selected.title.slice(0, 113)} (copy)`, body: selected.body, format: selected.format, content: selected.content, state: "draft" }).select("id").single();
   if (error || !copy) redirect(`/studio/${workId}?status=save_error`);
@@ -507,8 +510,10 @@ export async function prepareStoryMediaUpload(workId: string, fileName: string, 
   try {
     const { supabase, user } = await requireOwnedWorkForAction(workId);
     const isImage = mimeType.startsWith("image/");
+    const isPdf = mimeType === "application/pdf";
     const valid = Array.isArray(headerBytes) && (isImage ? validStoryImageHeader(mimeType, fileSize, headerBytes) : validStoryPdfHeader(mimeType, fileSize, headerBytes));
     if (!valid) return { ok: false, message: isImage ? "Choose a valid JPEG, PNG, WebP, or GIF image under 8 MB." : "Choose a valid PDF under 50 MB." };
+    if (!await consumeUserActionRateLimit(supabase, isPdf ? "pdf_upload" : "image_upload")) return { ok: false, message: "You’ve reached the upload limit for this hour. Try again later." };
     void fileName;
     const extension = storyMediaExtension(mimeType);
     if (!extension) return { ok: false, message: "That file type is not supported." };
@@ -549,6 +554,7 @@ export async function saveRichChapter(workId: string, chapterId: string | undefi
     if (!parsedTitle.success) return { ok: false, message: "Add a chapter title of 120 characters or fewer." };
     const { document, plainText } = validateRichDocument(input, user.id, workId);
     if (!chapterId) {
+      if (!await consumeUserActionRateLimit(supabase, "chapter_create")) return { ok: false, message: "You’ve reached the chapter creation limit for this hour. Try again later." };
       const { data, error } = await supabase.from("chapters").insert({ work_id: workId, title: parsedTitle.data, body: plainText, format: "prose", content: { type: "rich", document }, state: "draft" }).select("id,updated_at").single();
       if (error || !data) return { ok: false, message: "The chapter draft could not be saved." };
       revalidatePath(`/studio/${workId}`);
@@ -595,6 +601,7 @@ export async function saveChapterReview(_previous: ReviewActionState, form: Form
     const { data: work, error: workError } = await supabase.from("works").select("author_id").eq("id", parsed.data.workId).maybeSingle();
     if (workError || !work) return { kind: "error", message: "This chapter is not available for reviews right now." };
     if (work?.author_id === user.id) return { kind: "error", message: "Authors cannot rate or review their own story." };
+    if (!await consumeUserActionRateLimit(supabase, "review_write")) return { kind: "error", message: "You’ve reached the review update limit for this hour. Try again later." };
     const { error } = await supabase.from("chapter_reviews").upsert({
       work_id: parsed.data.workId,
       chapter_id: parsed.data.chapterId,
@@ -624,6 +631,7 @@ export async function deleteChapterReview(_previous: ReviewActionState, form: Fo
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { kind: "error", message: "Sign in to manage your review." };
+    if (!await consumeUserActionRateLimit(supabase, "review_write")) return { kind: "error", message: "You’ve reached the review update limit for this hour. Try again later." };
     const { error } = await supabase.from("chapter_reviews").delete().eq("work_id", parsed.data.workId).eq("chapter_id", parsed.data.chapterId).eq("user_id", user.id);
     if (error) {
       console.warn("[chapter-review] delete rejected", { code: error.code ?? "unknown" });
@@ -649,6 +657,7 @@ export async function restoreChapterReview(_previous: ReviewActionState, form: F
       supabase.from("chapters").select("id").eq("id", parsed.data.chapterId).eq("work_id", parsed.data.workId).eq("state", "published").maybeSingle(),
     ]);
     if (!work || work.author_id === user.id || !chapter) return { kind: "error", message: "This chapter is not available for reviews right now." };
+    if (!await consumeUserActionRateLimit(supabase, "review_write")) return { kind: "error", message: "You’ve reached the review update limit for this hour. Try again later." };
     const { error } = await supabase.from("chapter_reviews").upsert({ work_id: parsed.data.workId, chapter_id: parsed.data.chapterId, user_id: user.id, rating: parsed.data.rating, body: parsed.data.body }, { onConflict: "chapter_id,user_id" });
     if (error) return { kind: "error", message: "We couldn’t restore your review. Please try again." };
     revalidatePath(`/work/${parsed.data.workId}`);

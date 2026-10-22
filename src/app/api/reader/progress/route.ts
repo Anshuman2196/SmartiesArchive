@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { persistReadingProgress } from "@/lib/reading-progress";
+import { consumeUserActionRateLimit } from "@/lib/action-rate-limit";
 
 const progressPayload = z.object({
   workId: z.uuid(),
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
+  if (!await consumeUserActionRateLimit(supabase, "reader_progress")) {
+    return NextResponse.json({ ok: false }, { status: 429, headers: { "Retry-After": "3600" } });
+  }
 
   const saved = await persistReadingProgress(supabase, parsed.data.workId, parsed.data.chapterId, parsed.data.progress);
   if (!saved) return NextResponse.json({ ok: false }, { status: 500 });
