@@ -181,7 +181,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     progressRef.current = value;
     if (Date.now() - lastLocalSave.current > 800) {
       lastLocalSave.current = Date.now();
-      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: value })); } catch { /* Guest progress is best effort. */ }
+      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: value, savedAt: Date.now() })); } catch { /* Guest progress is best effort. */ }
     }
     if (authenticated) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -207,7 +207,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   useEffect(() => {
     if (previewingDraft) return;
     const saveLatest = () => {
-      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current })); } catch { /* Guest progress is best effort. */ }
+      if (!authenticated) try { localStorage.setItem(`smarties-reading:${workId}`, JSON.stringify({ chapterId, progress: progressRef.current, savedAt: Date.now() })); } catch { /* Guest progress is best effort. */ }
       flushProgress();
     };
     const saveWhenHidden = () => { if (document.visibilityState === "hidden") saveLatest(); };

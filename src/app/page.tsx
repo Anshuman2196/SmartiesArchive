@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signStoryMediaUrls } from "@/lib/story-media";
 import { CoverFallback } from "@/components/cover-fallback";
 import { getCurrentUser } from "@/lib/supabase/current-user";
+import { HomeContinueLink } from "@/components/home-continue-link";
 
 type RecentWork = {
   id: string;
@@ -56,7 +57,7 @@ export default async function HomePage() {
           <p className="cinema-label">Smarties Archive <span>Original fiction</span></p>
           <h1 id="home-title">The archive<br/>is open.</h1>
           <p>Stories by this community, ready when you are. Read something new, return to your place, or share your own work.</p>
-          <div className="cinema-actions"><Link href="/library" className="pill primary">Explore stories</Link><Link href={shelfHref} className="cinema-secondary">Continue reading</Link></div>
+          <div className="cinema-actions"><Link href="/library" className="pill primary">Explore stories</Link><HomeContinueLink signedIn={signedIn}/></div>
         </div>
         {latest && <div className="cinema-feature" aria-label="Latest story">
           <span className="cinema-feature-label">Latest in the archive</span>
