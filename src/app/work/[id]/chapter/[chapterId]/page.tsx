@@ -12,7 +12,7 @@ import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 import type { Metadata } from "next";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
-type ChapterLink = { id: string; title: string; position: number };
+type ChapterLink = { id: string; title: string; position: number; state?: string };
 type Work = { id: string; title: string; author_id: string; content_warnings?: string[] };
 type Author = { username: string; display_name: string };
 
@@ -53,6 +53,7 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   if (!work && viaUnlistedLink) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
   if (!work) notFound();
   const isOwner = user?.id === work.author_id;
+  if (chapter.state === "draft" && !isOwner) notFound();
   const warnings = work.content_warnings ?? [];
   const warningAccepted = !warnings.length || (await cookies()).get(`smarties-warning-${id}`)?.value === "accepted";
   if (!warningAccepted) return <>
@@ -76,7 +77,7 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   })();
   const listResultPromise = viaUnlistedLink
     ? supabase.rpc("read_unlisted_chapters", { p_work_id: id })
-    : supabase.from("chapters").select("id,title,position").eq("work_id", id).order("position");
+    : supabase.from("chapters").select("id,title,position,state").eq("work_id", id).order("position");
   const savedPromise = user && !previewingDraft
     ? supabase.from("reading_progress").select("chapter_id,progress").eq("user_id", user.id).eq("work_id", id).maybeSingle()
     : Promise.resolve({ data: null });
@@ -92,12 +93,13 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
     authorPromise,
   ]);
   const chapters = (listResult.data ?? []) as ChapterLink[];
+  const readerChapters = isOwner ? chapters : chapters.filter((item) => item.state === "published");
   const saved = savedResult.data;
   const author = authorResult.data as Author | null;
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} chapterTitle={displayedChapter.title} content={content} chapters={chapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} chapterTitle={displayedChapter.title} content={content} chapters={readerChapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
       {!previewingDraft && <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
         <ChapterReviewsLoader workId={id} chapterId={chapterId} authorId={work.author_id} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
       </Suspense>}
