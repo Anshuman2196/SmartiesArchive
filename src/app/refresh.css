@@ -138,3 +138,6 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
   .editor-sidebar-panel{max-height:calc(58dvh - 92px)}
 }
 @media(max-width:375px){.editor-save-status{max-width:48px}.editor-breadcrumb{max-width:16vw}}
+.studio-overline{font-size:12px}
+.palette-select-label select{font-size:12px}
+.reader-topbar,.reader-save-status,.reader-tools label,.reader-tools legend,.reader-tools select,.reader-media figcaption,.reader-action-message{font-size:12px}
