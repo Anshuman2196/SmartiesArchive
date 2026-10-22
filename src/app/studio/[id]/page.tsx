@@ -86,6 +86,7 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
       title: chapter.title,
       state: chapter.state,
       body: chapterDrafts.get(chapter.id)?.body ?? chapter.body,
+      content: chapterDrafts.get(chapter.id)?.content ?? chapter.content,
       hasDraft: chapterDrafts.has(chapter.id),
     })),
   });
