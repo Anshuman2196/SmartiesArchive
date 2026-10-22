@@ -12,6 +12,7 @@ import {
   matchesLibraryFilters,
   parseLibraryFilters,
   sortLibraryWorks,
+  splitFeaturedWorks,
   type LibrarySearchParams,
   type LibraryWork,
 } from "@/lib/library-filters";
@@ -73,6 +74,19 @@ function libraryStoryLinkLabel(work: LibraryWork, rating?: { average: number; co
 function LibraryAuthor({ work }: { work: LibraryWork }) {
   const name = work.profiles?.display_name ?? "A reader";
   return <span className={styles.author}>By {work.profiles?.username ? <Link href={`/author/${work.profiles.username}`}>{name}</Link> : name}</span>;
+}
+
+function LibraryStoryCard({ work, filters, rating, eager = false, featured = false }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters>; rating?: { average: number; count: number }; eager?: boolean; featured?: boolean }) {
+  return <article className={`${styles.card}${featured ? ` ${styles.featuredCard}` : ""}`}>
+    <Link className={styles.posterLink} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}><LibraryPoster work={work} eager={eager}/></Link>
+    <div className={styles.body}>
+      <h2 className={styles.title}><Link href={`/work/${work.id}`}>{work.title}</Link></h2>
+      {work.summary && <p className={styles.summary}>{work.summary}</p>}
+      <LibraryTags work={work} filters={filters}/>
+      <LibraryWarnings work={work}/>
+      <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{rating && <span aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} readers`}>★ {rating.average.toFixed(1)} · {rating.count} {rating.count === 1 ? "reader" : "readers"}</span>}</div>
+    </div>
+  </article>;
 }
 
 function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning" | "excludeWarning"): string {
@@ -153,19 +167,21 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   }
 
   const filteredWorks = sortLibraryWorks(allWorks.filter((work) => matchesLibraryFilters(work, filters)), filters.sort);
+  const activeFilters = hasActiveLibraryFilters(filters);
+  const { featuredWorks, remainingWorks } = splitFeaturedWorks(filteredWorks, configured && !activeFilters && filters.sort === "newest");
   const pageSize = 24;
-  const pageCount = Math.max(1, Math.ceil(filteredWorks.length / pageSize));
+  const pageCount = Math.max(1, Math.ceil(remainingWorks.length / pageSize));
   const page = Math.min(currentPage, pageCount);
-  const visibleWorks = filteredWorks.slice((page - 1) * pageSize, page * pageSize);
+  const visibleWorks = remainingWorks.slice((page - 1) * pageSize, page * pageSize);
   let reviewSummaries: Record<string, { average: number; count: number }> = {};
-  if (reviewClient && visibleWorks.length) {
+  const ratingWorks = [...featuredWorks, ...visibleWorks];
+  if (reviewClient && ratingWorks.length) {
     try {
-      reviewSummaries = await getWorkReviewSummaries(reviewClient, visibleWorks.map((work) => work.id), Object.fromEntries(visibleWorks.flatMap((work) => work.author_id ? [[work.id, work.author_id] as const] : [])));
+      reviewSummaries = await getWorkReviewSummaries(reviewClient, ratingWorks.map((work) => work.id), Object.fromEntries(ratingWorks.flatMap((work) => work.author_id ? [[work.id, work.author_id] as const] : [])));
     } catch { /* Keep the library visible when ratings are temporarily unavailable. */ }
   }
   const tags = getLibraryOptions(allWorks, "tags");
   const warnings = getLibraryOptions(allWorks, "content_warnings");
-  const activeFilters = hasActiveLibraryFilters(filters);
 
   return <main id="main-content" tabIndex={-1} className="shell section library-page">
     <div className="library-intro">
@@ -188,15 +204,8 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => { const rating = reviewSummaries[work.id]; return <article className={styles.card} key={work.id}>
-      <Link className={styles.posterLink} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}><LibraryPoster work={work} eager={index < 3}/></Link>
-      <div className={styles.body}>
-        <h2 className={styles.title}><Link href={`/work/${work.id}`}>{work.title}</Link></h2>
-        {work.summary && <p className={styles.summary}>{work.summary}</p>}
-        <LibraryTags work={work} filters={filters}/>
-        <LibraryWarnings work={work}/>
-        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{rating && <span aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} readers`}>★ {rating.average.toFixed(1)} · {rating.count} {rating.count === 1 ? "reader" : "readers"}</span>}</div>
-      </div>
-    </article>; })}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
+    {featuredWorks.length > 0 && <section className="library-featured" aria-labelledby="library-featured-heading"><div className="library-results-heading"><strong id="library-featured-heading">Featured stories</strong><span>Recently published</span></div><div className={styles.featuredGrid}>{featuredWorks.map((work, index) => <LibraryStoryCard key={work.id} work={work} filters={filters} rating={reviewSummaries[work.id]} eager={index === 0} featured/>)}</div></section>}
+
+    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : featuredWorks.length ? "More stories" : "Recently added"}</span><span>{remainingWorks.length} {remainingWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <LibraryStoryCard key={work.id} work={work} filters={filters} rating={reviewSummaries[work.id]} eager={index < 3}/>)}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
   </main>;
 }

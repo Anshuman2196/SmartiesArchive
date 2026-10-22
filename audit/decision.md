@@ -92,3 +92,5 @@
 - Retire the six legacy editor class families (.editor-stats, .editor-toolbar, .editor-more, .editor-mode-toggle, .editor-more-menu, and .editor-context-hint) from global and token styles only after confirming no TSX component references them. Keep the active editor selectors. The user will apply the prepared Supabase migration and run browser verification later.
 
 - Keep manga page uploads private in the existing story-media bucket. Accept only HTTPS sources or correctly scoped owner/story storage references when saving, and sign private panel URLs on reader pages; do not convert the uploader to public URLs.
+
+- Implement the existing library decision by showing the three newest published stories in an automatic featured shelf on the unfiltered, newest-first library view. Keep them out of the paginated results list; do not add a staff-pick column or migration.

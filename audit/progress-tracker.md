@@ -172,7 +172,7 @@ These requests are now explicitly included in the plan:
 - [x] Add estimated reading-time metadata to cards from published chapter text at 220 words per minute; reducing the full-body query remains tracked under P2-9.
 - [x] Add a simple sort option
 - [x] Add a better no-results state
-- [ ] Add a small featured/staff-pick shelf
+- [x] Add a small featured shelf using the newest three published stories automatically; no staff-pick database field is needed.
 - [-] Pagination and large-scale search infrastructure for now
 
 ### Navigation and accessibility
@@ -330,11 +330,11 @@ Cover only the flows that matter to this group:
 
 ## Remaining verification
 
-- [ ] Apply and run the admin, review, and PDF migrations in the configured Supabase project. The connected Supabase tool rejected migration/list access with a permission error; the committed SQL is ready to apply manually.
+- [ ] User follow-up: apply the admin, review, PDF, rate-limit, and library-stat migrations to hosted SmartiesArchive; the user will apply hosted migrations later.
 - [x] Bootstrap the first admin in `admin_users`.
-- [ ] Upload and read a real PDF chapter.
-- [ ] Upload, reorder, caption, save, and read a real image-only manga chapter.
-- [ ] Run mobile checks at 320px, 375px, and 768px.
+- [ ] User follow-up: upload and read a real PDF chapter in the hosted app after applying its migration.
+- [ ] User follow-up: upload, reorder, caption, save, and read a real image-only manga chapter in the browser.
+- [ ] User follow-up: run browser/device checks at 320px, 375px, and 768px, plus the remaining audited reader/writer flows.
 - [~] Perform a clean production build with no concurrent Next processes. Tests, lint, and typecheck pass; the build remained at optimization because unrelated Next workers were already running.
 
 ## 2026-10-21 library card follow-up
@@ -355,7 +355,7 @@ Cover only the flows that matter to this group:
 
 - [x] Add persistent story title/author context to the chapter reader
 - [x] Add image zoom/fullscreen for comics and inline illustrations
-- [ ] Run real-device checks at 320px, 375px, and 768px widths
+- [ ] User follow-up: run browser/device checks at 320px, 375px, and 768px widths
 - [ ] Remove or consolidate duplicated editor CSS rules after visual regression checks
 
 ## 2026-10-21 performance follow-up
