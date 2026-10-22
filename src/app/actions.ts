@@ -297,9 +297,11 @@ export async function unpublishChapter(form: FormData) {
 
 export async function deleteChapter(form: FormData) {
   const workId = value(form, "workId"), chapterId = value(form, "chapterId");
+  const draftOnly = value(form, "draftOnly") === "1";
   if (!chapterIdSchema.safeParse(chapterId).success) redirect(`/studio/${workId}?status=not_found`);
   const { supabase, user } = await requireOwnedWork(workId);
-  const { data, error } = await supabase.from("chapters").delete().eq("id", chapterId).eq("work_id", workId).select("id").maybeSingle();
+  const deletion = supabase.from("chapters").delete().eq("id", chapterId).eq("work_id", workId);
+  const { data, error } = await (draftOnly ? deletion.eq("state", "draft") : deletion).select("id").maybeSingle();
   if (error) {
     console.warn("[studio-delete] chapter delete rejected", { code: error.code ?? "unknown" });
     redirect(`/studio/${workId}?status=delete_failed`);
