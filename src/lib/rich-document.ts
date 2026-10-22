@@ -7,9 +7,9 @@ export type RichNode = { type: string; attrs?: Record<string, unknown>; text?: s
 export type RichDocument = { type: "doc"; content: RichNode[] };
 export const chapterContentLimits = { text: 100_000, json: 750_000, nodes: 12_000, children: 6000 } as const;
 
-const allowedNodes = new Set(["doc", "paragraph", "heading", "text", "bulletList", "orderedList", "listItem", "blockquote", "horizontalRule", "codeBlock", "hardBreak", "literaryBlock", "imageBlock"]);
+const allowedNodes = new Set(["doc", "paragraph", "heading", "text", "bulletList", "orderedList", "listItem", "taskList", "taskItem", "table", "tableRow", "tableCell", "tableHeader", "blockquote", "horizontalRule", "codeBlock", "hardBreak", "literaryBlock", "imageBlock"]);
 const allowedMarks = new Set(["bold", "italic", "underline", "strike", "code", "highlight", "textStyle", "link", "superscript", "subscript", "spoiler"]);
-const blockNodes = new Set(["paragraph", "heading", "bulletList", "orderedList", "blockquote", "horizontalRule", "codeBlock", "literaryBlock", "imageBlock"]);
+const blockNodes = new Set(["paragraph", "heading", "bulletList", "orderedList", "taskList", "table", "blockquote", "horizontalRule", "codeBlock", "literaryBlock", "imageBlock"]);
 const inlineNodes = new Set(["text", "hardBreak"]);
 const textStyleSchema = z.object({ color: z.string().regex(/^#[\da-f]{3}(?:[\da-f]{3})?$/i).nullable().optional(), backgroundColor: z.string().regex(/^#[\da-f]{3}(?:[\da-f]{3})?$/i).nullable().optional(), fontFamily: z.enum(["Georgia", "Palatino", "Arial", "Verdana", "Courier New"]).nullable().optional(), fontSize: z.string().regex(/^(1[2-9]|[2-4]\d)px$/).nullable().optional() }).strict();
 const safeLink = (href: unknown) => typeof href === "string" && !/[\\\u0000-\u001f]/.test(href) && (href.startsWith("/") && !href.startsWith("//") || /^(https?:|mailto:)/i.test(href));
@@ -66,7 +66,9 @@ export function plainTextFromRichDocument(document: RichDocument): string {
     else if (node.type === "hardBreak") output.push("\n");
     else if (node.type === "imageBlock") output.push(String(node.attrs?.caption || node.attrs?.alt || "[Image]"));
     else for (const child of node.content ?? []) walk(child);
-    if (["paragraph", "heading", "literaryBlock", "blockquote", "listItem"].includes(node.type)) output.push("\n\n");
+    if (["tableCell", "tableHeader"].includes(node.type)) output.push("\t");
+    if (node.type === "tableRow") output.push("\n");
+    if (["paragraph", "heading", "literaryBlock", "blockquote", "listItem", "taskItem"].includes(node.type)) output.push("\n\n");
   };
   walk(document);
   return output.join("").trim();
@@ -97,7 +99,7 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     }
     const headingLevel = attrs.level ?? 1;
     const literaryTreatment = attrs.treatment ?? "narration";
-    if (nodeType === "heading" && ![1, 2, 3].includes(Number(headingLevel))) reject("invalid_heading_level", path, nodeType, "level");
+    if (nodeType === "heading" && ![1, 2, 3, 4, 5, 6].includes(Number(headingLevel))) reject("invalid_heading_level", path, nodeType, "level");
     const indent = attrs.indent;
     if (["paragraph", "heading", "literaryBlock"].includes(nodeType) && indent != null && (!Number.isInteger(indent) || Number(indent) < 0 || Number(indent) > 4)) reject("invalid_indent", path, nodeType, "indent");
     const textAlign = attrs.textAlign;
@@ -112,13 +114,17 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
     }
     if (nodeType === "orderedList" && attrs.start != null && (!Number.isInteger(attrs.start) || Number(attrs.start) < 1 || Number(attrs.start) > 100_000)) reject("invalid_list_start", path, nodeType, "start");
     if (nodeType === "codeBlock" && attrs.language != null && (typeof attrs.language !== "string" || !/^[a-z\d_+#.-]{1,40}$/i.test(attrs.language))) reject("invalid_code_language", path, nodeType, "language");
+    if (nodeType === "taskItem" && typeof attrs.checked !== "boolean") reject("invalid_task_state", path, nodeType, "checked");
+    if (["tableCell", "tableHeader"].includes(nodeType) && attrs.align != null && !["left", "center", "right"].includes(String(attrs.align))) reject("invalid_table_alignment", path, nodeType, "align");
 
     if (Object.keys(attrs).length || nodeType === "heading" || nodeType === "literaryBlock") {
       output.attrs = nodeType === "imageBlock" ? { src: attrs.src, alt: attrs.alt, caption: attrs.caption, width: attrs.width ?? 100, align: attrs.align ?? "center" }
         : nodeType === "heading" || nodeType === "paragraph" ? { ...(nodeType === "heading" ? { level: headingLevel } : {}), ...(textAlign != null ? { textAlign } : {}), ...(indent != null ? { indent } : {}) }
           : nodeType === "literaryBlock" ? { treatment: literaryTreatment, ...(indent != null ? { indent } : {}) }
             : nodeType === "orderedList" ? { ...(attrs.start != null ? { start: attrs.start } : {}) }
-              : nodeType === "codeBlock" ? { ...(attrs.language != null ? { language: attrs.language } : {}) } : {};
+              : nodeType === "codeBlock" ? { ...(attrs.language != null ? { language: attrs.language } : {}) }
+                : nodeType === "taskItem" ? { checked: attrs.checked }
+                  : ["tableCell", "tableHeader"].includes(nodeType) ? { ...(attrs.align != null ? { align: attrs.align } : {}) } : {};
       if (!Object.keys(output.attrs).length) delete output.attrs;
     }
 
@@ -164,11 +170,16 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
       // save/reload, preview, and publish without weakening container checks.
       output.content = [];
     }
-    if (["doc", "bulletList", "orderedList", "listItem", "blockquote", "codeBlock", "literaryBlock"].includes(nodeType) && !Array.isArray(current.content)) reject("missing_node_content", path, nodeType, "content");
+    if (["doc", "bulletList", "orderedList", "listItem", "taskList", "taskItem", "table", "tableRow", "tableCell", "tableHeader", "blockquote", "codeBlock", "literaryBlock"].includes(nodeType) && !Array.isArray(current.content)) reject("missing_node_content", path, nodeType, "content");
     const children = output.content ?? [];
     if (nodeType === "doc" && children.some((child) => !blockNodes.has(child.type))) reject("invalid_document_child", path, nodeType, "content");
     if (["paragraph", "heading", "codeBlock"].includes(nodeType) && children.some((child) => !inlineNodes.has(child.type))) reject("invalid_inline_child", path, nodeType, "content");
     if (["bulletList", "orderedList"].includes(nodeType) && children.some((child) => child.type !== "listItem")) reject("invalid_list_child", path, nodeType, "content");
+    if (nodeType === "taskList" && children.some((child) => child.type !== "taskItem")) reject("invalid_list_child", path, nodeType, "content");
+    if (nodeType === "taskItem" && children.some((child) => !["paragraph", "taskList"].includes(child.type))) reject("invalid_list_item_child", path, nodeType, "content");
+    if (nodeType === "table" && children.some((child) => child.type !== "tableRow")) reject("invalid_table_child", path, nodeType, "content");
+    if (nodeType === "tableRow" && children.some((child) => !["tableCell", "tableHeader"].includes(child.type))) reject("invalid_table_child", path, nodeType, "content");
+    if (["tableCell", "tableHeader"].includes(nodeType) && children.some((child) => child.type !== "paragraph")) reject("invalid_table_child", path, nodeType, "content");
     if (nodeType === "listItem" && children.some((child) => !blockNodes.has(child.type) || ["bulletList", "orderedList", "imageBlock"].includes(child.type))) reject("invalid_list_item_child", path, nodeType, "content");
     if (["blockquote", "literaryBlock"].includes(nodeType) && children.some((child) => !blockNodes.has(child.type))) reject("invalid_block_child", path, nodeType, "content");
     if (["text", "hardBreak", "horizontalRule", "imageBlock"].includes(nodeType) && current.content !== undefined) reject("content_on_leaf_node", path, nodeType, "content");

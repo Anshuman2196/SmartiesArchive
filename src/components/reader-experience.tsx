@@ -92,6 +92,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLocalSave = useRef(0);
   const restoringProgress = useRef(false);
+  const restoredChapter = useRef<string | null>(null);
   const current = chapters.findIndex((chapter) => chapter.id === chapterId);
   const previous = current > 0 ? chapters[current - 1] : undefined;
   const next = current >= 0 ? chapters[current + 1] : undefined;
@@ -113,7 +114,10 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         const local = localStorage.getItem(`smarties-reading:${workId}`);
         if (local) {
           const parsed = JSON.parse(local) as { chapterId?: string; progress?: number };
-          if (parsed.chapterId === chapterId && typeof parsed.progress === "number") setProgress(parsed.progress);
+          if (parsed.chapterId === chapterId && typeof parsed.progress === "number") {
+            progressRef.current = parsed.progress;
+            setProgress(parsed.progress);
+          }
         }
       }
     } catch { /* Use defaults if browser storage is unavailable. */ }
@@ -121,17 +125,20 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   }, [authenticated, chapterId, workId]);
 
   useEffect(() => {
-    if (!preferencesReady || progress <= 0) return;
-    restoringProgress.current = true;
+    if (!preferencesReady || !warningsAccepted || restoredChapter.current === chapterId) return;
     const frame = window.requestAnimationFrame(() => {
       const article = articleRef.current;
-      if (!article) { restoringProgress.current = false; return; }
+      if (!article) return;
+      restoredChapter.current = chapterId;
+      const savedPosition = progressRef.current;
+      if (savedPosition <= 0) return;
+      restoringProgress.current = true;
       const top = article.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: top + Math.max(article.offsetHeight - window.innerHeight, 1) * Math.min(progress, 0.98), behavior: "instant" });
+      window.scrollTo({ top: top + Math.max(article.offsetHeight - window.innerHeight, 1) * Math.min(savedPosition, 0.98), behavior: "instant" });
       window.setTimeout(() => { restoringProgress.current = false; }, 150);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [preferencesReady, progress]);
+  }, [chapterId, preferencesReady, warningsAccepted]);
 
   useEffect(() => {
     if (preferencesReady) {

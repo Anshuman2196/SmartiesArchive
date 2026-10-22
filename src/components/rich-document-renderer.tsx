@@ -42,6 +42,11 @@ function renderNode(node: RichNode, key: string): ReactNode {
   if (node.type === "bulletList") return createElement(richNodeTag(node)!, { key }, children);
   if (node.type === "orderedList") return createElement(richNodeTag(node)!, { key, start: typeof attrs.start === "number" ? attrs.start : undefined }, children);
   if (node.type === "listItem") return createElement(richNodeTag(node)!, { key }, children);
+  if (node.type === "taskList") return createElement("ul", { key, className: "rich-task-list" }, children);
+  if (node.type === "taskItem") return createElement("li", { key, className: "rich-task-item" }, <input type="checkbox" checked={attrs.checked === true} readOnly disabled aria-label={attrs.checked === true ? "Completed" : "Incomplete"}/>, <div>{children}</div>);
+  if (node.type === "table") return <div key={key} className="rich-table-scroll"><table>{children}</table></div>;
+  if (node.type === "tableRow") return createElement("tr", { key }, children);
+  if (node.type === "tableCell" || node.type === "tableHeader") return createElement(richNodeTag(node)!, { key, style: { textAlign: attrs.align as CSSProperties["textAlign"] } }, children);
   if (node.type === "blockquote") return createElement(richNodeTag(node)!, { key }, children);
   if (node.type === "horizontalRule") return createElement(richNodeTag(node)!, { key });
   if (node.type === "hardBreak") return createElement(richNodeTag(node)!, { key });

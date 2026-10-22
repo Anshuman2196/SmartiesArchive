@@ -5,10 +5,16 @@ export function richNodeTag(node: RichNode): string | null {
     case "doc": return "div";
     case "text": return "span";
     case "paragraph": return "p";
-    case "heading": return node.attrs?.level === 1 ? "h1" : node.attrs?.level === 2 ? "h2" : node.attrs?.level === 3 ? "h3" : null;
+    case "heading": return [1, 2, 3, 4, 5, 6].includes(Number(node.attrs?.level)) ? `h${node.attrs?.level}` : null;
     case "bulletList": return "ul";
     case "orderedList": return "ol";
     case "listItem": return "li";
+    case "taskList": return "ul";
+    case "taskItem": return "li";
+    case "table": return "table";
+    case "tableRow": return "tr";
+    case "tableCell": return "td";
+    case "tableHeader": return "th";
     case "blockquote": return "blockquote";
     case "horizontalRule": return "hr";
     case "codeBlock": return "pre";

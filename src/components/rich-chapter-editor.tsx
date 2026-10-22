@@ -11,6 +11,10 @@ import { TextStyleKit } from "@tiptap/extension-text-style";
 import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Markdown } from "@tiptap/markdown";
+import { TableKit } from "@tiptap/extension-table";
+import { TaskList } from "@tiptap/extension-task-list";
+import { TaskItem } from "@tiptap/extension-task-item";
 import { Fragment, Slice } from "@tiptap/pm/model";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -82,7 +86,8 @@ const paragraphIndent = Extension.create({
 });
 
 const extensions = [
-  StarterKit.configure({ heading: { levels: [1, 2, 3] }, link: { openOnClick: false } }),
+  StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] }, link: { openOnClick: false } }),
+  Markdown, TableKit, TaskList, TaskItem,
   Highlight.configure({ multicolor: true }), TextStyleKit.configure({ lineHeight: false }), TextAlign.configure({ types: ["heading", "paragraph"] }),
   Superscript, Subscript, Placeholder.configure({ placeholder: "Begin the scene…" }), literaryBlock, imageNode, spoilerMark, paragraphIndent,
 ];
@@ -127,6 +132,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [emojiCategory, setEmojiCategory] = useState("People");
   const [activeTreatment, setActiveTreatment] = useState("narration");
   const [imageNotice, setImageNotice] = useState("");
+  const [importNotice, setImportNotice] = useState("");
+  const markdownRef = useRef<HTMLInputElement>(null);
   const uploadRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentRef = useRef<RichDocument>(initialDocument);
@@ -153,16 +160,20 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     attributes: { role: "textbox", "aria-label": "Chapter content", "aria-multiline": "true", "aria-describedby": "rich-editor-content-help" },
     handlePaste(view, event) {
       const text = event.clipboardData?.getData("text/plain");
-      if (!text || text.length < 400 || view.state.selection.$from.parent.type.name === "codeBlock") return false;
-      const paragraphs = normalizeChapterPaste(text);
-      if (!paragraphs.length) return true;
-      const nodes = paragraphs.map((paragraph) => view.state.schema.nodes.paragraph.create(null, view.state.schema.text(paragraph)));
-      const transaction = view.state.tr.replaceSelection(new Slice(Fragment.fromArray(nodes), 0, 0)).scrollIntoView();
+      if (!text || view.state.selection.$from.parent.type.name === "codeBlock") return false;
+      const lines = normalizeChapterPaste(text).split("\n");
+      const content = lines.flatMap((line, index) => [
+        ...(index ? [view.state.schema.nodes.hardBreak.create()] : []),
+        ...(line ? [view.state.schema.text(line)] : []),
+      ]);
+      const node = view.state.schema.nodes.paragraph.create(null, content);
+      const transaction = view.state.tr.replaceSelection(new Slice(Fragment.from(node), 0, 0)).scrollIntoView();
       const candidate = transaction.doc.toJSON() as RichDocument;
       let nodeCount = 0;
-      const countNodes = (node: RichDocument | RichDocument["content"][number]): void => { nodeCount += 1; for (const child of node.content ?? []) countNodes(child); };
+      let oversized = false;
+      const countNodes = (node: RichDocument | RichDocument["content"][number]): void => { nodeCount += 1; if ((node.content?.length ?? 0) > chapterContentLimits.children) oversized = true; for (const child of node.content ?? []) countNodes(child); };
       countNodes(candidate);
-      if (plainTextFromRichDocument(candidate).length > chapterContentLimits.text || JSON.stringify(candidate).length > chapterContentLimits.json || nodeCount > chapterContentLimits.nodes || candidate.content.length > chapterContentLimits.children) {
+      if (oversized || plainTextFromRichDocument(candidate).length > chapterContentLimits.text || JSON.stringify(candidate).length > chapterContentLimits.json || nodeCount > chapterContentLimits.nodes) {
         setSaveError("This paste exceeds the chapter limit. Paste a shorter section or start another chapter.");
         return true;
       }
@@ -323,6 +334,34 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     const recovery = new Blob([JSON.stringify({ title: titleRef.current, document: editor.getJSON(), savedAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(recovery); const link = document.createElement("a"); link.href = url; link.download = "smarties-chapter-recovery.json"; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+  const importMarkdown = async (file?: File) => {
+    if (!file) return;
+    setImportNotice("");
+    try {
+      if (!/\.(md|markdown)$/i.test(file.name)) throw new Error("Choose a .md or .markdown file.");
+      if (file.size > chapterContentLimits.text * 2) throw new Error("This Markdown file is too large for one chapter.");
+      const source = (await file.text()).replace(/^\uFEFF/, "");
+      if (/!\[[^\]]*\]\([^)]*\)|<img\b/i.test(source)) throw new Error("This file contains images. Upload them through the image picker, then import the Markdown without image links.");
+      if (!editor.markdown) throw new Error("Markdown import is unavailable. Reload the editor and try again.");
+      const parsed = editor.markdown.parse(source);
+      if (!parsed.content?.length) throw new Error("This file has no chapter content to import.");
+      const nodes = parsed.content.map((item) => editor.schema.nodeFromJSON(item));
+      const transaction = editor.state.tr.replaceSelection(new Slice(Fragment.fromArray(nodes), 0, 0)).scrollIntoView();
+      const candidate = transaction.doc.toJSON() as RichDocument;
+      let count = 0;
+      let oversized = false;
+      const walk = (node: RichDocument | RichDocument["content"][number]) => { count += 1; if ((node.content?.length ?? 0) > chapterContentLimits.children) oversized = true; for (const child of node.content ?? []) walk(child); };
+      walk(candidate);
+      if (oversized || count > chapterContentLimits.nodes || JSON.stringify(candidate).length > chapterContentLimits.json || plainTextFromRichDocument(candidate).length > chapterContentLimits.text) throw new Error("This file exceeds the chapter limit. Split it into shorter chapters.");
+      editor.view.dispatch(transaction);
+      editor.commands.focus();
+      setImportNotice(`Imported ${file.name} at the cursor. Review the chapter before saving.`);
+    } catch (error) {
+      setImportNotice(error instanceof Error ? error.message : "Could not import this Markdown file.");
+    } finally {
+      if (markdownRef.current) markdownRef.current.value = "";
+    }
+  };
   const formattingMore = () => { setSidebarTab("type"); openSidebar(); };
   const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
   const closeShortcutHelp = () => setShortcutHelpOpen(false);
@@ -341,6 +380,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
             {menuButton(preview ? "Return to writing" : "Preview chapter", () => setPreview(!preview))}
             {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
+            {menuButton("Import Markdown file", () => markdownRef.current?.click())}
             <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
             {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" role="menuitem" type="submit" disabled={dirty || !!saveError} onClick={closeOverflow}>Publish saved draft</button></form>}
             {menuButton("Download recovery copy", downloadRecovery)}
@@ -348,6 +388,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         </div>
       </div>
     </header>
+    <input ref={markdownRef} className="sr-only" type="file" accept=".md,.markdown,text/markdown" aria-label="Markdown chapter file" onChange={(event) => void importMarkdown(event.target.files?.[0])}/>
+    {importNotice && <div className="editor-import-notice" role="status">{importNotice}<button type="button" aria-label="Dismiss import message" onClick={() => setImportNotice("")}>×</button></div>}
     {saveError && <div className="editor-save-error" role="alert"><span>{saveError} Your words and formatting remain in this editor.</span><button type="button" onClick={() => void save()}>Retry save</button><button type="button" onClick={downloadRecovery}>Download recovery copy</button></div>}
     {shortcutHelpOpen && <div className="editor-popover" role="dialog" aria-modal="false" aria-labelledby="editor-shortcut-help-title" aria-describedby="editor-shortcut-help-description" onKeyDown={(event) => {
       if (event.key === "Escape") { event.preventDefault(); closeShortcutHelp(); return; }

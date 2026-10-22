@@ -9,6 +9,10 @@ import { TextStyleKit } from "@tiptap/extension-text-style";
 import Highlight from "@tiptap/extension-highlight";
 import Superscript from "@tiptap/extension-superscript";
 import Subscript from "@tiptap/extension-subscript";
+import { Markdown } from "@tiptap/markdown";
+import { TableKit } from "@tiptap/extension-table";
+import { TaskList } from "@tiptap/extension-task-list";
+import { TaskItem } from "@tiptap/extension-task-item";
 import { richMarkTag, richNodeTag } from "./rich-rendering.ts";
 
 const owner = "11111111-1111-4111-8111-111111111111";
@@ -209,6 +213,26 @@ test("reader renderer maps every supported document node and mark to a semantic 
   for (const [type, tag] of Object.entries(nodeTags)) assert.equal(richNodeTag({ type, attrs: type === "heading" ? { level: 2 } : undefined }), tag, `node ${type}`);
   const markTags: Record<string, string> = { bold: "strong", italic: "em", underline: "u", strike: "s", code: "code", highlight: "mark", textStyle: "span", link: "a", superscript: "sup", subscript: "sub", spoiler: "span" };
   for (const [type, tag] of Object.entries(markTags)) assert.equal(richMarkTag(type), tag, `mark ${type}`);
+});
+
+test("Markdown headings, tables, checklists, code, and line breaks survive import and save validation", () => {
+  const editor = new Editor({ extensions: [StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }), TableKit, TaskList, TaskItem, Markdown], content: { type: "doc", content: [{ type: "paragraph" }] } });
+  try {
+    const markdown = "#### Scene four\n\nFirst line  \nsecond line\n\n| Name | Role |\n| :--- | ---: |\n| Mira | Lead |\n\n- [x] Read\n- [ ] Return\n\n```js\nconst scene = 4;\n```";
+    assert.ok(editor.markdown);
+    const parsed = editor.markdown.parse(markdown);
+    editor.commands.setContent(parsed);
+    const saved = validateRichDocument(editor.getJSON(), owner, work);
+    assert.equal(saved.document.content[0].attrs?.level, 4);
+    assert.equal(saved.document.content[1].content?.[1].type, "hardBreak");
+    assert.equal(saved.document.content[2].type, "table");
+    assert.equal(saved.document.content[3].type, "taskList");
+    assert.equal(saved.document.content[3].content?.[0].attrs?.checked, true);
+    assert.equal(saved.document.content[3].content?.[1].attrs?.checked, false);
+    assert.equal(saved.document.content[4].type, "codeBlock");
+    assert.equal(richNodeTag(saved.document.content[0]), "h4");
+    assert.match(saved.plainText, /Mira/);
+  } finally { editor.destroy(); }
 });
 
 test("rich documents reject executable elements, unsafe links, and foreign media paths", () => {

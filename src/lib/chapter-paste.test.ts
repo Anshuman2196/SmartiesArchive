@@ -6,40 +6,38 @@ import { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { Fragment, Slice } from "@tiptap/pm/model";
 
-test("long prose paste drops empty lines and imported spacing characters before save", () => {
-  const source = Array.from({ length: 800 }, (_, index) => `  Scene\u00a0${index + 1}\t continues here.  `).join("\r\n\r\n\r\n");
-  const paragraphs = normalizeChapterPaste(source);
-  assert.equal(paragraphs.length, 800);
-  assert.equal(paragraphs[0], "Scene 1 continues here.");
-  assert.equal(paragraphs.at(-1), "Scene 800 continues here.");
+const owner = "11111111-1111-4111-8111-111111111111";
+const work = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
 
-  const document = { type: "doc", content: paragraphs.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })) };
-  const result = validateRichDocument(document, "11111111-1111-4111-8111-111111111111", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1");
-  assert.equal(result.document.content.length, 800);
-  assert.match(result.plainText, /Scene 800 continues here/);
+test("paste preserves indentation, repeated spaces, and blank lines", () => {
+  const source = "  First  line\r\n\r\n\tSecond\u00a0line  \r\n";
+  assert.equal(normalizeChapterPaste(source), "  First  line\n\n\tSecond\u00a0line  \n");
 });
 
-test("a long chapter with short paragraphs stays within supported save limits", () => {
-  const paragraphs = normalizeChapterPaste(Array.from({ length: 3000 }, (_, index) => `Line ${index + 1} carries the story on.`).join("\n\n"));
-  const document = { type: "doc", content: paragraphs.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })) };
-  const result = validateRichDocument(document, "11111111-1111-4111-8111-111111111111", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1");
-  assert.equal(result.document.content.length, 3000);
-  assert.ok(result.plainText.length < 100_000);
+test("long copied prose retains every line break and passes save validation", () => {
+  const source = Array.from({ length: 3000 }, (_, index) => `Line  ${index + 1}`).join("\r\n");
+  const lines = normalizeChapterPaste(source).split("\n");
+  const content = lines.flatMap((line, index) => [...(index ? [{ type: "hardBreak" }] : []), { type: "text", text: line }]);
+  const result = validateRichDocument({ type: "doc", content: [{ type: "paragraph", content }] }, owner, work);
+  assert.equal(result.document.content[0].content?.filter((node) => node.type === "hardBreak").length, 2999);
+  assert.match(result.plainText, /Line  1\nLine  2/);
 });
 
-test("clean paragraphs insert into an existing TipTap chapter and remain saveable", () => {
+test("preserved paste inserts into an existing TipTap chapter", () => {
   const editor = new Editor({ extensions: [StarterKit], content: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Opening scene." }] }] } });
   try {
     editor.commands.setTextSelection(editor.state.doc.content.size - 1);
-    const paragraphs = normalizeChapterPaste("First pasted line.\n\n\nSecond pasted line.");
+    const lines = normalizeChapterPaste("  First  line\n\nSecond line. ").split("\n");
     editor.commands.command(({ tr, dispatch }) => {
-      const nodes = paragraphs.map((text) => editor.schema.nodes.paragraph.create(null, editor.schema.text(text)));
-      dispatch?.(tr.replaceSelection(new Slice(Fragment.fromArray(nodes), 0, 0)));
+      const content = lines.flatMap((line, index) => [
+        ...(index ? [editor.schema.nodes.hardBreak.create()] : []),
+        ...(line ? [editor.schema.text(line)] : []),
+      ]);
+      dispatch?.(tr.replaceSelection(new Slice(Fragment.from(editor.schema.nodes.paragraph.create(null, content)), 0, 0)));
       return true;
     });
-    const result = validateRichDocument(editor.getJSON(), "11111111-1111-4111-8111-111111111111", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1");
-    assert.match(result.plainText, /Opening scene/);
-    assert.match(result.plainText, /First pasted line/);
-    assert.match(result.plainText, /Second pasted line/);
+    const result = validateRichDocument(editor.getJSON(), owner, work);
+    assert.match(result.plainText, /First  line\n\nSecond line/);
+    assert.equal(result.document.content.some((node) => node.content?.some((child) => child.text?.startsWith("  First  "))), true);
   } finally { editor.destroy(); }
 });

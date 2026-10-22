@@ -175,3 +175,9 @@ body,.home,.footer{background:var(--ink);color:var(--cream)}
   --font-heading: var(--font-ui);
   --color-muted: var(--panel-raised);
 }
+
+/* Pasted prose keeps its authored indentation and line breaks in the editor. */
+.rich-editor-canvas .tiptap p {
+  white-space: pre-wrap;
+}
+.editor-import-notice{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:790px;margin:12px auto 0;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--lime);background:var(--panel);color:var(--cream);font-size:12px}.editor-import-notice button{border:0;background:transparent;color:var(--cream);font-size:20px;cursor:pointer}.rich-table-scroll{max-width:100%;overflow-x:auto;margin:1.7em 0}.rich-table-scroll table,.rich-editor-canvas .tiptap table{width:100%;border-collapse:collapse;font-size:.88em;line-height:1.5}.rich-table-scroll th,.rich-table-scroll td,.rich-editor-canvas .tiptap th,.rich-editor-canvas .tiptap td{min-width:90px;padding:10px 12px;border:1px solid color-mix(in srgb,currentColor 25%,transparent);vertical-align:top}.rich-table-scroll th,.rich-editor-canvas .tiptap th{font-weight:650;background:color-mix(in srgb,currentColor 7%,transparent)}.rich-table-scroll p,.rich-editor-canvas .tiptap td p,.rich-editor-canvas .tiptap th p{margin:0}.rich-task-list,.rich-editor-canvas .tiptap ul[data-type="taskList"]{list-style:none;padding-left:0}.rich-task-item,.rich-editor-canvas .tiptap li[data-type="taskItem"]{display:flex;align-items:flex-start;gap:10px}.rich-task-item>input{flex:none;margin-top:.6em;accent-color:var(--lime)}.rich-task-item>div{min-width:0}.rich-task-item p{margin:0 0 .5em}.rich-editor-canvas .tiptap li[data-type="taskItem"]>label{margin-top:.3em}
