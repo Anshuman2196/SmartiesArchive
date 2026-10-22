@@ -221,6 +221,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
   useEffect(() => {
     const editorUrl = window.location.href;
+    const editorHistoryState = window.history.state;
     const guardLink = (event: MouseEvent) => {
       if (!dirty || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target;
@@ -237,7 +238,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
       if (!dirty) return;
       // popstate fires after the browser has already moved. Restore the editor
       // entry before prompting so cancel keeps the unsaved document mounted.
-      window.history.pushState(window.history.state, "", editorUrl);
+      window.history.pushState(editorHistoryState, "", editorUrl);
       if (!window.confirm("This chapter has unsaved changes. Save them before leaving?")) return;
       void save().then((saved) => { if (saved) window.history.back(); });
     };
