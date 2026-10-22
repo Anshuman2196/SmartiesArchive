@@ -57,5 +57,5 @@ function countMissingImageDescriptions(value: unknown): number {
       return total + (typeof alt === "string" && alt.trim() ? 0 : 1);
     }, 0);
   }
-  return Object.values(node).reduce((total, child) => total + countMissingImageDescriptions(child), 0);
+  return Object.values(node).reduce<number>((total, child) => total + countMissingImageDescriptions(child), 0);
 }

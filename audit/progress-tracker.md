@@ -75,7 +75,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 ### Commit and verification
 
 - The supplied audit reports and screenshots are retained as user-provided materials and excluded from the remediation commit, as are unrelated `Characters/` and `graphify-out/` paths.
-- The previously recorded `npm run typecheck` pass predates the recent remediation commits, including the editor toolbar, chapter deletion, image-description checklist, dismissible notices, paste feedback, and save-status changes. The latest work has only had `git diff --check`; no tests, lint, or typecheck were run.
+- `npm run typecheck -- --pretty false` now passes against the recent remediation commits. It first caught an `unknown` reducer accumulator in the image-description checklist; the accumulator is now explicitly typed as `number`. No test suite or lint run is recorded here.
 - Hosted Supabase migration/data operations and real-device/browser checks remain unverified.
 - The browser extension is connected but currently has no tabs; no viewport measurements or interaction checks were run in this continuation.
 - Added a persistent editor quick toolbar and surfaced preview/publish controls. Tiptap's current documentation supports `toggleTaskList()` and `insertTable({ rows, cols, withHeaderRow })`; a 2×2 table with a header row is the default authoring shortcut. Browser confirmation remains outstanding.
