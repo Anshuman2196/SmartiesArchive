@@ -116,7 +116,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const target = event.target;
-      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input, textarea, select, button, [role=dialog]"))) return;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("a[href], input, textarea, select, button, summary, [role=button], [role=link], [role=dialog]"))) return;
       if (event.key === "ArrowLeft" && previous) { event.preventDefault(); router.push(`/work/${workId}/chapter/${previous.id}`); }
       if (event.key === "ArrowRight" && next) { event.preventDefault(); router.push(`/work/${workId}/chapter/${next.id}`); }
       if (event.key.toLowerCase() === "s") { event.preventDefault(); settingsButtonRef.current?.click(); }
