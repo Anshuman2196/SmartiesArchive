@@ -20,6 +20,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 
 - Supabase operations for this remediation must target the hosted SmartiesArchive project. The app configuration identifies project ref `ihrprnxndyzitciyoldz`, but the connected account lists only “Summiter 1.0” and rejects read-only metadata access to that ref; no hosted database operation has been run. Do not substitute the local Supabase prototype or the unrelated Summiter project. Hosted migration/data verification is blocked pending SmartiesArchive project access.
 - The user indicated SmartiesArchive would be connected. Rechecking after that update still returned only Summiter and a permission denial for SmartiesArchive; keep hosted changes pending until the connector reflects the correct project.
+- The user opened the signed-in SmartiesArchive dashboard in Chrome. The tab is visible in the browser inventory, but browser authority was denied for `supabase.com`; do not retry through browser or another surface. The Supabase MCP still lists only Summiter, and a direct read-only `get_project` for SmartiesArchive is denied. Hosted verification remains pending.
 - The accidental local Supabase startup was stopped by stopping its containers. Local volumes were left intact. No further local Supabase startup or database verification will be used for this audit.
 
 ### Writer findings
@@ -29,7 +30,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | W-01 | `[~]` | Preserve the new-chapter composer across the first save by retaining `?new=1`; confirm in browser. |
 | W-02 | `[~]` | Improve the image validation error and normalize inserted image attributes. Source inspection confirms uploads create `<user>/<work>/<UUID>.<image extension>` references and rich-document validation expects that shape; no static mismatch is evident. The original save failure still needs an upload → insert → set alt → save reproduction. |
 | W-03 | `[~]` | Guard in-app link navigation and browser Back while dirty; browser Back restores the editor URL with the saved editor history state before prompting, avoiding reuse of the previous route's Next.js state. Interaction behavior still needs browser confirmation. |
-| W-04–W-05 | `[x]` | Preserve invalid chat input with inline validation; keep publish form mounted through submit. |
+| W-04–W-05 | `[x]` | Preserve invalid chat input with inline validation; chat and mixed forms now mirror server message/block limits before submit so validation does not redirect and discard the form. Image chapters use an HTTPS URL input with inline validation. Keep the publish form mounted through submit. |
 | W-06, W-13–W-14 | `[x]` | Restore list and quote styles and map document H1 headings to H2 in reader output. |
 | W-07–W-08, W-10–W-12, W-15, W-18–W-21 | `[x]` | Fix select clipping, title wrapping, editor status, paste paragraphs, mixed block editing, manga copy, action feedback, banner styling, and publish labels. |
 | W-09 | `[~]` | Remove the focus-mode `top: 0` override that placed the sticky editor bar over the site header. It now uses the existing header offset (70 px desktop / 66 px mobile); confirm in browser at desktop and tablet widths. |
