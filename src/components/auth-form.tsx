@@ -40,7 +40,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
     if (next !== "/studio") query.set("next", next);
     return `/auth?${query.toString()}`;
   };
-  return <main className="shell auth-shell">
+  return <main id="main-content" tabIndex={-1} className="shell auth-shell">
     <section className="auth-panel" aria-labelledby="auth-title">
       {mode === "recover" ? <>
         <Link href={modeLink("login")} className="auth-back"><ArrowLeft size={15} aria-hidden="true"/> Back to sign in</Link>

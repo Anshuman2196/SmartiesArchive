@@ -15,7 +15,7 @@ export function ContentWarningGate({ workId, chapterId, title, warnings, preview
     } catch { /* Keep the readable default if local preferences are unavailable. */ }
   }, []);
 
-  return <main className={`reader-page ${styles.readerPage}`} data-theme={theme}>
+  return <main id="main-content" tabIndex={-1} className={`reader-page ${styles.readerPage}`} data-theme={theme}>
     <section className={styles.warningGate} aria-labelledby="reader-warning-title">
       <span className="eyebrow">Content notes</span>
       <h1 id="reader-warning-title" className="serif">Before you open {title}</h1>

@@ -18,5 +18,6 @@
 - Review deletion offers a 10-second undo window. Restoring uses the signed-in user's own review on the same still-published chapter, and story authors' reviews are excluded from displayed review lists and averages.
 - `NEXT_PUBLIC_SITE_URL` may fall back to localhost in development, but must be an HTTP(S) origin in production because it is used for auth redirects and site metadata.
 - Email-confirmation callbacks preserve the auth form's `next` path in a query parameter, sanitized on both creation and callback with `safeNextPath`. This matches the existing password-recovery callback pattern while keeping redirects same-origin.
+- Each route's main content landmark is now the skip-link target and can receive focus; the editor writing area is a labelled section inside the studio page's main landmark. Browser confirmation could not be performed because the localhost origin approval gate denied access.
 - Content-warning acceptance is stored in a same-site, HttpOnly cookie scoped to the story. The chapter page returns a standalone gate before serializing reader content to the client; the gate follows the reader tone saved in local preferences.
 - The home hero and static genre/cover artwork are shipped as WebP; the hero uses a prioritized Next image while the CSS layer keeps its existing shade and framing.

@@ -123,7 +123,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const warnings = getLibraryOptions(allWorks, "content_warnings");
   const activeFilters = hasActiveLibraryFilters(filters);
 
-  return <main className="shell section library-page">
+  return <main id="main-content" tabIndex={-1} className="shell section library-page">
     <div className="library-intro">
       <div><span className="eyebrow">Read / Discover</span><h1 className="serif">The library</h1><p className="library-deck">Find a story by title, author, or tag. Content notes are available before you begin reading.</p></div>
       <span className="library-count">{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span>

@@ -61,7 +61,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const displayChapters = isOwner ? chapters : published;
   const visibilityLabel = work.visibility === "unlisted" ? "Shared by link" : work.visibility === "private" ? "Private" : "Public";
 
-  return <main className="shell story-page">
+  return <main id="main-content" tabIndex={-1} className="shell story-page">
     <div className="story-cover-wrap">{isSecureMediaUrl(coverUrl ?? undefined) ? <Image className="story-cover" src={coverUrl!} alt={`Cover art for ${work.title}`} width={900} height={1200} unoptimized priority/> : <CoverFallback title={work.title} className="story-cover story-cover-placeholder"/>}</div>
     <div className="story-detail">
       <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private work" : work.visibility === "unlisted" ? "Shared by link" : "From the public archive"}</span><h1 className="serif">{work.title}</h1>

@@ -263,7 +263,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   const storyTitle = workTitle || "Story";
   const authorLabel = author?.displayName || "Archive member";
 
-  return <><main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
+  return <><main id="main-content" tabIndex={-1} className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
     <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">
       <div className={styles.readerContext} aria-label="Current story">
         <span className={styles.readerContextTitle}>{storyTitle}</span>

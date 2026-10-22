@@ -88,7 +88,7 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
   });
   const message = query.status ? statusCopy[query.status] : undefined;
 
-  return <main className="shell studio-page">
+  return <main id="main-content" tabIndex={-1} className="shell studio-page">
     <Link href="/studio" className="byline studio-back-link"><ArrowLeft size={15} aria-hidden="true"/> Your studio</Link>
     <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${work.visibility}` : `Draft · ${work.visibility}`}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit pendingLabel="Publishing…">Publish story</ActionSubmit></ActionForm>}</div></header>
     {message && <p className={`notice ${message.error ? "auth-error" : "auth-success"}`} role={message.error ? "alert" : "status"}>{message.message}</p>}

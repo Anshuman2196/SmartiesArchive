@@ -46,7 +46,7 @@ export default async function HomePage() {
   const shelfHref = signedIn ? "/shelf" : "/auth?mode=login&next=%2Fshelf";
   const studioHref = signedIn ? "/studio" : "/auth?mode=signup&next=%2Fstudio";
 
-  return <main className="home cinema-home">
+  return <main id="main-content" tabIndex={-1} className="home cinema-home">
     <section className="cinema-hero" aria-labelledby="home-title">
       <Image className="cinema-hero-image" src="/images/cinema-projection.webp" alt="" fill priority sizes="100vw"/>
       <div className="cinema-hero-shade" aria-hidden="true"/>

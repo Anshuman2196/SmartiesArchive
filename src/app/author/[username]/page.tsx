@@ -25,7 +25,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
   const works = (data ?? []) as AuthorWork[];
   const covers = await signStoryMediaUrls(supabase, works.map((work) => work.cover_url));
 
-  return <main className={`shell section ${styles.page}`}>
+  return <main id="main-content" tabIndex={-1} className={`shell section ${styles.page}`}>
     <header className={styles.header}><span className="eyebrow">Writer in the archive</span><h1>{profile.display_name}</h1><p className={styles.handle}>@{profile.username}</p>{profile.bio && <p className={styles.bio}>{profile.bio}</p>}</header>
     <section aria-labelledby="author-stories"><div className={styles.sectionHead}><h2 id="author-stories">Published stories</h2><span>{works.length} {works.length === 1 ? "story" : "stories"}</span></div>
       {works.length ? <div className={styles.list}>{works.map((work) => {

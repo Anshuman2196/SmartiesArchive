@@ -85,7 +85,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const chapters = (chaptersData ?? []) as unknown as Chapter[];
   const members = (membersData ?? []) as unknown as Member[];
 
-  return <main className={`shell ${styles.page}`}>
+  return <main id="main-content" tabIndex={-1} className={`shell ${styles.page}`}>
     <header className={styles.intro}>
       <div><span className="eyebrow">Private moderation</span><h1>Admin desk</h1><p>A small control room for the archive. Moderation actions only change publication visibility.</p></div>
     </header>
