@@ -11,10 +11,13 @@ export async function SiteHeader() {
     const user = await getCurrentUser();
     if (user) {
       const supabase = await createClient();
-      const { data } = await supabase.from("profiles").select("username,display_name").eq("id", user.id).maybeSingle();
+      const [profileResult, adminResult] = await Promise.all([
+        supabase.from("profiles").select("username,display_name").eq("id", user.id).maybeSingle(),
+        supabase.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle(),
+      ]);
+      const { data } = profileResult;
       profile = data ?? { username: typeof user.user_metadata?.username === "string" ? user.user_metadata.username : undefined, display_name: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "Writer" };
-      const { data: adminMembership } = await supabase.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-      isAdmin = Boolean(adminMembership);
+      isAdmin = Boolean(adminResult.data);
     }
   } catch {
     // The public archive remains available when Supabase is unconfigured or temporarily unavailable.
