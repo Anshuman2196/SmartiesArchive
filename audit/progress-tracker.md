@@ -18,7 +18,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 
 ### Cloud-only Supabase constraint
 
-- Supabase operations for this remediation must target the hosted SmartiesArchive project. The connected account currently lists only “Summiter 1.0”; no SmartiesArchive project is available, so no hosted database operation has been run. Do not substitute the local Supabase prototype or the unrelated Summiter project. Hosted migration/data verification is blocked pending SmartiesArchive project access.
+- Supabase operations for this remediation must target the hosted SmartiesArchive project. The app configuration identifies project ref `ihrprnxndyzitciyoldz`, but the connected account lists only “Summiter 1.0” and rejects read-only metadata access to that ref; no hosted database operation has been run. Do not substitute the local Supabase prototype or the unrelated Summiter project. Hosted migration/data verification is blocked pending SmartiesArchive project access.
 - The accidental local Supabase startup was stopped by stopping its containers. Local volumes were left intact. No further local Supabase startup or database verification will be used for this audit.
 
 ### Writer findings

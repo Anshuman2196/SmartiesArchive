@@ -2,7 +2,7 @@
 
 ## 2026-10-22 assumptions
 
-- Supabase work must use the hosted SmartiesArchive project only. The connected Supabase account lists only the unrelated “Summiter 1.0” project, so do not use it and do not substitute the local prototype. Hosted migration application and verification remain pending until SmartiesArchive access is available. An accidental local startup was stopped without removing containers' volumes; no further local database work will be done.
+- Supabase work must use the hosted SmartiesArchive project only. The app configuration identifies project ref `ihrprnxndyzitciyoldz`; the connected Supabase account lists only the unrelated “Summiter 1.0” project and rejects read-only metadata access to this ref. Do not use Summiter or substitute the local prototype. Hosted migration application and verification remain pending until SmartiesArchive access is available. An accidental local startup was stopped without removing containers' volumes; no further local database work will be done.
 
 - The reader, writer, cross-cutting, and prior audit findings in `audit/` define this remediation. Existing fixes are credited only after checking the current working tree.
 - Preserve existing story/chapter behavior and stored content formats unless an audit identifies a defect. Keep existing Supabase rows and migrations compatible.
