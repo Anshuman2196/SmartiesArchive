@@ -1,7 +1,7 @@
 .section {
   max-width: 1040px;
   margin: 0 auto;
-  padding-top: clamp(54px, 7vw, 96px);
+  padding-top: clamp(54px, 7vw, var(--space-24));
   padding-bottom: clamp(80px, 10vw, 136px);
   border-top: 1px solid var(--line);
 }
@@ -15,7 +15,7 @@
 
 .intro h2 {
   max-width: 11ch;
-  margin: 14px 0 24px;
+  margin: 14px 0 var(--space-6);
   color: var(--cream);
   font: 800 clamp(30px, 3.5vw, 46px)/0.98 var(--font-ui);
   letter-spacing: -0.055em;
@@ -79,7 +79,7 @@
 }
 
 .review {
-  padding: 22px 0 24px;
+  padding: 22px 0 var(--space-6);
   border-bottom: 1px solid var(--line);
 }
 
@@ -114,7 +114,7 @@
 }
 
 .reviewMeta {
-  gap: 16px;
+  gap: var(--space-4);
   flex-shrink: 0;
 }
 
@@ -156,11 +156,11 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .form [data-slot="field-group"] {
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .optional {
@@ -171,7 +171,7 @@
 .ratingGroup {
   display: flex;
   width: fit-content;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .ratingChoice {
@@ -206,7 +206,7 @@
 .formActions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .edited {
@@ -225,7 +225,7 @@
   justify-content: space-between;
   gap: 14px;
   margin: 18px 0 0;
-  padding: 12px 14px;
+  padding: var(--space-3) 14px;
   border: 1px solid var(--line);
   color: var(--cream);
   background: var(--panel);
@@ -261,12 +261,12 @@
 
   .reviewByline {
     display: grid;
-    gap: 4px;
+    gap: var(--space-1);
   }
 
   .reviewMeta {
     justify-content: space-between;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .stars svg {

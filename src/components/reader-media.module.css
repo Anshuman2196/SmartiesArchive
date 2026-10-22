@@ -30,7 +30,7 @@
   position: absolute;
   right: 10px;
   bottom: 10px;
-  padding: 6px 8px;
+  padding: 6px var(--space-2);
   border: 1px solid color-mix(in srgb, var(--page-ink) 22%, transparent);
   background: color-mix(in srgb, var(--page-bg) 88%, transparent);
   color: var(--page-ink);
@@ -78,8 +78,8 @@
 .dialogControls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: var(--space-2);
+  padding: 10px var(--space-3);
   border-bottom: 1px solid color-mix(in srgb, var(--page-ink) 15%, transparent);
 }
 
@@ -106,7 +106,7 @@
 .dialogButton {
   min-width: 44px;
   min-height: 44px;
-  padding: 8px 11px;
+  padding: var(--space-2) 11px;
   border: 1px solid color-mix(in srgb, var(--page-ink) 20%, transparent);
   background: transparent;
   color: var(--page-ink);
@@ -129,7 +129,7 @@
   display: grid;
   place-items: center;
   overflow: auto;
-  padding: 24px;
+  padding: var(--space-6);
   background: color-mix(in srgb, var(--page-bg) 80%, #000 20%);
 }
 
@@ -155,7 +155,7 @@
   }
 
   .viewport {
-    padding: 12px;
+    padding: var(--space-3);
   }
 }
 

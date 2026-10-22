@@ -94,3 +94,5 @@
 - Keep manga page uploads private in the existing story-media bucket. Accept only HTTPS sources or correctly scoped owner/story storage references when saving, and sign private panel URLs on reader pages; do not convert the uploader to public URLs.
 
 - Implement the existing library decision by showing the three newest published stories in an automatic featured shelf on the unfiltered, newest-first library view. Keep them out of the paginated results list; do not add a staff-pick column or migration.
+
+- Replace CSS-module margin, padding, and gap literals only when the exact pixel value exists in the shared spacing scale. The 53 replacements preserve each prior value; do not add near-match tokens or change spacing without visual evidence.
