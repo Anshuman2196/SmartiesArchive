@@ -208,6 +208,7 @@ body,.home,.footer{background:var(--ink);color:var(--cream)}
 :is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h1{font:400 1.9em/1.15 var(--font-ui);margin:1.5em 0 .55em}
 :is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h2{font:400 1.55em/1.15 var(--font-ui);margin:1.4em 0 .55em}
 :is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) h3{font:400 1.25em/1.15 var(--font-ui);margin:1.3em 0 .5em}
+:is(.rich-editor-canvas .tiptap,.rich-editor-preview .rich-document,.rich-reader .rich-document) hr{height:0;width:38%;margin:2.5em auto;border:0;border-top:1px solid color-mix(in srgb,currentColor 22%,transparent)}
 .reader-draft-notice{max-width:900px;margin:0 auto 26px;padding:12px 16px;border:1px solid color-mix(in srgb,var(--page-ink) 18%,transparent);color:var(--page-muted);font:12px/1.5 var(--font-ui)}
 .reader-draft-notice a{color:var(--page-ink);text-decoration:underline;text-underline-offset:3px}
 .chapter-edit-links{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
