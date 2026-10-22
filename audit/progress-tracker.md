@@ -22,13 +22,14 @@ This tracker is intentionally scoped for a private server project with about 20 
 | --- | --- | --- |
 | W-01 | `[~]` | Preserve the new-chapter composer across the first save by retaining `?new=1`; confirm in browser. |
 | W-02 | `[~]` | Improve the image validation error and normalize inserted image attributes. Original save failure has no confirmed root cause; needs a real upload/save reproduction. |
-| W-03 | `[~]` | Guard in-app link navigation and browser Back while dirty; verify framework navigation edge cases in browser. |
+| W-03 | `[~]` | Guard in-app link navigation and browser Back while dirty; browser Back restores the editor entry before prompting, but interaction behavior still needs browser confirmation. |
 | W-04–W-05 | `[x]` | Preserve invalid chat input with inline validation; keep publish form mounted through submit. |
 | W-06, W-13–W-14 | `[x]` | Restore list and quote styles and map document H1 headings to H2 in reader output. |
 | W-07–W-12, W-15, W-18–W-21 | `[x]` | Fix select clipping, title wrapping, editor offsets/status, paste paragraphs, mixed block editing, manga copy, action feedback, banner styling, and publish labels. |
-| W-16–W-17, W-22, W-24–W-32 | `[~]` | Some navigation, checklist, focus, and preview affordances were improved; full issue-by-issue browser review remains outstanding. |
-| W-23 | `[x]` | Chapter unpublish now requires confirmation. |
-| W-25, W-29 | `[~]` | Keep the details tab after save; duplicate is moved after its source with the existing reorder RPC. Verify RPC behavior in the configured database. |
+| W-16 | `[~]` | The first-save query is preserved through revalidation; browser Back restoration still needs direct interaction review. |
+| W-17, W-19–W-21, W-23–W-28, W-30–W-32 | `[x]` | Full-screen focus, success/publish feedback, destructive confirmation, discard revision, details tab, page titles, compact cover, mobile toolbar, link dialog, live word count, and preview state are implemented. |
+| W-22 | `[x]` | Zero-chapter completeness is a warning, and each checklist row links to its relevant Details or Chapters tab. |
+| W-29 | `[~]` | Duplicate chapters are moved directly after the source with the existing reorder RPC; verify in the configured database. |
 
 ### Reader findings
 
@@ -36,23 +37,24 @@ This tracker is intentionally scoped for a private server project with about 20 
 | --- | --- | --- |
 | B-01–B-04, B-09, B-12–B-15, B-19, B-24–B-25 | `[x]` | Improve reader defaults and theme contrast, sticky progress/toolbars, settings overlap behavior, saved-status width, guest privacy, owner resume/bookmark, shared theme scope, and reading-width alignment. |
 | B-05–B-08 | `[~]` | Story-level completion and shared progress persistence now update timestamps and retain the furthest chapter. Needs live reader/shelf verification. |
-| B-16–B-17, B-20, B-23–B-25, B-28–B-32 | `[~]` | Loading/metadata, dialog naming, mobile contents, theme scope, numbering, serif heading styling, pagination, copy/share, keyboard navigation, library density, and own-story review handling received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
-| B-18, B-21–B-22 | `[ ]` | Exclude-warning filtering and review toast/undo/edit marker plus destructive-button contrast remain. |
+| B-16–B-17, B-20, B-23–B-30, B-32 | `[~]` | Loading/metadata, dialog naming, mobile contents, theme scope, numbering, serif heading styling, copy/share, keyboard navigation, library density, and author-review suppression received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
+| B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
+| B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
 
 ### Cross-cutting findings
 
 | Finding group | Status | Change / remaining work |
 | --- | --- | --- |
 | P1-1–P1-4 | `[x]` | Add page metadata, palette pre-hydration, reader contrast tokens, and remove legacy Royal/Wine button overrides. |
-| P2-1, P2-3–P2-5, P2-8, P2-11–P2-12, P2-14 | `[x]` | Improve labels, tap targets, heading hierarchy, warning/error/loading states, site metadata assets, mobile navigation, and signup feedback. |
-| P2-2, P2-6–P2-7, P2-9–P2-10, P2-13, P2-15 | `[~]` | Styling consolidation, server enforcement for warning acknowledgement, unlisted throttling, request/auth performance, media optimization, copy consistency, and rate limiting remain partial or need architectural/product decisions. |
-| P3-1 | `[~]` | README scope and migration count corrected; empty route cleanup and documentation review remain. |
-| P3-2–P3-10 | `[~]` | Reduced-motion support is global now and route semantics improved. Form-border contrast, icon consistency, responsive checks, production origin configuration, and performance review still need follow-up. |
+| P2-1, P2-3–P2-6, P2-8, P2-10–P2-12, P2-14 | `[x]` | Improve user-facing labels, control borders/tap targets, heading hierarchy, server-rendered warning gate, loading/error states, optimized WebP assets, metadata endpoints, mobile navigation, and signup feedback. |
+| P2-2, P2-7, P2-9, P2-13, P2-15 | `[~]` | Styling consolidation, unlisted throttling, request/auth performance, copy consistency, and rate limiting remain. Unlisted story/chapter pages emit noindex metadata. |
+| P3-1 | `[x]` | Corrected README scope and migration count, and removed the empty `review-preview` route directory. |
+| P3-2–P3-10 | `[~]` | Reduced-motion support, form boundary contrast, icon exceptions, and production origin configuration are addressed. Landmark cleanup, responsive checks, component bundle splitting, and performance review still need follow-up. |
 
 ### Commit and verification
 
 - The supplied audit reports and screenshots are retained as user-provided materials and excluded from the remediation commit, as are unrelated `Characters/` and `graphify-out/` paths.
-- No test suite, lint, or typecheck was run in this pass.
+- `npm run typecheck` passes after the current remediation changes. The test suite and lint were not run.
 - Hosted Supabase migration/data operations and real-device/browser checks remain unverified.
 
 Legend: `[x]` done · `[~]` partial / needs polish · `[ ]` next · `[-]` intentionally out of scope for now

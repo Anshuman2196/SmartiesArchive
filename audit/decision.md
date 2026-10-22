@@ -14,3 +14,8 @@
 - Reader completion is classified at the story level: a completed earlier chapter stays in Currently reading, and the last published chapter determines Recently finished.
 - The editor's first autosave updates the URL to preserve its new-chapter state through the server refresh.
 - Mixed format remains stored as the existing JSON block format for compatibility, while the authoring UI edits structured blocks instead of requiring JSON.
+- Content-note exclusion is an independent exact-match filter, so readers can include one note while excluding another; matching remains case-insensitive as before.
+- Review deletion offers a 10-second undo window. Restoring uses the signed-in user's own review on the same still-published chapter, and story authors' reviews are excluded from displayed review lists and averages.
+- `NEXT_PUBLIC_SITE_URL` may fall back to localhost in development, but must be an HTTP(S) origin in production because it is used for auth redirects and site metadata.
+- Content-warning acceptance is stored in a same-site, HttpOnly cookie scoped to the story. The chapter page returns a standalone gate before serializing reader content to the client; the gate follows the reader tone saved in local preferences.
+- The home hero and static genre/cover artwork are shipped as WebP; the hero uses a prioritized Next image while the CSS layer keeps its existing shade and framing.

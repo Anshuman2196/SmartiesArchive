@@ -209,6 +209,34 @@
   gap: 8px;
 }
 
+.edited {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.deleteButton {
+  color: #fff !important;
+  background: #9e2525 !important;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  color: var(--cream);
+  background: var(--panel);
+  font-size: 13px;
+}
+
+.notice form {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 @media (max-width: 720px) {
   .layout {
     grid-template-columns: 1fr;

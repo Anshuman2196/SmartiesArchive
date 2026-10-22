@@ -11,10 +11,22 @@ import { randomUUID } from "node:crypto";
 import { RichDocumentValidationError, safeRichDocumentErrorMessage, validateRichDocument } from "@/lib/rich-document";
 import { storyMediaExtension, validStoryImageHeader, validStoryPdfHeader } from "@/lib/image-validation";
 import { persistReadingProgress } from "@/lib/reading-progress";
+import { getSiteOrigin } from "@/lib/site-origin";
+import { cookies } from "next/headers";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
-const siteOrigin = () => (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+const siteOrigin = getSiteOrigin;
 export type AuthActionState = { kind: "idle" | "error" | "success"; message?: string; email?: string; fields?: Record<string, string> };
+
+export async function acceptStoryContentWarning(form: FormData) {
+  const workId = value(form, "workId");
+  const chapterId = value(form, "chapterId");
+  const preview = value(form, "preview") === "draft";
+  if (!z.uuid().safeParse(workId).success || !z.uuid().safeParse(chapterId).success) redirect("/library");
+  const cookieStore = await cookies();
+  cookieStore.set(`smarties-warning-${workId}`, "accepted", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: `/work/${workId}`, maxAge: 60 * 60 * 24 * 180 });
+  redirect(`/work/${workId}/chapter/${chapterId}${preview ? "?preview=draft" : ""}`);
+}
 
 const fieldErrors = (error: { flatten(): { fieldErrors: Record<string, string[] | undefined> } }) => Object.fromEntries(
   Object.entries(error.flatten().fieldErrors).flatMap(([name, messages]) => messages?.[0] ? [[name, messages[0]]] : []),
@@ -590,5 +602,27 @@ export async function deleteChapterReview(_previous: ReviewActionState, form: Fo
     return { kind: "success", message: "Review deleted." };
   } catch {
     return { kind: "error", message: "We couldn't delete your review. Please try again." };
+  }
+}
+
+export async function restoreChapterReview(_previous: ReviewActionState, form: FormData): Promise<ReviewActionState> {
+  const parsed = chapterReviewSchema.safeParse({ workId: value(form, "workId"), chapterId: value(form, "chapterId"), rating: value(form, "rating"), body: value(form, "body") });
+  if (!parsed.success) return { kind: "error", message: "That review can no longer be restored." };
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { kind: "error", message: "Sign in to restore your review." };
+    const [{ data: work }, { data: chapter }] = await Promise.all([
+      supabase.from("works").select("author_id").eq("id", parsed.data.workId).maybeSingle(),
+      supabase.from("chapters").select("id").eq("id", parsed.data.chapterId).eq("work_id", parsed.data.workId).eq("state", "published").maybeSingle(),
+    ]);
+    if (!work || work.author_id === user.id || !chapter) return { kind: "error", message: "This chapter is not available for reviews right now." };
+    const { error } = await supabase.from("chapter_reviews").upsert({ work_id: parsed.data.workId, chapter_id: parsed.data.chapterId, user_id: user.id, rating: parsed.data.rating, body: parsed.data.body }, { onConflict: "chapter_id,user_id" });
+    if (error) return { kind: "error", message: "We couldn't restore your review. Please try again." };
+    revalidatePath(`/work/${parsed.data.workId}`);
+    revalidatePath(`/work/${parsed.data.workId}/chapter/${parsed.data.chapterId}`);
+    return { kind: "success", message: "Review restored." };
+  } catch {
+    return { kind: "error", message: "We couldn't restore your review. Please try again." };
   }
 }

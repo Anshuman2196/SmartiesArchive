@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!work) return { title: "Story not found" };
   const description = work.summary || `Read ${work.title} in Smarties Archive.`;
   const hidden = work.visibility !== "public" || work.state !== "published";
-  return { title: work.title, description, robots: hidden ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title: work.title, description, type: "article", images: ["/images/archive-cover-default.png"] } };
+  return { title: work.title, description, robots: hidden ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title: work.title, description, type: "article", images: ["/images/archive-cover-default.webp"] } };
 }
 
 export default async function WorkPage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,7 +48,7 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
   const chapters = (chaptersResult.data ?? []) as Chapter[];
   const isOwner = session.user?.id === work.author_id;
   const published = chapters.filter((chapter) => chapter.state === "published");
-  const reviewSummariesPromise = getChapterReviewSummaries(supabase, published.map((chapter) => chapter.id));
+  const reviewSummariesPromise = getChapterReviewSummaries(supabase, published.map((chapter) => chapter.id), work.author_id);
   const bookmarkAndProgressPromise = session.user
     ? Promise.all([
       supabase.from("user_bookmarks").select("work_id").eq("work_id", work.id).eq("user_id", session.user.id).maybeSingle(),

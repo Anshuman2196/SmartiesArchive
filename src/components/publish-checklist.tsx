@@ -3,10 +3,11 @@ import styles from "./publish-checklist.module.css";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
 
 const toneLabel = { ready: "Ready", warning: "Review", blocking: "Needs attention" } as const;
 
-export function PublishChecklist({ items }: { items: PublishChecklistItem[] }) {
+export function PublishChecklist({ workId, items }: { workId: string; items: PublishChecklistItem[] }) {
   const blocking = items.filter((item) => item.tone === "blocking").length;
   const review = items.filter((item) => item.tone === "warning").length;
   const summary = blocking ? `${blocking} ${blocking === 1 ? "item needs" : "items need"} attention` : review ? `${review} ${review === 1 ? "item" : "items"} to review` : "Ready to publish";
@@ -16,6 +17,7 @@ export function PublishChecklist({ items }: { items: PublishChecklistItem[] }) {
       {items.map((item) => <li key={item.id} className={styles.item} data-tone={item.tone}>
         <span className={styles.status} aria-label={toneLabel[item.tone]}>{item.tone === "ready" ? "✓" : item.tone === "blocking" ? "!" : "·"}</span>
         <div><strong>{item.label}</strong><p>{item.detail}</p></div>
+        <Button variant="ghost" size="sm" asChild><Link href={item.id === "cover" || item.id === "warnings" ? `/studio/${workId}?view=details#story-details` : `/studio/${workId}?view=chapters#studio-chapters`}>Go to {item.id === "cover" || item.id === "warnings" ? "details" : "chapters"}</Link></Button>
       </li>)}
     </ul></DialogContent></Dialog>
   </div>;

@@ -14,9 +14,9 @@ type RecentWork = {
 };
 
 const genreArtwork = [
-  { tag: "Science Fiction", image: "/images/genre-science-fiction.png" },
-  { tag: "Horror", image: "/images/genre-horror.png" },
-  { tag: "Dark Fantasy", image: "/images/genre-dark-fantasy.png" },
+  { tag: "Science Fiction", image: "/images/genre-science-fiction.webp" },
+  { tag: "Horror", image: "/images/genre-horror.webp" },
+  { tag: "Dark Fantasy", image: "/images/genre-dark-fantasy.webp" },
 ];
 
 export default async function HomePage() {
@@ -48,6 +48,8 @@ export default async function HomePage() {
 
   return <main className="home cinema-home">
     <section className="cinema-hero" aria-labelledby="home-title">
+      <Image className="cinema-hero-image" src="/images/cinema-projection.webp" alt="" fill priority sizes="100vw"/>
+      <div className="cinema-hero-shade" aria-hidden="true"/>
       <div className="shell cinema-hero-inner">
         <div className="cinema-hero-copy">
           <p className="cinema-label">Smarties Archive <span>Original fiction</span></p>
@@ -80,7 +82,7 @@ export default async function HomePage() {
     </section>}
     <section className="shell cinema-community" aria-labelledby="community-title">
       <div className="cinema-community-copy"><span className="cinema-label">The people behind the pages</span><h2 id="community-title">Make something together.</h2><p>Bring your characters, build a world, and share a story with the community.</p><Link href={studioHref} className="pill primary">Open the studio</Link></div>
-      <div className="cinema-community-image"><Image src="/images/community-foyer.png" alt="Illustration inspired by member character references: three friends talking in a cinema foyer" fill sizes="(max-width: 760px) 100vw, 55vw"/></div>
+      <div className="cinema-community-image"><Image src="/images/community-foyer.webp" alt="Illustration inspired by member character references: three friends talking in a cinema foyer" fill sizes="(max-width: 760px) 100vw, 55vw"/></div>
     </section>
     <section className="shell cinema-next" aria-label="Continue reading"><div><span className="cinema-label">Pick up where you left off</span><h2>Keep your place.</h2><p>Your shelf holds saved stories and reading progress.</p><Link href={shelfHref}>Open your shelf</Link></div></section>
   </main>;

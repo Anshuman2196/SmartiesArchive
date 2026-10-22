@@ -71,7 +71,7 @@ async function loadProfiles(supabase: SupabaseClient, userIds: string[]): Promis
   return (data ?? []) as ProfileRow[];
 }
 
-export async function getChapterReviews(supabase: SupabaseClient, workId: string, chapterId: string): Promise<ChapterReview[]> {
+export async function getChapterReviews(supabase: SupabaseClient, workId: string, chapterId: string, authorId: string): Promise<ChapterReview[]> {
   const { data, error } = await supabase
     .from("chapter_reviews")
     .select("id,work_id,chapter_id,user_id,rating,body,created_at,updated_at")
@@ -79,15 +79,16 @@ export async function getChapterReviews(supabase: SupabaseClient, workId: string
     .eq("chapter_id", chapterId)
     .order("created_at", { ascending: false });
   if (error || !data) return [];
-  const profiles = await loadProfiles(supabase, data.map((review) => review.user_id));
-  return normalizeReviews(data, profiles);
+  const visibleReviews = data.filter((review) => review.user_id !== authorId);
+  const profiles = await loadProfiles(supabase, visibleReviews.map((review) => review.user_id));
+  return normalizeReviews(visibleReviews, profiles);
 }
 
-export async function getChapterReviewSummaries(supabase: SupabaseClient, chapterIds: string[]): Promise<Record<string, ChapterReviewSummary>> {
+export async function getChapterReviewSummaries(supabase: SupabaseClient, chapterIds: string[], authorId: string): Promise<Record<string, ChapterReviewSummary>> {
   if (chapterIds.length === 0) return {};
-  const { data, error } = await supabase.from("chapter_reviews").select("chapter_id,rating").in("chapter_id", chapterIds);
+  const { data, error } = await supabase.from("chapter_reviews").select("chapter_id,user_id,rating").in("chapter_id", chapterIds);
   if (error || !data) return {};
-  return data.reduce<Record<string, ChapterReviewSummary>>((summaries, row) => {
+  return data.filter((row) => row.user_id !== authorId).reduce<Record<string, ChapterReviewSummary>>((summaries, row) => {
     const current = summaries[row.chapter_id] ?? { count: 0, average: 0 };
     current.average = ((current.average * current.count) + row.rating) / (current.count + 1);
     current.count += 1;

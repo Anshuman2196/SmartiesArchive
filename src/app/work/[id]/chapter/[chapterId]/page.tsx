@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import { ChapterReviewsLoader } from "@/components/chapter-reviews-loader";
+import { ContentWarningGate } from "@/components/content-warning-gate";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +28,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   if (!chapter || !work) return { title: "Chapter not found", robots: { index: false, follow: false } };
   const hidden = work.visibility !== "public" || work.state !== "published" || chapter.state !== "published" || preview === "draft";
   const title = `${chapter.title} — ${work.title}`;
-  return { title, description: `Read ${chapter.title} from ${work.title} in Smarties Archive.`, robots: hidden ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title, type: "article", images: ["/images/archive-cover-default.png"] } };
+  return { title, description: `Read ${chapter.title} from ${work.title} in Smarties Archive.`, robots: hidden ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title, type: "article", images: ["/images/archive-cover-default.webp"] } };
 }
 
 export default async function ChapterPage({ params, searchParams }: { params: Promise<{ id: string; chapterId: string }>; searchParams: Promise<{ preview?: string }> }) {
@@ -50,6 +52,12 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   if (!work && viaUnlistedLink) work = (await supabase.rpc("read_unlisted_work", { p_work_id: id })).data?.[0] ?? null;
   if (!work) notFound();
   const isOwner = user?.id === work.author_id;
+  const warnings = work.content_warnings ?? [];
+  const warningAccepted = !warnings.length || (await cookies()).get(`smarties-warning-${id}`)?.value === "accepted";
+  if (!warningAccepted) return <>
+    {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
+    <ContentWarningGate workId={id} chapterId={chapterId} title={work.title} warnings={warnings} preview={isOwner && preview === "draft" ? "draft" : undefined}/>
+  </>;
   const wantsDraftPreview = isOwner && preview === "draft";
   const { data: chapterDraft } = wantsDraftPreview
     ? await supabase.from("chapter_drafts").select("title,body,format,content").eq("work_id", id).eq("chapter_id", chapterId).maybeSingle()
@@ -88,9 +96,9 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} contentWarnings={work.content_warnings ?? []} chapterTitle={displayedChapter.title} content={content} chapters={chapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} chapterTitle={displayedChapter.title} content={content} chapters={chapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
       {!previewingDraft && <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
-        <ChapterReviewsLoader workId={id} chapterId={chapterId} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
+        <ChapterReviewsLoader workId={id} chapterId={chapterId} authorId={work.author_id} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
       </Suspense>}
     </ReaderExperience>
   </>;

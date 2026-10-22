@@ -8,6 +8,7 @@ export type LibraryFilters = {
   q: string;
   tag: string;
   warning: string;
+  excludeWarning: string;
   sort: LibrarySort;
 };
 
@@ -43,12 +44,13 @@ export function parseLibraryFilters(params: LibrarySearchParams): LibraryFilters
     q: firstValue(params.q).trim(),
     tag: firstValue(params.tag).trim(),
     warning: firstValue(params.warning).trim(),
+    excludeWarning: firstValue(params.excludeWarning).trim(),
     sort: sortSet.has(sort) ? (sort as LibrarySort) : "newest",
   };
 }
 
 export function hasActiveLibraryFilters(filters: LibraryFilters): boolean {
-  return Boolean(filters.q || filters.tag || filters.warning || filters.sort !== "newest");
+  return Boolean(filters.q || filters.tag || filters.warning || filters.excludeWarning || filters.sort !== "newest");
 }
 
 function includesNormalized(values: string[], needle: string): boolean {
@@ -70,6 +72,7 @@ export function matchesLibraryFilters(work: LibraryWork, filters: LibraryFilters
     (!query || searchableText.some((value) => value.includes(query))) &&
     (!filters.tag || includesNormalized(work.tags, filters.tag)) &&
     (!filters.warning || includesNormalized(work.content_warnings, filters.warning))
+    && (!filters.excludeWarning || !includesNormalized(work.content_warnings, filters.excludeWarning))
   );
 }
 

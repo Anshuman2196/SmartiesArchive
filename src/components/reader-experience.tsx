@@ -87,14 +87,13 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, workTitle, author, contentWarnings = [], chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; contentWarnings?: string[]; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
   const router = useRouter();
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsShortcutVisible, setSettingsShortcutVisible] = useState(false);
-  const [warningsAccepted, setWarningsAccepted] = useState(contentWarnings.length === 0);
   const [progress, setProgress] = useState(savedProgress);
   const progressRef = useRef(savedProgress);
   const [saveMessage, setSaveMessage] = useState("");
@@ -112,7 +111,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const completed = !previewingDraft && progress >= COMPLETION_THRESHOLD;
 
   useEffect(() => {
-    if (previewingDraft || !warningsAccepted) return;
+    if (previewingDraft) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       const target = event.target;
@@ -123,12 +122,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [next, previous, previewingDraft, router, warningsAccepted, workId]);
-
-  useEffect(() => {
-    if (contentWarnings.length === 0) return;
-    try { setWarningsAccepted(localStorage.getItem(`smarties-warning:${workId}`) === "accepted"); } catch { /* Show the gate when storage is unavailable. */ }
-  }, [contentWarnings.length, workId]);
+  }, [next, previous, previewingDraft, router, workId]);
 
   useEffect(() => {
     try {
@@ -153,7 +147,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   }, [authenticated, chapterId, previewingDraft, workId]);
 
   useEffect(() => {
-    if (previewingDraft || !preferencesReady || !warningsAccepted || restoredChapter.current === chapterId) return;
+    if (previewingDraft || !preferencesReady || restoredChapter.current === chapterId) return;
     const frame = window.requestAnimationFrame(() => {
       const article = articleRef.current;
       if (!article) return;
@@ -166,7 +160,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       window.setTimeout(() => { restoringProgress.current = false; }, 150);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [chapterId, preferencesReady, previewingDraft, warningsAccepted]);
+  }, [chapterId, preferencesReady, previewingDraft]);
 
   useEffect(() => {
     if (preferencesReady) {
@@ -241,7 +235,6 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   }, [onScroll, previewingDraft]);
 
   useEffect(() => {
-    if (!warningsAccepted) return;
     const updateShortcut = () => {
       const article = articleRef.current;
       if (!article) return;
@@ -258,7 +251,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       window.removeEventListener("scroll", updateShortcut);
       window.removeEventListener("resize", updateShortcut);
     };
-  }, [warningsAccepted]);
+  }, []);
 
   const openSettings = (button: RefObject<HTMLButtonElement | null>) => {
     settingsFocusReturnRef.current = button;
@@ -269,16 +262,6 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const progressPercent = Math.round(progress * 100);
   const storyTitle = workTitle || "Story";
   const authorLabel = author?.displayName || "Archive member";
-
-  if (contentWarnings.length > 0 && !warningsAccepted) return <main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
-    <section className={styles.warningGate} aria-labelledby="reader-warning-title">
-      <span className="eyebrow">Content notes</span>
-      <h1 id="reader-warning-title" className="serif">Before you open {storyTitle}</h1>
-      <p>This chapter includes content notes chosen by the author. Take care of yourself and continue only if you are comfortable.</p>
-      <ul>{contentWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
-      <div className="story-actions"><button type="button" className="pill primary" onClick={() => { setWarningsAccepted(true); try { localStorage.setItem(`smarties-warning:${workId}`, "accepted"); } catch { /* Continue for this visit. */ } }}>I understand, continue</button><Link className="pill" href={`/work/${workId}`}>Back to story details</Link></div>
-    </section>
-  </main>;
 
   return <><main className={`reader-page ${styles.readerPage}`} data-theme={preferences.theme}>
     <nav className={`reader-topbar ${styles.readerTopbar}`} aria-label="Reader navigation">

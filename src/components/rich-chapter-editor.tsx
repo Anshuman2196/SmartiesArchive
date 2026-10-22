@@ -217,6 +217,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   useEffect(() => { if (!dirty) return; if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => { void save(); }, 1300); return () => { if (saveTimer.current) clearTimeout(saveTimer.current); }; }, [dirty, documentRevision, saveFinished, save]);
   useEffect(() => { const warn = (event: BeforeUnloadEvent) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [dirty]);
   useEffect(() => {
+    const editorUrl = window.location.href;
     const guardLink = (event: MouseEvent) => {
       if (!dirty || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const target = event.target;
@@ -231,8 +232,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     };
     const guardBack = () => {
       if (!dirty) return;
-      if (!window.confirm("This chapter has unsaved changes. Save them before leaving?")) { window.history.forward(); return; }
-      void save();
+      // popstate fires after the browser has already moved. Restore the editor
+      // entry before prompting so cancel keeps the unsaved document mounted.
+      window.history.pushState(window.history.state, "", editorUrl);
+      if (!window.confirm("This chapter has unsaved changes. Save them before leaving?")) return;
+      void save().then((saved) => { if (saved) window.history.back(); });
     };
     document.addEventListener("click", guardLink, true);
     window.addEventListener("popstate", guardBack);
@@ -354,6 +358,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const setLink = () => { if (!editor) return; setLinkValue(editor.getAttributes("link").href ?? ""); setLinkError(""); setLinkDialogOpen(true); };
   const submitLink = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!editor) return;
     const href = linkValue.trim();
     if (href && (!/^(https:|mailto:|\/)/i.test(href) || href.startsWith("//") || /[\\\u0000-\u001f]/.test(href))) { setLinkError("Use an HTTPS, mailto, or internal story link."); return; }
     if (!href) editor.chain().focus().unsetLink().run();

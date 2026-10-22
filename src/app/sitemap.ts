@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { getSiteOrigin } from "@/lib/site-origin";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const origin = getSiteOrigin();
   try {
     const supabase = await createClient();
     const { data } = await supabase.from("works").select("id,updated_at").eq("visibility", "public").eq("state", "published").order("updated_at", { ascending: false });

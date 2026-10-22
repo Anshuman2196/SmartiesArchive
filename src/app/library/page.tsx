@@ -50,18 +50,33 @@ function LibraryAuthor({ work }: { work: LibraryWork }) {
   return <span className={styles.author}>By {work.profiles?.display_name ?? "A reader"}</span>;
 }
 
-function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning"): string {
+function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning" | "excludeWarning"): string {
   const params = new URLSearchParams();
   if (key !== "q" && filters.q) params.set("q", filters.q);
   if (key !== "tag" && filters.tag) params.set("tag", filters.tag);
   if (key !== "warning" && filters.warning) params.set("warning", filters.warning);
+  if (key !== "excludeWarning" && filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning);
   if (filters.sort !== "newest") params.set("sort", filters.sort);
   const query = params.toString();
   return query ? `/library?${query}` : "/library";
 }
 
+function pageHref(filters: ReturnType<typeof parseLibraryFilters>, page: number): string {
+  const params = new URLSearchParams();
+  if (filters.q) params.set("q", filters.q);
+  if (filters.tag) params.set("tag", filters.tag);
+  if (filters.warning) params.set("warning", filters.warning);
+  if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning);
+  if (filters.sort !== "newest") params.set("sort", filters.sort);
+  params.set("page", String(page));
+  return `/library?${params.toString()}`;
+}
+
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<LibrarySearchParams> }) {
-  const filters = parseLibraryFilters(await searchParams);
+  const query = await searchParams;
+  const filters = parseLibraryFilters(query);
+  const requestedPage = Number(Array.isArray(query.page) ? query.page[0] : query.page) || 1;
+  const currentPage = Math.max(1, Math.floor(requestedPage));
   let allWorks: LibraryWork[] = [];
   let configured = true;
 
@@ -100,6 +115,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   }
 
   const filteredWorks = sortLibraryWorks(allWorks.filter((work) => matchesLibraryFilters(work, filters)), filters.sort);
+  const pageSize = 24;
+  const pageCount = Math.max(1, Math.ceil(filteredWorks.length / pageSize));
+  const page = Math.min(currentPage, pageCount);
+  const visibleWorks = filteredWorks.slice((page - 1) * pageSize, page * pageSize);
   const tags = getLibraryOptions(allWorks, "tags");
   const warnings = getLibraryOptions(allWorks, "content_warnings");
   const activeFilters = hasActiveLibraryFilters(filters);
@@ -116,6 +135,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       {filters.q && <span className="tag">Search: {filters.q} <Link href={filterHref(filters, "q")} aria-label="Remove search filter">×</Link></span>}
       {filters.tag && <span className="tag">Tag: {filters.tag} <Link href={filterHref(filters, "tag")} aria-label="Remove tag filter">×</Link></span>}
       {filters.warning && <span className="tag">Content note: {filters.warning} <Link href={filterHref(filters, "warning")} aria-label="Remove content note filter">×</Link></span>}
+      {filters.excludeWarning && <span className="tag">Hidden note: {filters.excludeWarning} <Link href={filterHref(filters, "excludeWarning")} aria-label="Remove hidden content note filter">×</Link></span>}
       {filters.sort !== "newest" && <span className="tag">Sort: {sortLabels[filters.sort]}</span>}
       <Link className="text-action" href="/library">Clear all</Link>
     </div>}
@@ -124,7 +144,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open the studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {filteredWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{filteredWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
+    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
       <LibraryPoster work={work} eager={index < 3}/>
       <div className={styles.body}>
         <h2 className={styles.title}>{work.title}</h2>
@@ -132,6 +152,6 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
         <LibraryTags work={work}/>
         <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{work.content_warnings.length > 0 && <span>Content notes</span>}</div>
       </div>
-    </Link>)}</div></section>}
+    </Link>)}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
   </main>;
 }

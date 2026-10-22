@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { useActionState, useEffect, useState } from "react";
 import { register, requestPasswordReset, resendConfirmation, signIn, type AuthActionState } from "@/app/actions";
 
@@ -42,7 +43,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
   return <main className="shell auth-shell">
     <section className="auth-panel" aria-labelledby="auth-title">
       {mode === "recover" ? <>
-        <Link href={modeLink("login")} className="auth-back">← Back to sign in</Link>
+        <Link href={modeLink("login")} className="auth-back"><ArrowLeft size={15} aria-hidden="true"/> Back to sign in</Link>
         <span className="eyebrow">A fresh start</span><h1 id="auth-title" className="serif">Reset your password.</h1><p className="muted">We’ll email you a secure link to choose a new password.</p>
         {statusMessage && <p className="notice" role="status">{statusMessage}</p>}<Feedback state={recoveryState}/>
         <form action={recoveryAction} className="auth-form"><input type="hidden" name="next" value={next}/><div className="field"><label htmlFor="recover-email">Email address</label><input id="recover-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!recoveryState.fields?.email} aria-describedby={recoveryState.fields?.email ? "recover-email-error" : undefined}/>{recoveryState.fields?.email && <span id="recover-email-error" className="field-error">{recoveryState.fields.email}</span>}</div><button className="pill primary auth-submit" type="submit" disabled={recoveryPending}>{recoveryPending && <span className="spinner" aria-hidden="true"/>}{recoveryPending ? "Sending link…" : "Send recovery link"}</button></form>
@@ -58,7 +59,7 @@ export function AuthForm({ mode, statusMessage, next }: { mode: Mode; statusMess
             <div className="field"><label htmlFor="signup-email">Email address</label><input id="signup-email" name="email" type="email" required maxLength={254} autoComplete="email" aria-invalid={!!signupState.fields?.email} aria-describedby={signupState.fields?.email ? "signup-email-error" : undefined}/>{signupState.fields?.email && <span id="signup-email-error" className="field-error">{signupState.fields.email}</span>}</div>
             <PasswordField id="signup-password" name="password" label="Password" autoComplete="new-password" error={signupState.fields?.password}/><span className="field-hint requirement">Use at least 10 characters.</span>
             <PasswordField id="signup-confirmation" name="confirmation" label="Confirm password" autoComplete="new-password" error={signupState.fields?.confirmation}/>
-            <button className="pill primary auth-submit" type="submit" disabled={signupPending}>{signupPending && <span className="spinner" aria-hidden="true"/>}{signupPending ? "Creating your account…" : "Create your free account"}</button>
+            <button className="pill primary auth-submit" type="submit" disabled={signupPending}>{signupPending && <span className="spinner" aria-hidden="true"/>}{signupPending ? "Creating your account…" : "Create account"}</button>
           </form> : <div className="confirmation-card"><span className="confirmation-mark" aria-hidden="true">✳</span><h2 className="serif">Check your email.</h2><p>{signupState.message}</p>{signupState.email && <p className="confirmation-email">{signupState.email}</p>}<form action={resendAction}><input type="hidden" name="email" value={signupState.email ?? ""}/><button className="text-action" type="submit" disabled={resendPending}>{resendPending ? "Sending a fresh link…" : "Resend confirmation email"}</button></form><Feedback state={resendState}/><Link href={modeLink("login")} className="pill auth-submit">Return to sign in</Link></div>}
           <p className="auth-footnote">You may need to confirm your email address before signing in.</p>
         </> : <form action={loginAction} className="auth-form"><input type="hidden" name="next" value={next}/>

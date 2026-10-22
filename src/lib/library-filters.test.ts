@@ -38,6 +38,7 @@ test("parses supported filters and falls back for unknown sort values", () => {
     q: "Mira",
     tag: "Mystery",
     warning: "Violence",
+    excludeWarning: "",
     sort: "newest",
   });
   assert.equal(hasActiveLibraryFilters(parseLibraryFilters({})), false);

@@ -35,13 +35,13 @@ One accent carries the interface. Story covers retain their own colors. On the g
 - 1280px content rail. 28px desktop side padding, 20px mobile, 15px on very narrow screens.
 - Home: wide photographic frame with one real latest-work poster; the next works form an open poster programme.
 - Genre frames appear only for tags present on published stories. They link to the matching library filter.
-- Library: search and filters before a cover-led grid. On narrow screens each result becomes a cover and information row.
+- Library: search and filters before a scannable cover-and-information list. Keep the covers compact enough that story titles are visible without scrolling past a screen of artwork.
 - Author profiles use the same cover-led presentation. An author-supplied cover always takes precedence over the archive fallback.
 - Story details: cover, title, synopsis, tags, warnings, then the reading action and chapter programme.
 - Shelf and forms use open lists and plain fields. Panels exist only when they contain an interaction.
 - The reader opens with content and keeps its saved settings behind a single control. The studio creates a private draft from a title in a dialog, then gives chapters and story details separate, persistent workspaces.
 - Publication checks open in a dialog, with blocking items called out in the page. The admin desk opens on stories and keeps chapter and member tables behind section headings.
-- No arrow glyphs on ordinary links. Directional symbols remain where they describe pagination or reader movement.
+- Use Lucide icons for ordinary navigation links. Directional arrows are reserved for reader/PDF page movement; stars represent ratings, × marks dismiss/remove actions, and ✳ remains a decorative motif. The header hamburger uses three CSS bars and password visibility uses the words “Show” and “Hide.”
 
 ## Interaction
 
