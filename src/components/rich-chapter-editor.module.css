@@ -24,7 +24,7 @@
   min-height: 42px;
   padding: 7px 10px;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: var(--control-radius);
   background: transparent;
   color: var(--cream);
   cursor: pointer;
@@ -42,7 +42,7 @@
   min-height: 38px;
   padding: 5px 8px;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: var(--control-radius);
   background: transparent;
   color: var(--cream);
   font-size: 14px;

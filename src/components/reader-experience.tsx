@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode, type RefObject } from "react";
 import type { ReaderContent } from "@/lib/chapter-content";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { PdfReader } from "@/components/pdf-reader";
@@ -10,7 +10,7 @@ import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences,
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 import styles from "./reader-experience.module.css";
 import { ArrowLeft, Bookmark, List, Settings2, Share2, X } from "lucide-react";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ChapterLink = { id: string; title: string; position: number };
 type Preferences = ReaderPreferences;
@@ -85,11 +85,15 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsShortcutVisible, setSettingsShortcutVisible] = useState(false);
   const [warningsAccepted, setWarningsAccepted] = useState(contentWarnings.length === 0);
   const [progress, setProgress] = useState(savedProgress);
   const progressRef = useRef(savedProgress);
   const [saveMessage, setSaveMessage] = useState("");
   const articleRef = useRef<HTMLElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsShortcutRef = useRef<HTMLButtonElement>(null);
+  const settingsFocusReturnRef = useRef(settingsButtonRef);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLocalSave = useRef(0);
   const restoringProgress = useRef(false);
@@ -213,6 +217,28 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
     return () => window.removeEventListener("scroll", onScroll);
   }, [onScroll, previewingDraft]);
 
+  useEffect(() => {
+    if (!warningsAccepted) return;
+    const updateShortcut = () => {
+      const article = articleRef.current;
+      if (!article) return;
+      const bounds = article.getBoundingClientRect();
+      setSettingsShortcutVisible(bounds.top <= 140 && bounds.bottom > 0);
+    };
+    updateShortcut();
+    window.addEventListener("scroll", updateShortcut, { passive: true });
+    window.addEventListener("resize", updateShortcut);
+    return () => {
+      window.removeEventListener("scroll", updateShortcut);
+      window.removeEventListener("resize", updateShortcut);
+    };
+  }, [warningsAccepted]);
+
+  const openSettings = (button: RefObject<HTMLButtonElement | null>) => {
+    settingsFocusReturnRef.current = button;
+    setSettingsOpen(true);
+  };
+
   const update = <K extends keyof Preferences>(key: K, value: Preferences[K]) => setPreferences((previousValue) => ({ ...previousValue, [key]: value }));
   const progressPercent = Math.round(progress * 100);
   const storyTitle = workTitle || "Story";
@@ -240,8 +266,8 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         {!previewingDraft && (authenticated ? <BookmarkButton workId={workId} initialSaved={initialSaved} iconOnly/> : <Link href={`/auth?mode=login&next=${encodeURIComponent(`/work/${workId}/chapter/${chapterId}`)}`} className={styles.readerAction} aria-label="Sign in to bookmark" title="Sign in to bookmark"><Bookmark size={18} aria-hidden="true"/></Link>)}
         {!previewingDraft && <ShareButton title={`${storyTitle} — ${chapterTitle}`} iconOnly/>}
         <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-          <DialogTrigger asChild><button type="button" className={styles.readerAction} aria-label="Reading settings" title="Reading settings"><Settings2 size={18} aria-hidden="true"/></button></DialogTrigger>
-          <DialogContent id="reader-preferences" className={`${styles.preferencesDialog} reader-tools`} data-theme={preferences.theme} showCloseButton={false}>
+          <button ref={settingsButtonRef} type="button" className={styles.readerAction} aria-label="Reading settings" title="Reading settings" aria-haspopup="dialog" onClick={() => openSettings(settingsButtonRef)}><Settings2 size={18} aria-hidden="true"/></button>
+          <DialogContent id="reader-preferences" className={`${styles.preferencesDialog} reader-tools`} data-theme={preferences.theme} showCloseButton={false} onCloseAutoFocus={(event) => { event.preventDefault(); (settingsFocusReturnRef.current.current ?? settingsButtonRef.current)?.focus({ preventScroll: true }); }}>
             <DialogHeader className={styles.preferenceHeader}><div><DialogTitle>Reading preferences</DialogTitle><DialogDescription>Your choices are saved on this device.</DialogDescription></div><div className={styles.preferenceActions}><button type="button" className={styles.resetButton} onClick={() => setPreferences(defaults)}>Reset</button><DialogClose asChild><button type="button" className={styles.resetButton} aria-label="Close reading settings" title="Close settings"><X size={17} aria-hidden="true"/></button></DialogClose></div></DialogHeader>
             <div className={styles.preferenceGrid}>
               <fieldset className={styles.preferenceGroup}><legend>Typography</legend>
@@ -261,6 +287,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
       </div>
       <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
     </nav>
+    {settingsShortcutVisible && <button ref={settingsShortcutRef} type="button" className={styles.settingsShortcut} aria-label="Reading settings" aria-haspopup="dialog" onClick={() => openSettings(settingsShortcutRef)}><Settings2 size={18} aria-hidden="true"/><span>Reading settings</span></button>}
     <div className={`reader-layout ${styles.readerLayout}`}>
       <aside id="table-of-contents" className={`reader-toc ${styles.readerToc}`} data-open={tocOpen}>
         <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>

@@ -11,6 +11,8 @@
   background: transparent;
   color: inherit;
   cursor: zoom-in;
+  border-radius: var(--control-radius);
+  overflow: hidden;
 }
 
 .mediaButton:focus-visible,
@@ -35,6 +37,7 @@
   font: 10px var(--font-ui);
   opacity: 0;
   transition: opacity .15s ease;
+  border-radius: 6px;
 }
 
 .mediaButton:hover .zoomHint,
@@ -61,12 +64,14 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 24%, transparent);
   background: var(--page-bg);
   color: var(--page-ink);
+  border-radius: var(--surface-radius);
 }
 
 .dialog:fullscreen {
   width: 100vw;
   height: 100vh;
   border: 0;
+  border-radius: 0;
 }
 
 .dialogHeader,
@@ -107,6 +112,7 @@
   color: var(--page-ink);
   font: 11px var(--font-ui);
   cursor: pointer;
+  border-radius: var(--control-radius);
 }
 
 .dialogButton:hover:not(:disabled) {
@@ -145,6 +151,7 @@
     width: 100%;
     height: 100dvh;
     border: 0;
+    border-radius: 0;
   }
 
   .viewport {

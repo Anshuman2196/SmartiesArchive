@@ -92,6 +92,7 @@
   font: 10px var(--font-ui);
   text-decoration: none;
   cursor: pointer;
+  border-radius: var(--control-radius);
 }
 
 .readerAction:hover,
@@ -106,6 +107,30 @@
   display: inline-grid;
 }
 
+.settingsShortcut {
+  position: fixed;
+  right: clamp(16px, 3vw, 32px);
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 9;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--page-ink) 25%, transparent);
+  border-radius: var(--control-radius);
+  background: var(--page-bg);
+  color: var(--page-ink);
+  box-shadow: 0 8px 30px #0007;
+  font: 12px var(--font-ui);
+  cursor: pointer;
+}
+
+.settingsShortcut:hover,
+.settingsShortcut:focus-visible {
+  border-color: var(--lime);
+}
+
 .tocButton {
   display: none;
   gap: 8px;
@@ -114,6 +139,7 @@
   background: transparent;
   color: var(--page-muted);
   cursor: pointer;
+  border-radius: var(--control-radius);
 }
 
 .tocButton:hover,
@@ -158,6 +184,7 @@
   background: transparent;
   color: var(--page-muted);
   cursor: pointer;
+  border-radius: var(--control-radius);
 }
 
 .preferencesDialog {
@@ -222,6 +249,7 @@
   color: var(--page-muted);
   font: 11px var(--font-ui);
   cursor: pointer;
+  border-radius: var(--control-radius);
 }
 
 .resetButton:hover {
@@ -302,6 +330,7 @@
 .themeButton {
   min-height: 44px;
   padding: 8px 10px;
+  border-radius: var(--control-radius);
 }
 
 .readerArticle {
