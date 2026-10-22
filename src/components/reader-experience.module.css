@@ -5,14 +5,14 @@
 .warningGate {
   width: min(100% - 32px, 720px);
   margin: 12vh auto;
-  padding: clamp(24px, 6vw, 56px);
+  padding: clamp(var(--space-6), 6vw, 56px);
   border: 1px solid var(--line);
   background: var(--panel);
   border-radius: 8px;
 }
 
 .warningGate h1 {
-  margin: 12px 0;
+  margin: var(--space-3) 0;
 }
 
 .warningGate ul {
@@ -90,7 +90,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border: 1px solid color-mix(in srgb, var(--page-ink) 18%, transparent);
   background: transparent;
   color: var(--page-muted);
@@ -133,8 +133,8 @@
 
 .tocButton {
   display: none;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--page-ink) 18%, transparent);
   background: transparent;
   color: var(--page-muted);
@@ -178,13 +178,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .tocClose {
   display: none;
   min-height: 44px;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border: 1px solid color-mix(in srgb, var(--page-ink) 18%, transparent);
   background: transparent;
   color: var(--page-muted);
@@ -248,7 +248,7 @@
 .resetButton {
   flex: 0 0 auto;
   min-height: 44px;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--page-ink) 18%, transparent);
   background: transparent;
   color: var(--page-muted);
@@ -334,7 +334,7 @@
 
 .themeButton {
   min-height: 44px;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border-radius: var(--control-radius);
 }
 
@@ -345,13 +345,13 @@
 .completionCard {
   max-width: 900px;
   margin: 54px auto 0;
-  padding: 24px;
+  padding: var(--space-6);
   border: 1px solid color-mix(in srgb, var(--lime) 32%, transparent);
   background: color-mix(in srgb, var(--lime) 7%, transparent);
 }
 
 .completionCard h2 {
-  margin: 8px 0 6px;
+  margin: var(--space-2) 0 6px;
   color: var(--page-ink);
   font-size: clamp(24px, 4vw, 34px);
   font-weight: 400;
@@ -373,7 +373,7 @@
 
 .completionTags {
   margin-top: 14px;
-  gap: 8px 16px;
+  gap: var(--space-2) var(--space-4);
   font: 12px/1.5 var(--font-ui);
 }
 
@@ -404,7 +404,7 @@
 
   .readerBack,
   .tocButton {
-    padding: 8px 10px;
+    padding: var(--space-2) 10px;
   }
 
   .tocButton{display:inline-flex}
@@ -443,7 +443,7 @@
     order: 4;
     flex-basis: 100%;
     min-height: 18px;
-    padding-left: 4px;
+    padding-left: var(--space-1);
   }
 
   .readerLayout {
@@ -492,12 +492,12 @@
     max-width: none;
     display: flex;
     align-items: center;
-    padding: 10px 8px;
+    padding: 10px var(--space-2);
     white-space: normal;
   }
 
   .preferenceHeader {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .preferenceHeader p {
@@ -506,7 +506,7 @@
 
   .preferenceGrid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 20px 16px;
+    gap: 20px var(--space-4);
   }
 
   .themeGroup {
@@ -527,7 +527,7 @@
   }
 
   .chapterPager {
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .chapterPager a {
