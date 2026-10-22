@@ -22,6 +22,7 @@ import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
 import { normalizeChapterPaste } from "@/lib/chapter-paste";
+import { markdownRunsForPreview } from "@/lib/markdown-preview";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { createEditorShortcutExtension, detectShortcutPlatform, editorShortcutDefinitions, formatShortcut, type EditorShortcutCallbacks, type EditorShortcutDefinition, type ShortcutPlatform } from "@/lib/editor-shortcuts";
 import styles from "./rich-chapter-editor.module.css";
@@ -300,6 +301,39 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().focus().updateAttributes("imageBlock", { [key]: value }).run();
 
   if (!editor) return <div className="rich-editor-loading" role="status">Preparing your writing space…</div>;
+  const togglePreview = () => {
+    if (preview) { setPreview(false); return; }
+    const runs = markdownRunsForPreview(editor.getJSON() as RichDocument);
+    if (runs.length) {
+      try {
+        if (!editor.markdown) throw new Error("Markdown preview is unavailable. Reload the editor and try again.");
+        const transaction = editor.state.tr;
+        for (const run of runs.reverse()) {
+          if (/!\[[^\]]*\]\([^)]*\)|<img\b/i.test(run.source)) throw new Error("Upload images through the image picker before previewing Markdown image links.");
+          const parsed = editor.markdown.parse(run.source);
+          const nodes = (parsed.content ?? []).map((node) => editor.schema.nodeFromJSON(node));
+          if (!nodes.length) continue;
+          let from = 0;
+          for (let index = 0; index < run.start; index += 1) from += editor.state.doc.child(index).nodeSize;
+          let to = from;
+          for (let index = run.start; index < run.end; index += 1) to += editor.state.doc.child(index).nodeSize;
+          transaction.replaceWith(from, to, Fragment.fromArray(nodes));
+        }
+        const candidate = transaction.doc.toJSON() as RichDocument;
+        let count = 0;
+        let oversized = false;
+        const walk = (node: RichDocument | RichDocument["content"][number]) => { count += 1; if ((node.content?.length ?? 0) > chapterContentLimits.children) oversized = true; for (const child of node.content ?? []) walk(child); };
+        walk(candidate);
+        if (oversized || count > chapterContentLimits.nodes || JSON.stringify(candidate).length > chapterContentLimits.json || plainTextFromRichDocument(candidate).length > chapterContentLimits.text) throw new Error("This Markdown exceeds the chapter limit. Split it into shorter chapters.");
+        editor.view.dispatch(transaction);
+        setImportNotice("");
+      } catch (error) {
+        setImportNotice(error instanceof Error ? error.message : "Could not preview this Markdown.");
+        return;
+      }
+    }
+    setPreview(true);
+  };
   shortcutCallbacksRef.current = {
     onLink: setLink,
     onIndent: () => changeIndent(1),
@@ -307,7 +341,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     onInsertImage: openImagePicker,
     onInsertEmoji: () => { setSidebarTab("insert"); openSidebar(); setEmojiOpen(true); setEmojiSearch(""); },
     onSave: () => { void save(); },
-    onTogglePreview: () => setPreview((open) => !open),
+    onTogglePreview: togglePreview,
     onToggleFocusMode: () => setFocusMode((focused) => !focused),
     onOpenHelp: () => openShortcutHelp(),
   };
@@ -378,7 +412,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           <button ref={overflowTriggerRef} type="button" className={styles.overflowTrigger} aria-label="More chapter actions" aria-haspopup="menu" aria-expanded={overflowOpen} aria-controls="editor-overflow-menu" onClick={() => overflowOpen ? closeOverflow() : openOverflow()} title="More chapter actions"><MoreHorizontal size={19} aria-hidden="true"/></button>
           {overflowOpen && <div ref={overflowMenuRef} id="editor-overflow-menu" className="editor-overflow-menu" role="menu" aria-label="More chapter actions" onKeyDown={handleOverflowKeyDown}>
             {menuButton("Undo", () => editor.chain().focus().undo().run(), !editor.can().undo())}{menuButton("Redo", () => editor.chain().focus().redo().run(), !editor.can().redo())}
-            {menuButton(preview ? "Return to writing" : "Preview chapter", () => setPreview(!preview))}
+            {menuButton(preview ? "Return to writing" : "Preview chapter", togglePreview)}
             {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
             {menuButton("Import Markdown file", () => markdownRef.current?.click())}
             <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
