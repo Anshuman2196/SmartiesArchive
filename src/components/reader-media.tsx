@@ -58,7 +58,9 @@ export function ReaderMedia({ url, alt }: { url: string; alt: string }) {
   }, []);
 
   if (!url) return null;
-  const label = alt || "Story illustration";
+  const description = alt.trim();
+  const triggerLabel = description ? `Open ${description} in the image viewer` : "Open image in the viewer";
+  const dialogLabel = description ? `${description} image viewer` : "Image viewer";
   const close = () => {
     if (document.fullscreenElement === dialogRef.current) void document.exitFullscreen();
     setOpen(false);
@@ -72,20 +74,20 @@ export function ReaderMedia({ url, alt }: { url: string; alt: string }) {
 
   return <>
     <figure className={`reader-media ${styles.mediaFigure}`}>
-      <button ref={triggerRef} type="button" className={styles.mediaButton} onClick={() => { setScale(MIN_SCALE); setOpen(true); }} aria-label={`Open ${label} in the image viewer`}>
-        <Image src={url} alt={label} width={1440} height={1000} unoptimized sizes="(max-width: 760px) 100vw, 900px"/>
+      <button ref={triggerRef} type="button" className={styles.mediaButton} onClick={() => { setScale(MIN_SCALE); setOpen(true); }} aria-label={triggerLabel}>
+        <Image src={url} alt={description} width={1440} height={1000} unoptimized sizes="(max-width: 760px) 100vw, 900px"/>
         <span className={styles.zoomHint} aria-hidden="true">Open image viewer</span>
       </button>
-      <figcaption>{label}</figcaption>
+      {description && <figcaption>{description}</figcaption>}
     </figure>
     {open && <div className={styles.dialogBackdrop} onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-label={`${label} image viewer`} tabIndex={-1}>
+      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-label={dialogLabel} tabIndex={-1}>
         <div className={styles.dialogHeader}>
-          <p>{label}</p>
+          <p>{description || "Image viewer"}</p>
           <button type="button" className={styles.dialogButton} onClick={close} aria-label="Close image viewer">Close</button>
         </div>
         <div className={styles.viewport}>
-          <Image className={styles.zoomedImage} src={url} alt={label} width={1440} height={1000} unoptimized sizes="100vw" style={{ transform: `scale(${scale})` }}/>
+          <Image className={styles.zoomedImage} src={url} alt={description} width={1440} height={1000} unoptimized sizes="100vw" style={{ transform: `scale(${scale})` }}/>
         </div>
         <div className={styles.dialogControls} aria-label="Image viewer controls">
           <button type="button" className={styles.dialogButton} onClick={() => changeScale(-SCALE_STEP)} disabled={scale <= MIN_SCALE} aria-label="Zoom out">−</button>

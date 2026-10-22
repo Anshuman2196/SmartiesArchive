@@ -23,7 +23,7 @@ const PdfReader = dynamic(() => import("@/components/pdf-reader").then((module) 
 
 function Media({ url, alt }: { url: string; alt: string }) {
   if (!isSecureMediaUrl(url)) return null;
-  return <ReaderMedia url={url} alt={alt || "Story illustration"}/>;
+  return <ReaderMedia url={url} alt={alt}/>;
 }
 
 function Chat({ messages }: { messages: Array<{ speaker: string; text: string }> }) {
