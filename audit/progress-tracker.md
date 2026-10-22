@@ -38,7 +38,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | W-17, W-19–W-21, W-23–W-27, W-30–W-32 | `[x]` | Full-screen focus, success/publish feedback, destructive confirmation, discard revision, details tab, page titles, compact cover, link dialog, live word count, and preview state are implemented. |
 | W-28 | `[~]` | Fix the mobile formatting button's overlapping icon/“Aa” label, keep save status readable, raise toolbar targets to 44 px (including save, publish, and save-error actions), and reduce the formatting sheet so editor text remains visible. Corrected the 600px and 375px CSS overrides that had left several audited controls at 38–40px; mobile save status and Save draft now use 12 px text. Verify layout and tap targets at 320/390 px in a browser. |
 | W-22 | `[x]` | Zero-chapter completeness is a warning, and each checklist row links to its relevant Details or Chapters tab. |
-| W-29 | `[~]` | Duplicate chapters are moved directly after the source with the existing reorder RPC; verify against hosted SmartiesArchive when that project is connected. |
+| W-29 | `[~]` | Duplicate chapters are moved directly after the source with the reorder RPC. The action now treats a false RPC result or failed chapter-list read as failure, removes the new draft copy, and shows an error instead of claiming success with the copy appended at the end. Verify ordering against hosted SmartiesArchive when it is connected. |
 
 ### Additional writer-audit findings
 

@@ -363,13 +363,22 @@ export async function duplicateChapter(form: FormData) {
   const selected = draft ?? source;
   const { data: copy, error } = await supabase.from("chapters").insert({ work_id: workId, title: `${selected.title.slice(0, 113)} (copy)`, body: selected.body, format: selected.format, content: selected.content, state: "draft" }).select("id").single();
   if (error || !copy) redirect(`/studio/${workId}?status=save_error`);
-  const { data: chapters } = await supabase.from("chapters").select("id").eq("work_id", workId).order("position");
-  if (chapters) {
+  const { data: chapters, error: chaptersError } = await supabase.from("chapters").select("id").eq("work_id", workId).order("position");
+  let reordered = false;
+  if (!chaptersError && chapters) {
     const order = chapters.map((chapter) => chapter.id).filter((id) => id !== copy.id);
     const sourceIndex = order.indexOf(chapterId);
-    order.splice(sourceIndex < 0 ? order.length : sourceIndex + 1, 0, copy.id);
-    const { error: reorderError } = await supabase.rpc("reorder_chapters", { p_work_id: workId, p_chapter_ids: order });
-    if (reorderError) console.warn("[studio-duplicate] inserted chapter could not be moved after its source", { code: reorderError.code ?? "unknown" });
+    if (sourceIndex >= 0) {
+      order.splice(sourceIndex + 1, 0, copy.id);
+      const { data, error: reorderError } = await supabase.rpc("reorder_chapters", { p_work_id: workId, p_chapter_ids: order });
+      reordered = !reorderError && data === true;
+      if (reorderError) console.warn("[studio-duplicate] chapter order update failed", { code: reorderError.code ?? "unknown" });
+    }
+  }
+  if (!reordered) {
+    if (chaptersError) console.warn("[studio-duplicate] chapter list could not be loaded", { code: chaptersError.code ?? "unknown" });
+    await supabase.from("chapters").delete().eq("id", copy.id).eq("work_id", workId).eq("state", "draft");
+    redirect(`/studio/${workId}?status=save_error`);
   }
   revalidatePath(`/studio/${workId}`);
   redirect(`/studio/${workId}?status=chapter_duplicated`);
