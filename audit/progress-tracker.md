@@ -39,6 +39,14 @@ This tracker is intentionally scoped for a private server project with about 20 
 | W-22 | `[x]` | Zero-chapter completeness is a warning, and each checklist row links to its relevant Details or Chapters tab. |
 | W-29 | `[~]` | Duplicate chapters are moved directly after the source with the existing reorder RPC; verify against hosted SmartiesArchive when that project is connected. |
 
+### Additional writer-audit findings
+
+| Finding | Status | Change / remaining work |
+| --- | --- | --- |
+| Writer audit P1-1–P1-3 | `[~]` | Added a persistent quick toolbar with text style/heading levels 1–6, undo/redo, inline styles, lists, task list, quote, 2×2 table insertion, link, image, and spoiler controls. Preview and publish are visible, with an explanation when publishing is disabled. Verify discoverability, narrow-screen fit, and commands in the browser. |
+| Writer audit P1-4–P1-5 | `[~]` | Dirty prose navigation guards and an in-app validated link dialog are implemented. Managed-form navigation guard and failed-save back-navigation still need browser confirmation. |
+| Writer audit P2-6–P2-8, P2-10–P2-14, P3-15–P3-18 | `[~]` | Visible word count, save feedback, image alt editing, structured mixed blocks, action feedback, and other authoring polish have code changes. Image-alt prompting/checklist coverage, non-prose previews and format changes, banner dismissal, published-chapter deletion affordance, warning/tag chips, paste-format notice, and recovery-copy discoverability remain open or browser-unverified. |
+
 ### Reader findings
 
 | Finding group | Status | Change / remaining work |
@@ -70,6 +78,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 - The previously recorded `npm run typecheck` pass predates commits `6dd22c9`, `9cb6bfe`, `26e7a71`, and `91bd8fd`; those changes have not been typechecked. Tests and lint were not run.
 - Hosted Supabase migration/data operations and real-device/browser checks remain unverified.
 - The browser extension is connected but currently has no tabs; no viewport measurements or interaction checks were run in this continuation.
+- Added a persistent editor quick toolbar and surfaced preview/publish controls. Tiptap's current documentation supports `toggleTaskList()` and `insertTable({ rows, cols, withHeaderRow })`; a 2×2 table with a header row is the default authoring shortcut. Browser confirmation remains outstanding.
 
 Legend: `[x]` done · `[~]` partial / needs polish · `[ ]` next · `[-]` intentionally out of scope for now
 

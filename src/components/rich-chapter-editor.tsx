@@ -439,8 +439,9 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   };
 
   const textStyle = editor.getAttributes("textStyle") as Record<string, string | null>;
-  const headingValue = editor.isActive("heading", { level: 1 }) ? "h1" : editor.isActive("heading", { level: 2 }) ? "h2" : editor.isActive("heading", { level: 3 }) ? "h3" : editor.isActive("blockquote") ? "quote" : "p";
-  const changeBlock = (value: string) => { if (value === "quote") editor.chain().focus().setBlockquote().run(); else if (value === "p") editor.chain().focus().setParagraph().run(); else editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) as 1 | 2 | 3 }).run(); };
+  const headingValue = [1, 2, 3, 4, 5, 6].find((level) => editor.isActive("heading", { level }));
+  const blockValue = headingValue ? `h${headingValue}` : editor.isActive("blockquote") ? "quote" : "p";
+  const changeBlock = (value: string) => { if (value === "quote") editor.chain().focus().setBlockquote().run(); else if (value === "p") editor.chain().focus().setParagraph().run(); else editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }).run(); };
   const setTextColor = (value: string) => editor.chain().focus().setColor(value).run();
   const tabs = [{ id: "text", label: "Text" }, { id: "type", label: "Typography" }, { id: "insert", label: "Insert" }, { id: "literary", label: "Literary" }, { id: "document", label: "Document" }];
   const downloadRecovery = () => {
@@ -505,12 +506,24 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             {menuButton(focusMode ? "Exit focus mode" : "Focus mode", () => setFocusMode(!focusMode))}
             {menuButton("Import Markdown file", () => markdownRef.current?.click())}
             <button type="button" role="menuitem" className="editor-top-action" onClick={() => { closeOverflow(); openShortcutHelp(overflowTriggerRef.current); }}>Keyboard shortcuts</button>
-            {chapterId && <form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill" role="menuitem" type="submit" disabled={dirty || !!saveError}>Publish saved draft</button></form>}
             {menuButton("Download recovery copy", downloadRecovery)}
           </div>}
         </div>
       </div>
     </header>
+    <div className={styles.quickToolbar} role="toolbar" aria-label="Writing tools">
+      <div className={styles.quickTools} role="group" aria-label="Text formatting">
+        <label className="sr-only" htmlFor="quick-block-style">Text style</label><select id="quick-block-style" aria-label="Text style" value={blockValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option>{[1,2,3,4,5,6].map((level) => <option key={level} value={`h${level}`}>Heading {level}</option>)}<option value="quote">Blockquote</option></select>
+        {toolbarButton("Undo", () => editor.chain().focus().undo().run(), false, !editor.can().undo())}{toolbarButton("Redo", () => editor.chain().focus().redo().run(), false, !editor.can().redo())}
+        {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}
+        {toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}{toolbarButton("Task list", () => editor.commands.toggleTaskList(), editor.isActive("taskList"))}
+        {toolbarButton("Blockquote", () => editor.chain().focus().toggleBlockquote().run(), editor.isActive("blockquote"))}{toolbarButton("Insert table", () => editor.commands.insertTable({ rows: 2, cols: 2, withHeaderRow: true }))}{toolbarButton("Add or edit link", setLink, editor.isActive("link"))}{toolbarButton("Insert image", () => { setSidebarTab("insert"); setMediaOpen(true); setMediaError(""); openSidebar(); })}{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}
+      </div>
+      <div className={styles.quickActions} role="group" aria-label="Preview and publishing">
+        <button type="button" className="pill" aria-pressed={preview} onClick={togglePreview}>{preview ? "Return to writing" : "Preview"}</button>
+        {chapterId && <><form action={publishChapter} className="editor-publish-form"><input type="hidden" name="workId" value={workId}/><input type="hidden" name="chapterId" value={chapterId}/><button className="pill primary" type="submit" disabled={dirty || !!saveError} title={dirty || saveError ? "Save your changes before publishing." : undefined} aria-describedby={dirty || saveError ? "editor-publish-hint" : undefined}>Publish saved draft</button></form>{(dirty || saveError) && <span id="editor-publish-hint" className="editor-publish-hint" role="status">Save your changes before publishing.</span>}</>}
+      </div>
+    </div>
     <input ref={markdownRef} className="sr-only" type="file" accept=".md,.markdown,text/markdown" aria-label="Markdown chapter file" onChange={(event) => void importMarkdown(event.target.files?.[0])}/>
     {importNotice && <div className="editor-import-notice" role="status">{importNotice}<button type="button" aria-label="Dismiss import message" onClick={() => setImportNotice("")}>×</button></div>}
     {linkDialogOpen && <div className="editor-dialog-backdrop"><section className="editor-link-dialog" role="dialog" aria-modal="true" aria-labelledby="editor-link-title" aria-describedby="editor-link-help"><h2 id="editor-link-title">Add or edit link</h2><p id="editor-link-help">Use an HTTPS address, an email link, or an internal story path. Leave blank to remove the link.</p><form onSubmit={submitLink}><label htmlFor="editor-link-address">Link address</label><input ref={linkInputRef} id="editor-link-address" type="text" inputMode="url" autoComplete="url" value={linkValue} onChange={(event) => setLinkValue(event.target.value)} aria-invalid={!!linkError} aria-describedby={linkError ? "editor-link-error" : "editor-link-help"}/>{linkError && <p id="editor-link-error" role="alert">{linkError}</p>}<div><button type="button" className="pill" onClick={() => setLinkDialogOpen(false)}>Cancel</button><button type="submit" className="pill primary">Apply link</button></div></form></section></div>}
@@ -551,7 +564,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         <div className="editor-sidebar-tabs" role="tablist" aria-label="Formatting sections">{tabs.map((tab) => <button key={tab.id} id={`editor-tab-${tab.id}`} type="button" role="tab" aria-selected={sidebarTab === tab.id} aria-controls="editor-sidebar-panel" onClick={() => setSidebarTab(tab.id)}>{tab.label}</button>)}</div>
         <div id="editor-sidebar-panel" role="tabpanel" aria-labelledby={`editor-tab-${sidebarTab}`} className="editor-sidebar-panel">
           {sidebarTab === "text" && <>
-            <label className="editor-control">Paragraph style<select aria-label="Paragraph style" value={headingValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option><option value="h1">Heading 1</option><option value="h2">Heading 2</option><option value="h3">Heading 3</option><option value="quote">Blockquote</option></select></label>
+            <label className="editor-control">Paragraph style<select aria-label="Paragraph style" value={blockValue} onChange={(event) => changeBlock(event.target.value)}><option value="p">Paragraph</option>{[1,2,3,4,5,6].map((level) => <option key={level} value={`h${level}`}>Heading {level}</option>)}<option value="quote">Blockquote</option></select></label>
             <div className="editor-control-group" aria-label="Inline formatting">{toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}{toolbarButton("Strike", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}</div>
             <div className="editor-control-group" aria-label="Spoiler formatting">{toolbarButton("Spoiler", () => editor.chain().focus().toggleMark("spoiler").run(), editor.isActive("spoiler"))}</div>
             <div className="editor-control-group">{toolbarButton("Bulleted list", () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}{toolbarButton("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}</div>

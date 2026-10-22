@@ -55,12 +55,89 @@
   background: var(--panel);
 }
 
+.quickToolbar {
+  position: sticky;
+  top: 54px;
+  z-index: 19;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--ink);
+}
+
+.quickTools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.quickTools :global(.editor-tool-button),
+.quickActions :global(.pill),
+.quickTools select {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.quickTools select {
+  max-width: 132px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--control-radius);
+  background: var(--panel);
+  color: var(--cream);
+}
+
+.quickActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.quickActions :global(.editor-publish-form) {
+  display: flex;
+}
+
+.quickActions :global(.editor-publish-form button) {
+  min-height: 44px;
+}
+
+.quickActions :global(.editor-publish-hint) {
+  max-width: 175px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .overflowTrigger:focus-visible {
   outline: 2px solid var(--lime);
   outline-offset: 2px;
 }
 
 @media (max-width: 600px) {
+  .quickToolbar {
+    top: 52px;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 5px 8px;
+  }
+
+  .quickTools {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
+
+  .quickActions {
+    width: 100%;
+  }
+
   .overflowTrigger {
     min-width: 38px;
     min-height: 38px;
