@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
 import { authStatusMessage, safeNextPath } from "@/lib/auth-feedback";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Your account" };
@@ -16,8 +16,7 @@ export default async function AuthPage({ searchParams }: { searchParams: Promise
   if (mode !== "recover") {
     let authenticated = false;
     try {
-      const supabase = await createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
       authenticated = !!user;
     } catch { /* Render the signed-out form if Supabase is unavailable. */ }
     if (authenticated && !statusMessage) redirect(next);

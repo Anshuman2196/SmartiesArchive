@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { CreateWorkForm } from "@/components/create-work-form";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "Creator Studio" };
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const { status } = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/auth?mode=login&next=%2Fstudio");
   const [{ data: profile }, { data: works }] = await Promise.all([
     supabase.from("profiles").select("username,display_name").eq("id", user.id).single(),

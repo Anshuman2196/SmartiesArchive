@@ -2,14 +2,15 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AuthNavigation, MobileNavigation } from "@/components/site-header-client";
 import { PaletteSelector } from "@/components/palette-selector";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
 export async function SiteHeader() {
   let profile: { username?: string; display_name: string } | null = null;
   let isAdmin = false;
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
     if (user) {
+      const supabase = await createClient();
       const { data } = await supabase.from("profiles").select("username,display_name").eq("id", user.id).maybeSingle();
       profile = data ?? { username: typeof user.user_metadata?.username === "string" ? user.user_metadata.username : undefined, display_name: typeof user.user_metadata?.display_name === "string" ? user.user_metadata.display_name : "Writer" };
       const { data: adminMembership } = await supabase.from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();

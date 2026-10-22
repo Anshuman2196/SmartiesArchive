@@ -8,6 +8,7 @@ import { notFound, redirect } from "next/navigation";
 import { ActionForm, ActionSubmit, ChapterComposer, WorkMetadataForm } from "@/components/studio-forms";
 import { PublishChecklist } from "@/components/publish-checklist";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { deleteChapter, deleteWork, publishWork, unpublishWork } from "@/app/actions";
 import type { ChapterFormat } from "@/lib/chapter-content";
 import { getPublishChecklist } from "@/lib/publishing-checklist";
@@ -54,7 +55,7 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
   const { id } = await params;
   const query = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect(`/auth?mode=login&next=${encodeURIComponent(`/studio/${id}`)}`);
   const { data: work } = await supabase.from("works").select("id,title,summary,visibility,state,cover_url,tags,content_warnings,updated_at").eq("id", id).eq("author_id", user.id).maybeSingle();
   if (!work) notFound();

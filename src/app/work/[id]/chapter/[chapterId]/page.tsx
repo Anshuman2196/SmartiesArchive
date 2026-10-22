@@ -7,6 +7,7 @@ import { ContentWarningGate } from "@/components/content-warning-gate";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
 import type { Metadata } from "next";
 
@@ -35,8 +36,8 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   const { id, chapterId } = await params;
   const { preview } = await searchParams;
   const supabase = await createClient();
-  const [{ data: { user } }, { data: visibleChapter }, { data: visibleWork }] = await Promise.all([
-    supabase.auth.getUser(),
+  const [user, { data: visibleChapter }, { data: visibleWork }] = await Promise.all([
+    getCurrentUser(),
     supabase.from("chapters").select("id,title,body,position,work_id,format,content,state,updated_at").eq("id", chapterId).eq("work_id", id).maybeSingle(),
     supabase.from("works").select("id,title,author_id,content_warnings").eq("id", id).maybeSingle(),
   ]);

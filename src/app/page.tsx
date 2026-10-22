@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signStoryMediaUrls } from "@/lib/story-media";
 import { CoverFallback } from "@/components/cover-fallback";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
 type RecentWork = {
   id: string;
@@ -25,12 +26,12 @@ export default async function HomePage() {
   let genres: { tag: string; image: string; count: number }[] = [];
   try {
     const supabase = await createClient();
-    const [userResult, worksResult, tagsResult] = await Promise.all([
-      supabase.auth.getUser(),
+    const [user, worksResult, tagsResult] = await Promise.all([
+      getCurrentUser(),
       supabase.from("works").select("id,title,summary,cover_url,profiles(display_name)").eq("visibility", "public").eq("state", "published").order("created_at", { ascending: false }).limit(4),
       supabase.from("works").select("tags").eq("visibility", "public").eq("state", "published").limit(100),
     ]);
-    signedIn = Boolean(userResult.data.user);
+    signedIn = Boolean(user);
     const works = (worksResult.data ?? []) as unknown as RecentWork[];
     const urls = await signStoryMediaUrls(supabase, works.map((work) => work.cover_url));
     recentWorks = works.map((work) => ({ ...work, coverPreviewUrl: work.cover_url ? urls.get(work.cover_url) ?? null : null }));
