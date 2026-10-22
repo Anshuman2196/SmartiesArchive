@@ -363,6 +363,25 @@
   font: 12px/1.6 var(--font-ui);
 }
 
+.completionActions,
+.completionTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.completionTags {
+  margin-top: 14px;
+  gap: 8px 16px;
+  font: 12px/1.5 var(--font-ui);
+}
+
+.completionTags a {
+  color: var(--page-muted);
+  text-underline-offset: 3px;
+}
+
 @media (max-width: 760px) {
   .readerPage {
     padding-right: 14px;

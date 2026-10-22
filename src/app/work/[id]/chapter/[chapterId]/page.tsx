@@ -13,7 +13,7 @@ import type { Metadata } from "next";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
 type ChapterLink = { id: string; title: string; position: number; state?: string };
-type Work = { id: string; title: string; author_id: string; content_warnings?: string[] };
+type Work = { id: string; title: string; author_id: string; tags?: string[]; content_warnings?: string[] };
 type Author = { username: string; display_name: string };
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<{ id: string; chapterId: string }>; searchParams: Promise<{ preview?: string }> }): Promise<Metadata> {
@@ -39,7 +39,7 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   const [user, { data: visibleChapter }, { data: visibleWork }] = await Promise.all([
     getCurrentUser(),
     supabase.from("chapters").select("id,title,body,position,work_id,format,content,state,updated_at").eq("id", chapterId).eq("work_id", id).maybeSingle(),
-    supabase.from("works").select("id,title,author_id,content_warnings").eq("id", id).maybeSingle(),
+    supabase.from("works").select("id,title,author_id,tags,content_warnings").eq("id", id).maybeSingle(),
   ]);
   let chapter = visibleChapter as Chapter | null;
   let viaUnlistedLink = false;
@@ -99,7 +99,7 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} chapterTitle={displayedChapter.title} content={content} chapters={readerChapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} tags={work.tags} canReview={!isOwner} chapterTitle={displayedChapter.title} content={content} chapters={readerChapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
       {!previewingDraft && <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
         <ChapterReviewsLoader workId={id} chapterId={chapterId} authorId={work.author_id} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
       </Suspense>}

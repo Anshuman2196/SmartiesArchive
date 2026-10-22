@@ -90,7 +90,7 @@ export function ResumeLink({ workId, firstChapterId, savedChapterId, chapterIds 
   return <Link href={href} className="pill primary">{label}</Link>;
 }
 
-export function ReaderExperience({ workId, chapterId, workTitle, author, chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
+export function ReaderExperience({ workId, chapterId, workTitle, author, tags = [], canReview = true, chapterTitle, content, chapters, authenticated, previewingDraft = false, initialSaved = false, savedProgress = 0, children }: { workId: string; chapterId: string; workTitle?: string; author?: { displayName: string; username?: string }; tags?: string[]; canReview?: boolean; chapterTitle: string; content: ReaderContent; chapters: ChapterLink[]; authenticated: boolean; previewingDraft?: boolean; initialSaved?: boolean; savedProgress?: number; children?: ReactNode }) {
   const router = useRouter();
   const [preferences, setPreferences] = useState<Preferences>(defaults);
   const [preferencesReady, setPreferencesReady] = useState(false);
@@ -290,7 +290,12 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
           <span className="eyebrow">Chapter complete</span>
           <h2 className="serif">{next ? "Ready for the next chapter?" : "You reached the end."}</h2>
           <p>{next ? `Continue with ${next.title}.` : "You have finished the published chapters in this story."}</p>
-          {next ? <Link href={`/work/${workId}/chapter/${next.id}`} className="pill primary" rel="next" onClick={() => flushProgress(1)}>Continue reading</Link> : <Link href={`/work/${workId}`} className="pill primary" onClick={() => flushProgress(1)}>Back to story details</Link>}
+          <div className={styles.completionActions}>
+            {next ? <Link href={`/work/${workId}/chapter/${next.id}`} className="pill primary" rel="next" onClick={() => flushProgress(1)}>Continue reading</Link> : <Link href={`/work/${workId}`} className="pill primary" onClick={() => flushProgress(1)}>Back to story details</Link>}
+            {canReview && <Link href={`#chapter-reviews-${chapterId}`} className="pill">Rate or review this chapter</Link>}
+            {author?.username && <Link href={`/author/${author.username}`} className="pill">More by {author.displayName}</Link>}
+          </div>
+          {tags.length > 0 && <div className={styles.completionTags} aria-label="Explore story tags">{tags.slice(0, 3).map((tag) => <Link key={tag} href={`/library?tag=${encodeURIComponent(tag)}`}>More {tag}</Link>)}</div>}
         </section>}
         {(previous || !completed) && <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}><ArrowLeft size={16} aria-hidden="true"/> Previous<span>{previous.title}</span></Link> : <span/>}{!completed && (next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next <ArrowRight size={16} aria-hidden="true"/><span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details</Link>)}</nav>}
       </div>
