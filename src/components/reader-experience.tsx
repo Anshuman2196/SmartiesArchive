@@ -96,13 +96,11 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
   const [preferencesReady, setPreferencesReady] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsShortcutVisible, setSettingsShortcutVisible] = useState(false);
   const [progress, setProgress] = useState(savedProgress);
   const progressRef = useRef(savedProgress);
   const [saveMessage, setSaveMessage] = useState("");
   const articleRef = useRef<HTMLElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
-  const settingsShortcutRef = useRef<HTMLButtonElement>(null);
   const settingsFocusReturnRef = useRef(settingsButtonRef);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLocalSave = useRef(0);
@@ -237,25 +235,6 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
     return () => window.removeEventListener("scroll", onScroll);
   }, [onScroll, previewingDraft]);
 
-  useEffect(() => {
-    const updateShortcut = () => {
-      const article = articleRef.current;
-      if (!article) return;
-      const bounds = article.getBoundingClientRect();
-      const pager = document.querySelector(".chapter-pager");
-      const pagerBounds = pager?.getBoundingClientRect();
-      const pagerVisible = !!pagerBounds && pagerBounds.top < window.innerHeight && pagerBounds.bottom > 0;
-      setSettingsShortcutVisible(bounds.top <= 140 && bounds.bottom > 0 && !pagerVisible);
-    };
-    updateShortcut();
-    window.addEventListener("scroll", updateShortcut, { passive: true });
-    window.addEventListener("resize", updateShortcut);
-    return () => {
-      window.removeEventListener("scroll", updateShortcut);
-      window.removeEventListener("resize", updateShortcut);
-    };
-  }, []);
-
   const openSettings = (button: RefObject<HTMLButtonElement | null>) => {
     settingsFocusReturnRef.current = button;
     setSettingsOpen(true);
@@ -300,7 +279,6 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
       <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
     </nav>
     {!previewingDraft && <div className={`reader-progress ${styles.readerProgress}`} role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div>}
-    {settingsShortcutVisible && <button ref={settingsShortcutRef} type="button" className={styles.settingsShortcut} aria-label="Reading settings" aria-haspopup="dialog" onClick={() => openSettings(settingsShortcutRef)}><Settings2 size={18} aria-hidden="true"/><span>Reading settings</span></button>}
     <div className={`reader-layout ${styles.readerLayout}`}>
       <aside id="table-of-contents" className={`reader-toc ${styles.readerToc}`} data-open={tocOpen}>
         <div className={styles.tocHeader}><span className="eyebrow">Contents</span><button type="button" className={styles.tocClose} onClick={() => setTocOpen(false)} aria-label="Close table of contents">Close</button></div>

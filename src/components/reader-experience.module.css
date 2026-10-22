@@ -112,25 +112,6 @@
   display: inline-grid;
 }
 
-.settingsShortcut {
-  position: fixed;
-  right: clamp(16px, 3vw, 32px);
-  bottom: calc(20px + env(safe-area-inset-bottom));
-  z-index: 9;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  min-height: 48px;
-  padding: 10px 16px;
-  border: 1px solid color-mix(in srgb, var(--page-ink) 25%, transparent);
-  border-radius: var(--control-radius);
-  background: var(--page-bg);
-  color: var(--page-ink);
-  box-shadow: 0 8px 30px #0007;
-  font: 12px var(--font-ui);
-  cursor: pointer;
-}
-
 .readerPage[data-theme="light"] .warningGate {
   --panel: #f7f8f3;
   --line: #17252138;
@@ -148,11 +129,6 @@
   --muted: #c1ad8c;
   background: #3a3024;
   color: #eee0c5;
-}
-
-.settingsShortcut:hover,
-.settingsShortcut:focus-visible {
-  border-color: var(--lime);
 }
 
 .tocButton {
