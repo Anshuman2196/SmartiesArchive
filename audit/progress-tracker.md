@@ -49,7 +49,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | P2-1, P2-3–P2-6, P2-8, P2-10–P2-12, P2-14 | `[x]` | Improve user-facing labels, control borders/tap targets, heading hierarchy, server-rendered warning gate, loading/error states, optimized WebP assets, metadata endpoints, mobile navigation, and signup feedback. |
 | P2-2, P2-7, P2-9, P2-13, P2-15 | `[~]` | Styling consolidation, unlisted throttling, request/auth performance, copy consistency, and rate limiting remain. Unlisted story/chapter pages emit noindex metadata. |
 | P3-1 | `[x]` | Corrected README scope and migration count, and removed the empty `review-preview` route directory. |
-| P3-2–P3-10 | `[~]` | Reduced-motion support, form boundary contrast, icon exceptions, and production origin configuration are addressed. Landmark cleanup, responsive checks, component bundle splitting, and performance review still need follow-up. |
+| P3-2–P3-10 | `[~]` | Reduced-motion support, form boundary contrast, icon exceptions, and production origin configuration are addressed. Signup and resent confirmation links now carry the sanitized `next` route. Landmark cleanup, responsive checks, component bundle splitting, and performance review still need follow-up. |
 
 ### Commit and verification
 

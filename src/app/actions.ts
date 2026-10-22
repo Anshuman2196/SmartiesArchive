@@ -16,6 +16,11 @@ import { cookies } from "next/headers";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const siteOrigin = getSiteOrigin;
+const authCallbackUrl = (next: string) => {
+  const url = new URL("/auth/callback", siteOrigin());
+  url.searchParams.set("next", safeNextPath(next));
+  return url.toString();
+};
 export type AuthActionState = { kind: "idle" | "error" | "success"; message?: string; email?: string; fields?: Record<string, string> };
 
 export async function acceptStoryContentWarning(form: FormData) {
@@ -42,7 +47,7 @@ export async function register(_previous: AuthActionState, form: FormData): Prom
   let signupResult;
   try {
     const supabase = await createClient();
-    signupResult = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { data: { username: parsed.data.username, display_name: parsed.data.displayName }, emailRedirectTo: `${siteOrigin()}/auth/callback` } });
+    signupResult = await supabase.auth.signUp({ email: parsed.data.email, password: parsed.data.password, options: { data: { username: parsed.data.username, display_name: parsed.data.displayName }, emailRedirectTo: authCallbackUrl(next) } });
   } catch (error) { return { kind: "error", message: friendlyAuthError(error, "signup") }; }
   const { data, error } = signupResult;
   if (error) return { kind: "error", message: friendlyAuthError(error, "signup") };
@@ -65,9 +70,10 @@ export async function signIn(_previous: AuthActionState, form: FormData): Promis
 export async function resendConfirmation(_previous: AuthActionState, form: FormData): Promise<AuthActionState> {
   const parsed = recoverySchema.safeParse({ email: value(form, "email") });
   if (!parsed.success) return { kind: "error", message: "Enter the email address you registered with.", fields: fieldErrors(parsed.error) };
+  const next = safeNextPath(value(form, "next") || undefined);
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.resend({ type: "signup", email: parsed.data.email, options: { emailRedirectTo: `${siteOrigin()}/auth/callback` } });
+    const { error } = await supabase.auth.resend({ type: "signup", email: parsed.data.email, options: { emailRedirectTo: authCallbackUrl(next) } });
     if (error) return { kind: "error", message: friendlyAuthError(error, "confirmation") };
   } catch (error) { return { kind: "error", message: friendlyAuthError(error, "confirmation") }; }
   return { kind: "success", message: "If that account still needs confirmation, a fresh link is on its way.", email: parsed.data.email };
