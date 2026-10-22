@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { clearReaderStateAfterSignOut } from "@/lib/reader-local-state";
 
 const progressKeyPrefix = "smarties-reading:";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -12,6 +13,7 @@ export function HomeContinueLink({ signedIn }: { signedIn: boolean }) {
   const [guestDestination, setGuestDestination] = useState<{ href: string; label: string } | null>(null);
 
   useEffect(() => {
+    clearReaderStateAfterSignOut();
     if (signedIn) return;
     try {
       let latest: { href: string; savedAt: number } | null = null;

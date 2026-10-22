@@ -106,11 +106,22 @@ export async function updatePassword(_previous: AuthActionState, form: FormData)
 
 export async function signOut(_previous: AuthActionState): Promise<AuthActionState> {
   void _previous;
+  let signOutError: unknown;
   try {
     const supabase = await createClient();
-    const { error } = await supabase.auth.signOut();
-    if (error) return { kind: "error", message: "We couldn’t sign you out right now. Please try again." };
+    ({ error: signOutError } = await supabase.auth.signOut());
   } catch { return { kind: "error", message: "We couldn’t sign you out right now. Please try again." }; }
+  if (signOutError) return { kind: "error", message: "We couldn’t sign you out right now. Please try again." };
+  try {
+    const cookieStore = await cookies();
+    for (const { name } of cookieStore.getAll()) {
+      const prefix = "smarties-warning-";
+      if (!name.startsWith(prefix)) continue;
+      const workId = name.slice(prefix.length);
+      if (!z.uuid().safeParse(workId).success) continue;
+      cookieStore.set(name, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: `/work/${workId}`, maxAge: 0 });
+    }
+  } catch { /* Sign-out succeeded; browser-side reading state is still cleared on the redirect. */ }
   redirect("/");
 }
 

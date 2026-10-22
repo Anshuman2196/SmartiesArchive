@@ -5,10 +5,14 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOut, type AuthActionState } from "@/app/actions";
 import { PaletteSelector } from "@/components/palette-selector";
+import { cancelReaderStateSignOutCleanup, markReaderStateForSignOutCleanup } from "@/lib/reader-local-state";
 
 export function AuthNavigation({ username, displayName, isAdmin }: { username?: string; displayName: string; isAdmin: boolean }) {
   const [state, action, pending] = useActionState(signOut, { kind: "idle" } satisfies AuthActionState);
-  return <><Link href={username ? `/author/${username}` : "/studio"} className="nav-profile"><span className="avatar" aria-hidden="true">{(displayName || username || "W").slice(0, 1).toUpperCase()}</span><span>{username || displayName}</span></Link><Link href="/shelf" className="optional">My shelf</Link><Link href="/studio" className="optional">Creator Studio</Link>{isAdmin && <Link href="/admin" className="optional">Admin</Link>}<form action={action}><button type="submit" className="nav-signout" disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button></form>{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</>;
+  useEffect(() => {
+    if (state.kind === "error") cancelReaderStateSignOutCleanup();
+  }, [state.kind]);
+  return <><Link href={username ? `/author/${username}` : "/studio"} className="nav-profile"><span className="avatar" aria-hidden="true">{(displayName || username || "W").slice(0, 1).toUpperCase()}</span><span>{username || displayName}</span></Link><Link href="/shelf" className="optional">My shelf</Link><Link href="/studio" className="optional">Creator Studio</Link>{isAdmin && <Link href="/admin" className="optional">Admin</Link>}<form action={action} onSubmit={markReaderStateForSignOutCleanup}><button type="submit" className="nav-signout" disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button></form>{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</>;
 }
 
 export function MobileNavigation({ username, displayName, isAdmin }: { username?: string; displayName?: string; isAdmin: boolean }) {
@@ -20,6 +24,10 @@ export function MobileNavigation({ username, displayName, isAdmin }: { username?
   const pathname = usePathname();
 
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  useEffect(() => {
+    if (state.kind === "error") cancelReaderStateSignOutCleanup();
+  }, [state.kind]);
 
   useEffect(() => {
     if (open) firstLinkRef.current?.focus();
@@ -43,5 +51,5 @@ export function MobileNavigation({ username, displayName, isAdmin }: { username?
   const close = () => setOpen(false);
   const accountLabel = displayName || username || "Writer";
 
-  return <div className="mobile-nav"><button ref={toggleRef} type="button" className="mobile-nav-toggle" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen((value) => !value)}><span className="mobile-nav-icon" aria-hidden="true"><i/><i/><i/></span><span className="sr-only">{open ? "Close" : "Open"} navigation</span></button><div id="mobile-navigation" className="mobile-menu" data-open={open} aria-hidden={!open} inert={!open}><div className="mobile-menu-panel"><Link ref={firstLinkRef} href="/library" onClick={close}>Library</Link><PaletteSelector/>{displayName || username ? <><Link href={username ? `/author/${username}` : "/studio"} onClick={close}><span className="avatar" aria-hidden="true">{accountLabel.slice(0, 1).toUpperCase()}</span>{username || accountLabel}</Link><Link href="/shelf" onClick={close}>My shelf</Link><Link href="/studio" onClick={close}>Creator Studio</Link>{isAdmin && <Link href="/admin" onClick={close}>Admin</Link>}<form action={action}><button type="submit" className="nav-signout" disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button></form></> : <><Link href="/auth?mode=login" onClick={close}>Sign in</Link><Link href="/auth?mode=signup" className="pill primary" onClick={close}>Create account</Link></>}{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</div></div></div>;
+  return <div className="mobile-nav"><button ref={toggleRef} type="button" className="mobile-nav-toggle" aria-expanded={open} aria-controls="mobile-navigation" onClick={() => setOpen((value) => !value)}><span className="mobile-nav-icon" aria-hidden="true"><i/><i/><i/></span><span className="sr-only">{open ? "Close" : "Open"} navigation</span></button><div id="mobile-navigation" className="mobile-menu" data-open={open} aria-hidden={!open} inert={!open}><div className="mobile-menu-panel"><Link ref={firstLinkRef} href="/library" onClick={close}>Library</Link><PaletteSelector/>{displayName || username ? <><Link href={username ? `/author/${username}` : "/studio"} onClick={close}><span className="avatar" aria-hidden="true">{accountLabel.slice(0, 1).toUpperCase()}</span>{username || accountLabel}</Link><Link href="/shelf" onClick={close}>My shelf</Link><Link href="/studio" onClick={close}>Creator Studio</Link>{isAdmin && <Link href="/admin" onClick={close}>Admin</Link>}<form action={action} onSubmit={markReaderStateForSignOutCleanup}><button type="submit" className="nav-signout" disabled={pending}>{pending ? "Signing out…" : "Sign out"}</button></form></> : <><Link href="/auth?mode=login" onClick={close}>Sign in</Link><Link href="/auth?mode=signup" className="pill primary" onClick={close}>Create account</Link></>}{state.kind === "error" && <span className="nav-error" role="alert">{state.message}</span>}</div></div></div>;
 }
