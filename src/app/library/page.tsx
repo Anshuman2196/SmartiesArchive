@@ -43,10 +43,10 @@ function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boo
   </div>;
 }
 
-function LibraryTags({ work }: { work: LibraryWork }) {
+function LibraryTags({ work, filters }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters> }) {
   if (work.tags.length === 0) return null;
   return <div className={styles.tags} aria-label={`Tags for ${work.title}`}>
-    {work.tags.slice(0, 3).map((tag) => <span className={`tag ${styles.tag}`} key={tag}>{tag}</span>)}
+    {work.tags.slice(0, 3).map((tag) => { const params = new URLSearchParams(); if (filters.q) params.set("q", filters.q); params.set("tag", tag); if (filters.warning) params.set("warning", filters.warning); if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning); if (filters.sort !== "newest") params.set("sort", filters.sort); return <Link className={`tag ${styles.tag}`} key={tag} href={`/library?${params.toString()}`}>{tag}</Link>; })}
     {work.tags.length > 3 && <span className={styles.moreTags}>+{work.tags.length - 3}</span>}
   </div>;
 }
@@ -70,7 +70,8 @@ function libraryStoryLinkLabel(work: LibraryWork, rating?: { average: number; co
 }
 
 function LibraryAuthor({ work }: { work: LibraryWork }) {
-  return <span className={styles.author}>By {work.profiles?.display_name ?? "A reader"}</span>;
+  const name = work.profiles?.display_name ?? "A reader";
+  return <span className={styles.author}>By {work.profiles?.username ? <Link href={`/author/${work.profiles.username}`}>{name}</Link> : name}</span>;
 }
 
 function filterHref(filters: ReturnType<typeof parseLibraryFilters>, key: "q" | "tag" | "warning" | "excludeWarning"): string {
@@ -186,15 +187,15 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => { const rating = reviewSummaries[work.id]; return <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}>
-      <LibraryPoster work={work} eager={index < 3}/>
+    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => { const rating = reviewSummaries[work.id]; return <article className={styles.card} key={work.id}>
+      <Link className={styles.posterLink} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}><LibraryPoster work={work} eager={index < 3}/></Link>
       <div className={styles.body}>
-        <h2 className={styles.title}>{work.title}</h2>
+        <h2 className={styles.title}><Link href={`/work/${work.id}`}>{work.title}</Link></h2>
         {work.summary && <p className={styles.summary}>{work.summary}</p>}
-        <LibraryTags work={work}/>
+        <LibraryTags work={work} filters={filters}/>
         <LibraryWarnings work={work}/>
         <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{rating && <span aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} readers`}>★ {rating.average.toFixed(1)} · {rating.count} {rating.count === 1 ? "reader" : "readers"}</span>}</div>
       </div>
-    </Link>; })}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
+    </article>; })}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
   </main>;
 }
