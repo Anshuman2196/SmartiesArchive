@@ -15,6 +15,7 @@ import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import { getPublishChecklist } from "@/lib/publishing-checklist";
 import { workVisibilityLabel } from "@/lib/work-visibility";
 import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
+import { DismissibleNotice } from "@/components/dismissible-notice";
 import type { Metadata } from "next";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -91,11 +92,17 @@ export default async function WorkStudioPage({ params, searchParams }: { params:
     })),
   });
   const message = query.status ? statusCopy[query.status] : undefined;
+  const statusParams = new URLSearchParams();
+  if (query.chapter) statusParams.set("chapter", query.chapter);
+  if (query.view) statusParams.set("view", query.view);
+  if (query.new) statusParams.set("new", query.new);
+  const statusQuery = statusParams.toString();
+  const cleanStatusHref = `/studio/${id}${statusQuery ? `?${statusQuery}` : ""}`;
 
   return <main id="main-content" tabIndex={-1} className="shell studio-page">
     <Link href="/studio" className="byline studio-back-link"><ArrowLeft size={15} aria-hidden="true"/> Creator Studio</Link>
     <header className="studio-head"><div className="studio-head-copy"><span className="eyebrow studio-overline">{work.state === "published" ? `Published · ${workVisibilityLabel(work.visibility)}` : `Draft · ${workVisibilityLabel(work.visibility)}`}</span><h1 className="serif">{effectiveWork.title}</h1><p className="muted">{publishedCount} published · {chapters.length - publishedCount} in draft</p></div><div className="studio-top-actions"><Link className="pill" href={`/work/${id}`}>View reader page</Link>{work.state === "published" ? <ActionForm action={unpublishWork}><input type="hidden" name="workId" value={id}/><ConfirmSubmit phrase="Unpublish this story? Readers will no longer be able to open it, but its published content will be kept.">Unpublish story</ConfirmSubmit></ActionForm> : <ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit pendingLabel="Publishing…">Publish story</ActionSubmit></ActionForm>}</div></header>
-    {message && <p className={`notice ${message.error ? "auth-error" : "auth-success"}`} role={message.error ? "alert" : "status"}>{message.message}</p>}
+    {message && <DismissibleNotice message={message.message} error={message.error} hrefWithoutStatus={cleanStatusHref}/>}
     <PublishChecklist workId={id} items={checklist}/>
     {work.state === "published" && workDraft && <div className="revision-callout"><div><span className="eyebrow">Unpublished changes</span><p>Published readers still see the existing story details.</p></div><ActionForm action={publishWork}><input type="hidden" name="workId" value={id}/><ActionSubmit>Publish story changes</ActionSubmit></ActionForm></div>}
     <Tabs defaultValue={query.view === "details" ? "details" : "chapters"} className="studio-workspace">
