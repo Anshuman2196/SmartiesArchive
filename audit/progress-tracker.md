@@ -41,6 +41,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
 | B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
 | Reader completion navigation | `[x]` | The completion card is the only forward/story-details action after a chapter is complete; the pager keeps Previous available. |
+| Story-page mobile CTA | `[x]` | Place Start/Resume reading above the long summary while keeping tags and content notes ahead of the CTA. |
 
 ### Cross-cutting findings
 
