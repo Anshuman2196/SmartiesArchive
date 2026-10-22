@@ -96,3 +96,64 @@ export async function getChapterReviewSummaries(supabase: SupabaseClient, chapte
     return summaries;
   }, {});
 }
+
+export async function getWorkReviewSummaries(supabase: SupabaseClient, workIds: string[], authorIds: Record<string, string>, publishedChapters?: Array<{ id: string; work_id: string }>): Promise<Record<string, ChapterReviewSummary>> {
+  if (workIds.length === 0) return {};
+  let chapters = publishedChapters;
+  if (!chapters) {
+    const result = await supabase.from("chapters").select("id,work_id").in("work_id", workIds).eq("state", "published");
+    if (result.error) return {};
+    chapters = result.data ?? [];
+  }
+  if (!chapters.length) return {};
+  const chapterWork = new Map(chapters.map((chapter) => [chapter.id, chapter.work_id]));
+  const { data: reviews, error: reviewError } = await supabase.from("chapter_reviews").select("chapter_id,user_id,rating").in("chapter_id", [...chapterWork.keys()]);
+  if (reviewError || !reviews) return {};
+
+  const perReader = reviews.reduce<Record<string, { workId: string; total: number; count: number }>>((readers, review) => {
+    const workId = chapterWork.get(review.chapter_id);
+    if (!workId || review.user_id === authorIds[workId]) return readers;
+    const key = `${workId}:${review.user_id}`;
+    const summary = readers[key] ?? { workId, total: 0, count: 0 };
+    summary.total += review.rating;
+    summary.count += 1;
+    readers[key] = summary;
+    return readers;
+  }, {});
+
+  return Object.values(perReader).reduce<Record<string, ChapterReviewSummary>>((works, reader) => {
+    const summary = works[reader.workId] ?? { count: 0, average: 0 };
+    summary.average = ((summary.average * summary.count) + (reader.total / reader.count)) / (summary.count + 1);
+    summary.count += 1;
+    works[reader.workId] = summary;
+    return works;
+  }, {});
+}
+
+export async function getChapterAndWorkReviewSummaries(supabase: SupabaseClient, workId: string, chapters: Array<{ id: string; work_id: string }>, authorId: string): Promise<{ chapters: Record<string, ChapterReviewSummary>; works: Record<string, ChapterReviewSummary> }> {
+  if (!chapters.length) return { chapters: {}, works: {} };
+  const { data, error } = await supabase.from("chapter_reviews").select("chapter_id,user_id,rating").in("chapter_id", chapters.map((chapter) => chapter.id));
+  if (error || !data) return { chapters: {}, works: {} };
+  const reviews = data.filter((review) => review.user_id !== authorId);
+  const chapterSummaries = reviews.reduce<Record<string, ChapterReviewSummary>>((summaries, review) => {
+    const summary = summaries[review.chapter_id] ?? { count: 0, average: 0 };
+    summary.average = ((summary.average * summary.count) + review.rating) / (summary.count + 1);
+    summary.count += 1;
+    summaries[review.chapter_id] = summary;
+    return summaries;
+  }, {});
+  const perReader = reviews.reduce<Record<string, { total: number; count: number }>>((readers, review) => {
+    const key = `${workId}:${review.user_id}`;
+    const summary = readers[key] ?? { total: 0, count: 0 };
+    summary.total += review.rating;
+    summary.count += 1;
+    readers[key] = summary;
+    return readers;
+  }, {});
+  const workSummary: ChapterReviewSummary = Object.values(perReader).reduce((summary, reader) => {
+    summary.average = ((summary.average * summary.count) + (reader.total / reader.count)) / (summary.count + 1);
+    summary.count += 1;
+    return summary;
+  }, { count: 0, average: 0 });
+  return { chapters: chapterSummaries, works: workSummary.count ? { [workId]: workSummary } : {} };
+}

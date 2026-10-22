@@ -14,6 +14,7 @@ export type LibraryFilters = {
 
 export type LibraryWork = {
   id: string;
+  author_id?: string;
   title: string;
   summary: string;
   cover_url?: string | null;

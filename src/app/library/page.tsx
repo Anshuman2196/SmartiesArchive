@@ -15,6 +15,7 @@ import {
   type LibraryWork,
 } from "@/lib/library-filters";
 import type { Metadata } from "next";
+import { getWorkReviewSummaries } from "@/lib/chapter-reviews";
 
 export const metadata: Metadata = { title: "Library", description: "Browse stories in the Smarties Archive." };
 
@@ -58,13 +59,14 @@ function LibraryWarnings({ work }: { work: LibraryWork }) {
   </div>;
 }
 
-function libraryStoryLinkLabel(work: LibraryWork) {
+function libraryStoryLinkLabel(work: LibraryWork, rating?: { average: number; count: number }) {
   const warnings = work.content_warnings.slice(0, 3);
-  if (warnings.length === 0) return `Open story: ${work.title}`;
+  const ratingLabel = rating ? ` Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} ${rating.count === 1 ? "reader" : "readers"}.` : "";
+  if (warnings.length === 0) return `Open story: ${work.title}.${ratingLabel}`;
 
   const remainingCount = work.content_warnings.length - warnings.length;
   const remainingLabel = remainingCount > 0 ? `, and ${remainingCount} more` : "";
-  return `Open story: ${work.title}. Content notes: ${warnings.join(", ")}${remainingLabel}`;
+  return `Open story: ${work.title}.${ratingLabel} Content notes: ${warnings.join(", ")}${remainingLabel}`;
 }
 
 function LibraryAuthor({ work }: { work: LibraryWork }) {
@@ -100,14 +102,16 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const currentPage = Math.max(1, Math.floor(requestedPage));
   let allWorks: LibraryWork[] = [];
   let configured = true;
+  let reviewClient: Awaited<ReturnType<typeof createClient>> | null = null;
 
   try {
     const supabase = await createClient();
+    reviewClient = supabase;
     const works: LibraryWork[] = [];
     for (let offset = 0; ; offset += 100) {
       const { data, error } = await supabase
         .from("works")
-        .select("id,title,summary,cover_url,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
+        .select("id,author_id,title,summary,cover_url,created_at,updated_at,tags,content_warnings,profiles(username,display_name)")
         .eq("visibility", "public")
         .eq("state", "published")
         .order("created_at", { ascending: false })
@@ -151,6 +155,12 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const pageCount = Math.max(1, Math.ceil(filteredWorks.length / pageSize));
   const page = Math.min(currentPage, pageCount);
   const visibleWorks = filteredWorks.slice((page - 1) * pageSize, page * pageSize);
+  let reviewSummaries: Record<string, { average: number; count: number }> = {};
+  if (reviewClient && visibleWorks.length) {
+    try {
+      reviewSummaries = await getWorkReviewSummaries(reviewClient, visibleWorks.map((work) => work.id), Object.fromEntries(visibleWorks.flatMap((work) => work.author_id ? [[work.id, work.author_id] as const] : [])));
+    } catch { /* Keep the library visible when ratings are temporarily unavailable. */ }
+  }
   const tags = getLibraryOptions(allWorks, "tags");
   const warnings = getLibraryOptions(allWorks, "content_warnings");
   const activeFilters = hasActiveLibraryFilters(filters);
@@ -176,15 +186,15 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
-    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work)}>
+    {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => { const rating = reviewSummaries[work.id]; return <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}>
       <LibraryPoster work={work} eager={index < 3}/>
       <div className={styles.body}>
         <h2 className={styles.title}>{work.title}</h2>
         {work.summary && <p className={styles.summary}>{work.summary}</p>}
         <LibraryTags work={work}/>
         <LibraryWarnings work={work}/>
-        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span></div>
+        <div className={styles.meta}><LibraryAuthor work={work}/><span>{work.chapterCount ?? 0} {work.chapterCount === 1 ? "chapter" : "chapters"}{work.readingMinutes ? ` · about ${work.readingMinutes} min` : ""}</span>{rating && <span aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} readers`}>★ {rating.average.toFixed(1)} · {rating.count} {rating.count === 1 ? "reader" : "readers"}</span>}</div>
       </div>
-    </Link>)}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
+    </Link>; })}</div>{pageCount > 1 && <nav className="library-pagination" aria-label="Library pages"><span>Page {page} of {pageCount}</span>{page > 1 && <Link className="pill" href={pageHref(filters, page - 1)} rel="prev">Previous page</Link>}{page < pageCount && <Link className="pill primary" href={pageHref(filters, page + 1)} rel="next">Next page</Link>}</nav>}</section>}
   </main>;
 }
