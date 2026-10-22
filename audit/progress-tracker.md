@@ -66,7 +66,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 ### Commit and verification
 
 - The supplied audit reports and screenshots are retained as user-provided materials and excluded from the remediation commit, as are unrelated `Characters/` and `graphify-out/` paths.
-- `npm run typecheck` passes after the current remediation changes. The test suite and lint were not run.
+- The previously recorded `npm run typecheck` pass predates commits `6dd22c9`, `9cb6bfe`, `26e7a71`, and `91bd8fd`; those changes have not been typechecked. Tests and lint were not run.
 - Hosted Supabase migration/data operations and real-device/browser checks remain unverified.
 
 Legend: `[x]` done · `[~]` partial / needs polish · `[ ]` next · `[-]` intentionally out of scope for now
