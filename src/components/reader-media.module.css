@@ -34,7 +34,7 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 22%, transparent);
   background: color-mix(in srgb, var(--page-bg) 88%, transparent);
   color: var(--page-ink);
-  font: 10px var(--font-ui);
+  font: 12px var(--font-ui);
   opacity: 0;
   transition: opacity .15s ease;
   border-radius: 6px;
@@ -110,7 +110,7 @@
   border: 1px solid color-mix(in srgb, var(--page-ink) 20%, transparent);
   background: transparent;
   color: var(--page-ink);
-  font: 11px var(--font-ui);
+  font: 12px var(--font-ui);
   cursor: pointer;
   border-radius: var(--control-radius);
 }
