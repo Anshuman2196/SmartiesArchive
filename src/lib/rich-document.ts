@@ -27,13 +27,11 @@ export class RichDocumentValidationError extends Error {
 export function safeRichDocumentErrorMessage(error: RichDocumentValidationError): string {
   const labels: Record<string, string> = { level: "heading level", indent: "paragraph indentation", textAlign: "paragraph alignment", treatment: "literary style", src: "image source", alt: "image description", caption: "image caption", width: "image width", align: "image alignment", href: "link address", color: "text color", backgroundColor: "highlight color", fontFamily: "font family", fontSize: "font size", start: "list numbering", language: "code language" };
   const field = error.diagnostic.attribute ? labels[error.diagnostic.attribute] : undefined;
-  const block = error.diagnostic.path.match(/content\[(\d+)\]/)?.[1];
-  const where = block ? ` near item ${Number(block) + 1}` : "";
-  if (error.diagnostic.rule === "invalid_image_reference") return `This image could not be attached${where}. Remove it and insert it again from the story's image picker; your other writing remains open and unsaved changes stay here.`;
+  if (error.diagnostic.rule === "invalid_image_reference") return "This image is not attached to this story. Reinsert it from the story image picker; your other writing remains open.";
   if (error.diagnostic.rule === "empty_document") return "Add some chapter text before saving. Your current draft is still in the editor.";
-  if (field) return `Check the ${field}${where}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
+  if (field) return `Check the ${field}. Your chapter is still open in the editor; correct it or download a recovery copy.`;
   if (error.diagnostic.rule === "invalid_text_style_attrs" && error.diagnostic.attribute && /^[a-z][a-zA-Z0-9_]{0,31}$/.test(error.diagnostic.attribute)) {
-    return `The text style field “${error.diagnostic.attribute}” is not supported${where}. Your text remains open; download a recovery copy before trying again.`;
+    return `The text style field “${error.diagnostic.attribute}” is not supported. Your text remains open; download a recovery copy before trying again.`;
   }
   const reasons: Record<string, string> = {
     invalid_document_root: "The document structure is incomplete.", document_size_limit: "The document is larger than the supported save limit.",
@@ -49,8 +47,7 @@ export function safeRichDocumentErrorMessage(error: RichDocumentValidationError)
     plain_text_size_limit: "The chapter exceeds the supported text length.",
   };
   const reason = reasons[error.diagnostic.rule] ?? "One chapter element could not be saved.";
-  const reference = `${error.diagnostic.rule}${where}`;
-  return `${reason} Your full document is still open. Download a recovery copy before trying again. (Reference: ${reference})`;
+  return `${reason} Your full document is still open. Download a recovery copy before trying again.`;
 }
 function reject(rule: string, path: string, nodeType?: string, attribute?: string, markType?: string): never {
   throw new RichDocumentValidationError({ rule, path, ...(nodeType ? { nodeType } : {}), ...(attribute ? { attribute } : {}), ...(markType ? { markType } : {}) });

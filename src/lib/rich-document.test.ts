@@ -162,19 +162,20 @@ test("validation feedback identifies a safe formatting target without revealing 
   catch (error) { caught = error; }
   assert.ok(caught instanceof Error);
   const message = safeRichDocumentErrorMessage(caught as Parameters<typeof safeRichDocumentErrorMessage>[0]);
-  assert.match(message, /image width near item 1/);
+  assert.match(message, /image width/);
+  assert.doesNotMatch(message, /item 1/);
   assert.match(message, /download a recovery copy/);
   assert.doesNotMatch(message, /private image description|private caption|101/);
 });
 
-test("structural validation feedback names the failed rule and safe document position", () => {
+test("structural validation feedback stays understandable without exposing internal rule names", () => {
   let caught: unknown;
   try { validateRichDocument({ type: "doc", content: [{ type: "paragraph", content: [{ type: "bulletList", content: [] }] }] }, owner, work); }
   catch (error) { caught = error; }
   assert.ok(caught instanceof Error);
   const message = safeRichDocumentErrorMessage(caught as Parameters<typeof safeRichDocumentErrorMessage>[0]);
   assert.match(message, /text block contains a block element where text is expected/);
-  assert.match(message, /invalid_inline_child near item 1/);
+  assert.doesNotMatch(message, /invalid_inline_child|item 1/);
   assert.doesNotMatch(message, /secret|chapter text/);
 });
 
