@@ -8,7 +8,7 @@ import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/supabase/current-user";
-import { signRichDocument, signStoryMediaUrl } from "@/lib/story-media";
+import { signRichDocument, signStoryMediaUrl, signStoryMediaUrls } from "@/lib/story-media";
 import type { Metadata } from "next";
 
 type Chapter = { id: string; title: string; body: string; position: number; work_id: string; format?: string; content?: unknown; state?: string; updated_at?: string };
@@ -69,6 +69,10 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
   const contentPromise = (async () => {
     let nextContent = normalizeReaderContent(displayedChapter.content, displayedChapter.body, work.author_id, id);
     if (nextContent.type === "rich") nextContent = { ...nextContent, document: await signRichDocument(nextContent.document, supabase) as typeof nextContent.document };
+    if (nextContent.type === "comic") {
+      const signedPanels = await signStoryMediaUrls(supabase, nextContent.panels.map((panel) => panel.url));
+      nextContent = { ...nextContent, panels: nextContent.panels.map((panel) => ({ ...panel, url: signedPanels.get(panel.url) ?? panel.url })) };
+    }
     if (nextContent.type === "pdf") {
       const signedUrl = await signStoryMediaUrl(supabase, nextContent.url);
       if (signedUrl) nextContent = { ...nextContent, url: signedUrl };

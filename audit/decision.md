@@ -90,3 +90,5 @@
 - Show a story-level rating on story pages and library cards, computed only from published chapters. Average each reader's chapter ratings into one story vote before averaging readers, so a member who reviews several chapters does not outweigh someone who reviewed one. Exclude the story author; confirm the hosted query and presentation in the browser.
 
 - Retire the six legacy editor class families (.editor-stats, .editor-toolbar, .editor-more, .editor-mode-toggle, .editor-more-menu, and .editor-context-hint) from global and token styles only after confirming no TSX component references them. Keep the active editor selectors. The user will apply the prepared Supabase migration and run browser verification later.
+
+- Keep manga page uploads private in the existing story-media bucket. Accept only HTTPS sources or correctly scoped owner/story storage references when saving, and sign private panel URLs on reader pages; do not convert the uploader to public URLs.

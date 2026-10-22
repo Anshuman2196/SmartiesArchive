@@ -5,6 +5,10 @@ export const chapterFormats = ["prose", "image", "comic", "chat", "mixed", "pdf"
 export type ChapterFormat = (typeof chapterFormats)[number];
 
 const secureUrl = z.string().url().refine((value) => new URL(value).protocol === "https:", "Use an HTTPS media URL.");
+const comicMediaReference = z.string().refine((value) => {
+  if (value.startsWith("storage://story-media/")) return /^storage:\/\/story-media\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(?:png|jpe?g|webp|gif)$/i.test(value);
+  try { return new URL(value).protocol === "https:"; } catch { return false; }
+}, "Use a secure comic image reference.");
 const securePdfReference = z.string().refine((value) => {
   if (value.startsWith("storage://story-media/")) return /^storage:\/\/story-media\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.pdf$/i.test(value);
   try { return new URL(value).protocol === "https:"; } catch { return false; }
@@ -12,7 +16,7 @@ const securePdfReference = z.string().refine((value) => {
 const proseBlock = z.object({ type: z.literal("prose"), text: z.string().min(1).max(100_000) });
 const imageBlock = z.object({ type: z.literal("image"), url: secureUrl, alt: z.string().max(300).default("") });
 const chatBlock = z.object({ type: z.literal("chat"), messages: z.array(z.object({ speaker: z.string().min(1).max(60), text: z.string().min(1).max(2000) })).min(1).max(500) });
-const comicBlock = z.object({ type: z.literal("comic"), panels: z.array(z.object({ url: secureUrl, alt: z.string().max(300).default("") })).min(1).max(100) });
+const comicBlock = z.object({ type: z.literal("comic"), panels: z.array(z.object({ url: comicMediaReference, alt: z.string().max(300).default("") })).min(1).max(100) });
 const pdfBlock = z.object({ type: z.literal("pdf"), url: securePdfReference });
 const mixedItem = z.discriminatedUnion("type", [proseBlock, imageBlock, chatBlock]);
 const readerContentSchema = z.discriminatedUnion("type", [
@@ -28,7 +32,7 @@ export type ReaderContent = z.infer<typeof readerContentSchema> | { type: "rich"
 
 const validLines = (source: string) => source.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 
-export function buildChapterContent(format: ChapterFormat, source: string, alt = ""): { body: string; content: ReaderContent } {
+export function buildChapterContent(format: ChapterFormat, source: string, alt = "", ownerId?: string, workId?: string): { body: string; content: ReaderContent } {
   if (format === "prose") return { body: source, content: { type: "prose", text: source } };
   if (format === "image") {
     const content = readerContentSchema.parse({ type: "image", url: source.trim(), alt: alt.trim() });
@@ -39,7 +43,14 @@ export function buildChapterContent(format: ChapterFormat, source: string, alt =
       const [url, ...caption] = line.split("|");
       return { url: url.trim(), alt: caption.join("|").trim() };
     });
-    const content = readerContentSchema.parse({ type: "comic", panels });
+    const parsedComic = readerContentSchema.parse({ type: "comic", panels });
+    if (parsedComic.type !== "comic") throw new Error("Comic pages could not be validated.");
+    const content = parsedComic;
+    for (const panel of content.panels) {
+      if (panel.url.startsWith("storage://story-media/") && (!ownerId || !workId || !panel.url.startsWith(`storage://story-media/${ownerId}/${workId}/`))) {
+        throw new Error("Comic images must belong to this story.");
+      }
+    }
     return { body: source, content };
   }
   if (format === "chat") {
@@ -68,5 +79,9 @@ export function normalizeReaderContent(value: unknown, body: string, ownerId?: s
     catch { return { type: "prose", text: body }; }
   }
   const parsed = readerContentSchema.safeParse(value);
+  if (parsed.success && parsed.data.type === "comic" && ownerId && workId) {
+    const expectedPrefix = `storage://story-media/${ownerId}/${workId}/`;
+    if (parsed.data.panels.some((panel) => panel.url.startsWith("storage://story-media/") && !panel.url.startsWith(expectedPrefix))) return { type: "prose", text: body };
+  }
   return parsed.success ? parsed.data : { type: "prose", text: body };
 }

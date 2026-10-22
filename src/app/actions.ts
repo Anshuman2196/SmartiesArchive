@@ -268,10 +268,10 @@ export async function saveChapter(form: FormData) {
   const chapterId = value(form, "chapterId");
   const parsed = saveChapterSchema.safeParse({ workId, chapterId, title: value(form, "title"), content: value(form, "content"), format: value(form, "format") || "prose", expectedUpdatedAt: value(form, "expectedUpdatedAt") });
   if (!parsed.success) redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`);
-  let payload;
-  try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt")); }
-  catch { redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`); }
   const { supabase, user } = await requireOwnedWork(workId);
+  let payload;
+  try { payload = buildChapterContent(parsed.data.format, parsed.data.content, value(form, "mediaAlt"), user.id, workId); }
+  catch { redirect(`/studio/${workId}?chapter=${chapterId}&status=invalid_chapter`); }
   const { data: chapter } = await supabase.from("chapters").select("id,state,updated_at").eq("id", chapterId).eq("work_id", workId).maybeSingle();
   if (!chapter) redirect(`/studio/${workId}?status=not_found`);
   const { data: draft } = await supabase.from("chapter_drafts").select("updated_at").eq("work_id", workId).eq("chapter_id", chapterId).maybeSingle();
