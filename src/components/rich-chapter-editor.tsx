@@ -514,7 +514,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     <header className="editor-topbar">
       <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}><ArrowLeft size={17} aria-hidden="true"/><span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
-        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status === "Saved" && updatedAt ? `Saved at ${saveTimeLabel(updatedAt)}` : status}</span>
+        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} data-state={saveError ? "error" : status === "Saved" ? "saved" : status.startsWith("Saving") ? "saving" : "unsaved"} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status === "Saved" && updatedAt ? `Saved at ${saveTimeLabel(updatedAt)}` : status}</span>
         <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()} title="Formatting options"><Settings2 size={18} aria-hidden="true"/></button>
         <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
         <div className="editor-overflow">
