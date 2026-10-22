@@ -28,7 +28,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | Finding | Status | Change / remaining work |
 | --- | --- | --- |
 | W-01 | `[~]` | Preserve the new-chapter composer across the first save by retaining `?new=1`; confirm in browser. |
-| W-02 | `[~]` | Improve the image validation error and normalize inserted image attributes. Source inspection confirms uploads create `<user>/<work>/<UUID>.<image extension>` references and rich-document validation expects that shape; no static mismatch is evident. The original save failure still needs an upload → insert → set alt → save reproduction. |
+| W-02 | `[~]` | The signed upload request now sends only the presigned token and file content type, as the current Storage API specifies; removed unnecessary anon-key headers and the corresponding client-side anon-key requirement. Upload references still match rich-document ownership validation. The original upload → insert → set alt → save failure needs browser reproduction to confirm whether this resolves it. |
 | W-03 | `[~]` | Guard in-app link navigation and browser Back while dirty; browser Back restores the editor URL with the saved editor history state before prompting, avoiding reuse of the previous route's Next.js state. Interaction behavior still needs browser confirmation. |
 | W-04–W-05 | `[x]` | Preserve invalid chat input with inline validation; chat and mixed forms now mirror server message/block limits before submit so validation does not redirect and discard the form. Image chapters use an HTTPS URL input with inline validation. Keep the publish form mounted through submit. |
 | W-06, W-13–W-14 | `[x]` | Restore list and quote styles and map document H1 headings to H2 in reader output. |

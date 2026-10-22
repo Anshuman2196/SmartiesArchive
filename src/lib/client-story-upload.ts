@@ -18,13 +18,10 @@ export async function uploadStoryMediaFile(workId: string, file: File, onProgres
   const path = prepared.path;
   const token = prepared.token;
   const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!baseUrl || !anonKey) return { ok: false as const, message: "Media storage is not configured for this deployment." };
+  if (!baseUrl) return { ok: false as const, message: "Media storage is not configured for this deployment." };
   const uploaded = await new Promise<boolean>((resolve) => {
     const request = new XMLHttpRequest();
     request.open("PUT", `${baseUrl.replace(/\/$/, "")}/storage/v1/object/upload/sign/story-media/${path.split("/").map(encodeURIComponent).join("/")}?token=${encodeURIComponent(token)}`);
-    request.setRequestHeader("apikey", anonKey);
-    request.setRequestHeader("Authorization", `Bearer ${anonKey}`);
     request.setRequestHeader("Content-Type", file.type);
     request.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(Math.round(event.loaded / event.total * 100)); };
     request.onload = () => resolve(request.status >= 200 && request.status < 300);
