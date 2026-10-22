@@ -36,7 +36,7 @@ function ReviewForm({ workId, chapterId, review, onSaved }: { workId: string; ch
       onSaved(state.message ?? (review ? "Review updated." : "Review posted."));
       router.refresh();
     }
-  }, [onSaved, router, state.kind]);
+  }, [onSaved, review, router, state.kind, state.message]);
 
   return <form action={action} className={styles.form}>
     <input type="hidden" name="workId" value={workId}/>

@@ -63,7 +63,7 @@ export function ShareButton({ title, iconOnly = false }: { title?: string; iconO
       await navigator.clipboard.writeText(window.location.href);
       setMessage("Link copied.");
       setOpen(false);
-    } catch (error) {
+    } catch {
       setMessage("We couldn’t copy the link. Copy it from your browser address bar.");
     }
   };
@@ -217,7 +217,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, tags = 
       saveLatest();
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [chapterId, flushProgress, previewingDraft, workId]);
+  }, [authenticated, chapterId, flushProgress, previewingDraft, workId]);
 
   const onScroll = useCallback(() => {
     if (restoringProgress.current) return;

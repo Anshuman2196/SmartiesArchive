@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CoverFallback } from "@/components/cover-fallback";
 import { notFound } from "next/navigation";
 import { BookmarkButton, ResumeLink, ShareButton } from "@/components/reader-experience";
-import { getChapterAndWorkReviewSummaries, getWorkReviewSummaries } from "@/lib/chapter-reviews";
+import { getChapterAndWorkReviewSummaries } from "@/lib/chapter-reviews";
 import { chapterFormatLabel } from "@/lib/chapter-format-label";
 import { isSecureMediaUrl } from "@/lib/reader-state";
 import { signStoryMediaUrl } from "@/lib/story-media";

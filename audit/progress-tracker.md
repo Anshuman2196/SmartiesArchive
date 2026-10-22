@@ -5,12 +5,12 @@
 Scope: resolve the reported reader, writer, consistency, accessibility, and robustness issues in `audit/*-2026-10-22.md` and the prior audit. Track each finding here as it is verified against code and fixed. P0/P1 data-loss and core reading/publishing issues are first, followed by P2 and P3 polish. Browser-only findings remain marked for manual confirmation unless the supplied screenshots or code provide enough evidence.
 
 - [x] Reconcile the audit findings against the current code and track status by issue ID below.
-- [~] Fix writer data loss, image saving, navigation, validation, and publish actions (W-01–W-05); W-02 remains under investigation.
+- [~] Fix writer data loss, image saving, navigation, validation, and publish actions (W-01–W-05); W-02 still needs browser reproduction.
 - [~] Fix rich content and writer workflow usability (W-06–W-32); see issue statuses below.
 - [~] Fix reader rendering, progress/resume, privacy, and mobile chrome (B-01–B-32); see issue statuses below.
 - [~] Fix cross-cutting accessibility, metadata, loading/error, privacy, and consistency findings; see issue statuses below.
 - [x] Update this tracker and `decision.md` with implementation outcomes and assumptions.
-- [ ] Commit code remediation in coherent batches; hosted migration application and browser verification are user-owned follow-up tasks.
+- [x] Commit code remediation in coherent batches; hosted migration application and browser verification are user-owned follow-up tasks.
 
 This tracker is intentionally scoped for a private server project with about 20 users and a limited story collection.
 
@@ -201,7 +201,7 @@ These requests are now explicitly included in the plan:
 - [x] Add story/chapter lists with author, visibility, publication state, and updated date
 - [x] Add narrow unpublish/hide actions
 - [x] Add database/RLS tests proving non-admin users cannot access admin actions
-- [x] Apply the admin migration and bootstrap the first admin in the configured Supabase project
+- [ ] User follow-up: apply the admin migration to hosted SmartiesArchive and bootstrap the first admin; this workspace did not apply either change.
 
 ## Recommended next sequence
 
@@ -316,7 +316,7 @@ Cover only the flows that matter to this group:
 - [x] Added the `pdf` chapter format and private `story-media` PDF references.
 - [x] Added 50 MB PDF signature/size validation while preserving the 8 MB image limit.
 - [x] Added custom PDF.js rendering with lazy visible-page loading, zoom, page controls, keyboard navigation, and download/open fallback.
-- [x] Apply `supabase/migrations/202610210006_pdf_chapters.sql` to the configured Supabase project and test with a real PDF chapter.
+- [ ] User follow-up: apply `supabase/migrations/202610210006_pdf_chapters.sql` to hosted SmartiesArchive and test with a real PDF chapter.
 
 ## 2026-10-21 implementation update
 
@@ -331,12 +331,12 @@ Cover only the flows that matter to this group:
 
 ## Remaining verification
 
-- [ ] User follow-up: apply the admin, review, PDF, rate-limit, and library-stat migrations to hosted SmartiesArchive; the user will apply hosted migrations later.
-- [x] Bootstrap the first admin in `admin_users`.
+- [ ] User follow-up: check hosted migration history, then apply any missing prepared migrations: `202610210001_chapter_reviews.sql`, `202610210006_pdf_chapters.sql`, `20261021130513_admin_access.sql`, `20261021140000_story_media_cleanup.sql`, `20261022122131_atomic_reading_progress.sql`, `20261022130000_library_chapter_stats.sql`, and `20261022154126_user_action_rate_limits.sql`. No migration has been applied from this workspace.
+- [ ] User follow-up: bootstrap the first admin in hosted `admin_users` after the admin migration is applied.
 - [ ] User follow-up: upload and read a real PDF chapter in the hosted app after applying its migration.
 - [ ] User follow-up: upload, reorder, caption, save, and read a real image-only manga chapter in the browser.
 - [ ] User follow-up: run browser/device checks at 320px, 375px, and 768px, plus the remaining audited reader/writer flows.
-- [~] Perform a clean production build with no concurrent Next processes. Tests, lint, and typecheck pass; the build remained at optimization because unrelated Next workers were already running.
+- [x] Clean production build passed in an isolated checkout with the lockfile dependencies and a temporary `NEXT_PUBLIC_SITE_URL` build value; compile, lint, type checking, static generation, and trace collection completed. This is not a deployment or browser verification.
 
 ## 2026-10-21 library card follow-up
 

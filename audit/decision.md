@@ -2,6 +2,11 @@
 
 ## 2026-10-22 assumptions
 
+- User owns hosted Supabase migration application and browser verification. Finish source-level remediation and checks locally; do not spend time attempting those deferred steps.
+- An initial production build exposed conditional editor hooks and four lint findings. Those issues were corrected; the subsequent isolated production build passed. No user-facing browser testing has been performed.
+- The isolated production build required `NEXT_PUBLIC_SITE_URL`; use `https://smartiesarchive.example` only as a temporary build-time placeholder because the production origin is not available in this checkout. The build completed, and this value was not committed or deployed.
+- The hosted migration ledger is unavailable here, so the tracker lists prepared migrations for the owner to compare against that ledger and apply only if missing. Do not claim they have been applied based on local files.
+
 - Supabase work must use the hosted SmartiesArchive project only. The app configuration identifies project ref `ihrprnxndyzitciyoldz`; the connected Supabase account lists only the unrelated “Summiter 1.0” project and rejects read-only metadata access to this ref. Do not use Summiter or substitute the local prototype. Hosted migration application and verification remain pending until SmartiesArchive access is available. An accidental local startup was stopped without removing containers' volumes; no further local database work will be done.
 - The user replied that they would connect SmartiesArchive. A fresh connector check still exposed only Summiter and denied a read-only lookup of the SmartiesArchive ref. Treat this as an unrefreshed/unavailable connector state; do not attempt any hosted mutation until access is reflected in the project list.
 - The user has opened the signed-in SmartiesArchive dashboard in Chrome, but the browser origin approval gate denied page inspection. The Supabase MCP connection remains separate and still denies project metadata access. Do not retry through a browser or alternate surface; hosted migration work needs the connector/project permission state to change.

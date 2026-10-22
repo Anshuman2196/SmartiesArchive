@@ -387,6 +387,20 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   };
   const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().updateAttributes("imageBlock", { [key]: value }).run();
 
+  const selectedImage = editor?.isActive("imageBlock") ?? false;
+  useEffect(() => {
+    if (editor && selectedImage && sidebarOpen && sidebarTab === "insert") window.requestAnimationFrame(() => imageAltRef.current?.focus());
+  }, [editor, selectedImage, sidebarOpen, sidebarTab]);
+  useEffect(() => {
+    if (linkDialogOpen) {
+      linkDialogWasOpenRef.current = true;
+      window.requestAnimationFrame(() => linkInputRef.current?.focus());
+    } else if (linkDialogWasOpenRef.current && editor) {
+      linkDialogWasOpenRef.current = false;
+      window.requestAnimationFrame(() => editor.commands.focus());
+    }
+  }, [editor, linkDialogOpen]);
+
   if (!editor) return <div className="rich-editor-loading" role="status">Preparing your writing space…</div>;
   const togglePreview = () => {
     if (preview) { setPreview(false); return; }
@@ -440,10 +454,6 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     onToggleFocusMode: () => setFocusMode((focused) => !focused),
     onOpenHelp: () => openShortcutHelp(),
   };
-  const selectedImage = editor.isActive("imageBlock");
-  useEffect(() => {
-    if (selectedImage && sidebarOpen && sidebarTab === "insert") window.requestAnimationFrame(() => imageAltRef.current?.focus());
-  }, [selectedImage, sidebarOpen, sidebarTab]);
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
   const toolbarButton = (label: string, command: () => void, active = false, disabled = false) => <button type="button" className="editor-tool-button" title={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{label}</button>;
   const menuButton = (label: string, command: () => void, disabled = false) => <button type="button" role="menuitem" className="editor-top-action" aria-label={label} disabled={disabled} onClick={() => { command(); closeOverflow(); }}>{label}</button>;
@@ -498,16 +508,6 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const formattingMore = () => { setSidebarTab("type"); openSidebar(); };
   const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
   const closeShortcutHelp = () => setShortcutHelpOpen(false);
-
-  useEffect(() => {
-    if (linkDialogOpen) {
-      linkDialogWasOpenRef.current = true;
-      window.requestAnimationFrame(() => linkInputRef.current?.focus());
-    } else if (linkDialogWasOpenRef.current && editor) {
-      linkDialogWasOpenRef.current = false;
-      window.requestAnimationFrame(() => editor.commands.focus());
-    }
-  }, [editor, linkDialogOpen]);
 
   return <section ref={editorRootRef} className={`${styles.editorRoot} rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} role="region" aria-labelledby="rich-editor-label">
     <h1 id="rich-editor-label" className={styles.visuallyHidden}>Chapter writing editor</h1>
