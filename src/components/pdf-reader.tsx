@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type PdfPageProps = {
   document: PDFDocumentProxy;
@@ -119,10 +120,10 @@ export function PdfReader({ url, title }: { url: string; title: string }) {
 
   return <section className="pdf-reader" aria-label={`${title} PDF reader`} tabIndex={0} onKeyDown={onKeyDown}>
     <div className="pdf-reader-toolbar">
-      <div className="pdf-reader-page-control"><button type="button" className="pill" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous PDF page">←</button><label>Page <input type="number" min={1} max={pageCount || 1} value={currentPage} onChange={(event) => goToPage(Number(event.target.value))} aria-label="Current PDF page"/> <span>of {pageCount || "—"}</span></label><button type="button" className="pill" onClick={() => goToPage(currentPage + 1)} disabled={!pageCount || currentPage >= pageCount} aria-label="Next PDF page">→</button></div>
+      <div className="pdf-reader-page-control"><button type="button" className="pill" onClick={() => goToPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="Previous PDF page"><ChevronLeft size={18} aria-hidden="true"/></button><label>Page <input type="number" min={1} max={pageCount || 1} value={currentPage} onChange={(event) => goToPage(Number(event.target.value))} aria-label="Current PDF page"/> <span>of {pageCount || "—"}</span></label><button type="button" className="pill" onClick={() => goToPage(currentPage + 1)} disabled={!pageCount || currentPage >= pageCount} aria-label="Next PDF page"><ChevronRight size={18} aria-hidden="true"/></button></div>
       <div className="pdf-reader-actions"><button type="button" className="pill" onClick={() => { setFitWidth(false); setScale((value) => Math.min(3, value + 0.15)); }}>Zoom in</button><button type="button" className="pill" onClick={() => { setFitWidth(false); setScale((value) => Math.max(0.5, value - 0.15)); }}>Zoom out</button><button type="button" className="pill" aria-pressed={fitWidth} onClick={() => setFitWidth((value) => !value)}>{fitWidth ? "Fit width" : "Actual size"}</button><a className="pill" href={url} download target="_blank" rel="noreferrer">Download PDF</a></div>
     </div>
-    <p className="pdf-reader-hint">Use ← → or Page Up/Page Down to turn pages. Press + or − to zoom.</p>
+    <p className="pdf-reader-hint">Use the Left/Right Arrow keys or Page Up/Page Down to turn pages. Press + or − to zoom.</p>
     {loading && <p className="pdf-reader-state" role="status">Loading PDF…</p>}
     {error && <div className="pdf-reader-state pdf-reader-error" role="alert"><p>We couldn’t render this PDF in the custom reader.</p><a className="pill" href={url} target="_blank" rel="noreferrer">Open PDF separately</a><span className="field-hint">{error}</span></div>}
     {!loading && !error && document && <div ref={viewerRef} className="pdf-reader-pages">{Array.from({ length: pageCount }, (_, index) => { const pageNumber = index + 1; return <div key={pageNumber} ref={(element) => { if (element) pageRefs.current.set(pageNumber, element); else pageRefs.current.delete(pageNumber); }}><PdfPage document={document} pageNumber={pageNumber} scale={scale} fitWidth={fitWidth} onVisible={setCurrentPage}/></div>; })}</div>}

@@ -10,7 +10,7 @@ import { ReaderMedia } from "@/components/reader-media";
 import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences, type ReaderPreferences } from "@/lib/reader-state";
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 import styles from "./reader-experience.module.css";
-import { ArrowLeft, Bookmark, List, Settings2, Share2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bookmark, List, Settings2, Share2, X } from "lucide-react";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type ChapterLink = { id: string; title: string; position: number };
@@ -314,7 +314,7 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, chapter
           <p>{next ? `Continue with ${next.title}.` : "You have finished the published chapters in this story."}</p>
           {next ? <Link href={`/work/${workId}/chapter/${next.id}`} className="pill primary" rel="next" onClick={() => flushProgress(1)}>Continue reading</Link> : <Link href={`/work/${workId}`} className="pill primary" onClick={() => flushProgress(1)}>Back to story details</Link>}
         </section>}
-        {(previous || !completed) && <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}>← Previous<span>{previous.title}</span></Link> : <span/>}{!completed && (next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next →<span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details →</Link>)}</nav>}
+        {(previous || !completed) && <nav className={`chapter-pager ${styles.chapterPager}`} aria-label="Chapter navigation">{previous ? <Link href={`/work/${workId}/chapter/${previous.id}`} rel="prev" aria-label={`Previous chapter: ${previous.title}`} onClick={() => flushProgress()}><ArrowLeft size={16} aria-hidden="true"/> Previous<span>{previous.title}</span></Link> : <span/>}{!completed && (next ? <Link href={`/work/${workId}/chapter/${next.id}`} rel="next" aria-label={`Next chapter: ${next.title}`} onClick={() => flushProgress()}>Next <ArrowRight size={16} aria-hidden="true"/><span>{next.title}</span></Link> : <Link href={`/work/${workId}`} aria-label="Return to story details" onClick={() => flushProgress()}>Story details</Link>)}</nav>}
       </div>
     </div>
   </main><div className="reader-secondary" data-theme={preferences.theme}>{children}</div></>;
