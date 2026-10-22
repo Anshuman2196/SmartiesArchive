@@ -160,8 +160,34 @@
   cursor: pointer;
 }
 
-.readerTools {
+.preferencesDialog {
+  --page-bg: #1b201d;
+  --page-ink: #e8e5da;
+  --page-muted: #a9afa8;
   display: block;
+  width: min(960px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(90dvh, 760px);
+  margin: 0;
+  overflow-y: auto;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid color-mix(in srgb, var(--page-ink) 20%, transparent);
+  border-radius: 8px;
+  background: var(--page-bg);
+  color: var(--page-ink);
+  box-shadow: 0 24px 80px #0009;
+}
+
+.preferencesDialog[data-theme="light"] {
+  --page-bg: #f3f1e9;
+  --page-ink: #272d28;
+  --page-muted: #677067;
+}
+
+.preferencesDialog[data-theme="sepia"] {
+  --page-bg: #302a21;
+  --page-ink: #eee0c5;
+  --page-muted: #c1ad8c;
 }
 
 .preferenceHeader {
@@ -210,7 +236,7 @@
   align-items: start;
 }
 
-.readerTools .preferenceGroup {
+.preferencesDialog .preferenceGroup {
   min-width: 0;
   display: grid;
   gap: 10px;
@@ -219,7 +245,7 @@
   margin: 0;
 }
 
-.readerTools .preferenceGroup legend {
+.preferencesDialog .preferenceGroup legend {
   margin-bottom: 1px;
   padding: 0;
   color: var(--page-muted);
@@ -228,7 +254,7 @@
   text-transform: uppercase;
 }
 
-.readerTools .preferenceGroup label {
+.preferencesDialog .preferenceGroup label {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -239,17 +265,17 @@
   letter-spacing: .25px;
 }
 
-.readerTools .preferenceGroup label select,
-.readerTools .preferenceGroup label input {
+.preferencesDialog .preferenceGroup label select,
+.preferencesDialog .preferenceGroup label input {
   grid-column: 1 / -1;
   width: 100%;
 }
 
-.readerTools .preferenceGroup label select {
+.preferencesDialog .preferenceGroup label select {
   max-width: none;
 }
 
-.readerTools .preferenceGroup label input[type="range"] {
+.preferencesDialog .preferenceGroup label input[type="range"] {
   min-height: 28px;
 }
 
@@ -431,8 +457,8 @@
     flex: 1;
   }
 
-  .readerTools .preferenceGroup label select,
-  .readerTools .preferenceGroup label input[type="range"] {
+  .preferencesDialog .preferenceGroup label select,
+  .preferencesDialog .preferenceGroup label input[type="range"] {
     min-height: 44px;
   }
 

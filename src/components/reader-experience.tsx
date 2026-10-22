@@ -10,6 +10,7 @@ import { defaultReaderPreferences, isSecureMediaUrl, normalizeReaderPreferences,
 import { saveReadingProgress, toggleBookmark } from "@/app/actions";
 import styles from "./reader-experience.module.css";
 import { ArrowLeft, Bookmark, List, Settings2, Share2, X } from "lucide-react";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 type ChapterLink = { id: string; title: string; position: number };
 type Preferences = ReaderPreferences;
@@ -235,7 +236,25 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         <button type="button" className={`${styles.readerAction} ${styles.tocButton}`} aria-label="Open chapter contents" title="Chapters" aria-expanded={tocOpen} aria-controls="table-of-contents" onClick={() => setTocOpen((open) => !open)}><List size={18} aria-hidden="true"/><span className={styles.tocCount}>{current >= 0 ? current + 1 : "—"}/{chapters.length}</span></button>
         {authenticated ? <BookmarkButton workId={workId} initialSaved={initialSaved} iconOnly/> : <Link href={`/auth?mode=login&next=${encodeURIComponent(`/work/${workId}/chapter/${chapterId}`)}`} className={styles.readerAction} aria-label="Sign in to bookmark" title="Sign in to bookmark"><Bookmark size={18} aria-hidden="true"/></Link>}
         <ShareButton title={`${storyTitle} — ${chapterTitle}`} iconOnly/>
-        <button type="button" className={styles.readerAction} aria-label={settingsOpen ? "Close reading settings" : "Open reading settings"} title="Reading settings" aria-expanded={settingsOpen} aria-controls="reader-preferences" onClick={() => setSettingsOpen((open) => !open)}><Settings2 size={18} aria-hidden="true"/></button>
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogTrigger asChild><button type="button" className={styles.readerAction} aria-label="Reading settings" title="Reading settings"><Settings2 size={18} aria-hidden="true"/></button></DialogTrigger>
+          <DialogContent id="reader-preferences" className={`${styles.preferencesDialog} reader-tools`} data-theme={preferences.theme} showCloseButton={false}>
+            <DialogHeader className={styles.preferenceHeader}><div><DialogTitle>Reading preferences</DialogTitle><DialogDescription>Your choices are saved on this device.</DialogDescription></div><div className={styles.preferenceActions}><button type="button" className={styles.resetButton} onClick={() => setPreferences(defaults)}>Reset</button><DialogClose asChild><button type="button" className={styles.resetButton} aria-label="Close reading settings" title="Close settings"><X size={17} aria-hidden="true"/></button></DialogClose></div></DialogHeader>
+            <div className={styles.preferenceGrid}>
+              <fieldset className={styles.preferenceGroup}><legend>Typography</legend>
+                <label htmlFor="reader-font">Typeface<select id="reader-font" value={preferences.font} onChange={(event) => update("font", event.target.value as Preferences["font"])}><option value="serif">Literary serif</option><option value="sans">Sans serif</option></select></label>
+                <label htmlFor="reader-size">Text size<span className={styles.preferenceValue}>{preferences.size}px</span><input id="reader-size" type="range" min="16" max="28" step="1" value={preferences.size} onChange={(event) => update("size", Number(event.target.value))}/></label>
+                <label htmlFor="reader-leading">Line spacing<span className={styles.preferenceValue}>{preferences.leading.toFixed(1)}×</span><input id="reader-leading" type="range" min="1.4" max="2.2" step="0.1" value={preferences.leading} onChange={(event) => update("leading", Number(event.target.value))}/></label>
+                <label htmlFor="reader-spacing">Paragraph spacing<span className={styles.preferenceValue}>{preferences.spacing.toFixed(1)}×</span><input id="reader-spacing" type="range" min="0.5" max="2.5" step="0.1" value={preferences.spacing} onChange={(event) => update("spacing", Number(event.target.value))}/></label>
+              </fieldset>
+              <fieldset className={styles.preferenceGroup}><legend>Layout</legend>
+                <label htmlFor="reader-width">Reading width<select id="reader-width" value={preferences.width} onChange={(event) => update("width", Number(event.target.value))}><option value="620">Narrow</option><option value="760">Comfortable</option><option value="900">Wide</option></select></label>
+                <p className={styles.preferenceHint}>Choose a wider column for images or a narrower one for prose.</p>
+              </fieldset>
+              <fieldset className={`${styles.preferenceGroup} ${styles.themeGroup}`}><legend>Page tone</legend><div className={styles.themeChoices}>{(["dark", "light", "sepia"] as const).map((theme) => <button type="button" key={theme} className={`theme-swatch ${styles.themeButton}`} data-selected={preferences.theme === theme} aria-label={`${theme} page theme`} aria-pressed={preferences.theme === theme} onClick={() => update("theme", theme)}>{theme}</button>)}</div></fieldset>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
       <span className={`reader-save-status ${styles.readerSaveStatus}`} aria-live="polite" aria-atomic="true">{saveMessage}</span>
     </nav>
@@ -245,22 +264,6 @@ export function ReaderExperience({ workId, chapterId, workTitle, author, content
         <ol aria-label="Chapters">{chapters.map((chapter) => <li key={chapter.id}><Link href={`/work/${workId}/chapter/${chapter.id}`} aria-current={chapter.id === chapterId ? "page" : undefined} onClick={() => { setTocOpen(false); flushProgress(); }}>{chapter.title}</Link></li>)}</ol>
       </aside>
       <div className="reader-main"><header className="reader-chapter-heading"><span className="eyebrow">Chapter {current >= 0 ? current + 1 : "—"} of {chapters.length}</span><h1 className="serif">{chapterTitle}</h1><div className="reader-progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent} aria-valuetext={`${progressPercent}% read`}><span style={{ width: `${progressPercent}%` }}/></div></header>
-        {settingsOpen && <section id="reader-preferences" className={`reader-tools ${styles.readerTools}`} aria-labelledby="reader-preferences-title">
-          <div className={styles.preferenceHeader}><div><h2 id="reader-preferences-title">Reading preferences</h2><p>Your choices are saved on this device.</p></div><div className={styles.preferenceActions}><button type="button" className={styles.resetButton} onClick={() => setPreferences(defaults)}>Reset</button><button type="button" className={styles.resetButton} onClick={() => setSettingsOpen(false)} aria-label="Close reading settings" title="Close settings"><X size={17} aria-hidden="true"/></button></div></div>
-          <div className={styles.preferenceGrid}>
-            <fieldset className={styles.preferenceGroup}><legend>Typography</legend>
-              <label htmlFor="reader-font">Typeface<select id="reader-font" value={preferences.font} onChange={(event) => update("font", event.target.value as Preferences["font"])}><option value="serif">Literary serif</option><option value="sans">Sans serif</option></select></label>
-              <label htmlFor="reader-size">Text size<span className={styles.preferenceValue}>{preferences.size}px</span><input id="reader-size" type="range" min="16" max="28" step="1" value={preferences.size} onChange={(event) => update("size", Number(event.target.value))}/></label>
-              <label htmlFor="reader-leading">Line spacing<span className={styles.preferenceValue}>{preferences.leading.toFixed(1)}×</span><input id="reader-leading" type="range" min="1.4" max="2.2" step="0.1" value={preferences.leading} onChange={(event) => update("leading", Number(event.target.value))}/></label>
-              <label htmlFor="reader-spacing">Paragraph spacing<span className={styles.preferenceValue}>{preferences.spacing.toFixed(1)}×</span><input id="reader-spacing" type="range" min="0.5" max="2.5" step="0.1" value={preferences.spacing} onChange={(event) => update("spacing", Number(event.target.value))}/></label>
-            </fieldset>
-            <fieldset className={styles.preferenceGroup}><legend>Layout</legend>
-              <label htmlFor="reader-width">Reading width<select id="reader-width" value={preferences.width} onChange={(event) => update("width", Number(event.target.value))}><option value="620">Narrow</option><option value="760">Comfortable</option><option value="900">Wide</option></select></label>
-              <p className={styles.preferenceHint}>Choose a wider column for images or a narrower one for prose.</p>
-            </fieldset>
-            <fieldset className={`${styles.preferenceGroup} ${styles.themeGroup}`}><legend>Page tone</legend><div className={styles.themeChoices}>{(["dark", "light", "sepia"] as const).map((theme) => <button type="button" key={theme} className={`theme-swatch ${styles.themeButton}`} data-selected={preferences.theme === theme} aria-label={`${theme} page theme`} aria-pressed={preferences.theme === theme} onClick={() => update("theme", theme)}>{theme}</button>)}</div></fieldset>
-          </div>
-        </section>}
         <article ref={articleRef} className={`reader-article reader-font-${preferences.font} ${styles.readerArticle}`} aria-label={`${chapterTitle} content`} style={{ "--reader-size": `${preferences.size}px`, "--reader-leading": preferences.leading, "--reader-spacing": `${preferences.spacing}em`, maxWidth: `${preferences.width}px` } as React.CSSProperties}><Content content={content} chapterTitle={chapterTitle}/></article>
         {completed && <section className={styles.completionCard} aria-live="polite" aria-label="Chapter completion">
           <span className="eyebrow">Chapter complete</span>
