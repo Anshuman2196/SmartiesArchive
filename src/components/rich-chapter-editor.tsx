@@ -22,7 +22,7 @@ import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
 import { normalizeChapterPaste } from "@/lib/chapter-paste";
-import { markdownRunsForPreview } from "@/lib/markdown-preview";
+import { expandInlineMarkdown, markdownRunsForPreview } from "@/lib/markdown-preview";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
 import { createEditorShortcutExtension, detectShortcutPlatform, editorShortcutDefinitions, formatShortcut, type EditorShortcutCallbacks, type EditorShortcutDefinition, type ShortcutPlatform } from "@/lib/editor-shortcuts";
 import styles from "./rich-chapter-editor.module.css";
@@ -304,9 +304,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const togglePreview = () => {
     if (preview) { setPreview(false); return; }
     const runs = markdownRunsForPreview(editor.getJSON() as RichDocument);
-    if (runs.length) {
-      try {
-        if (!editor.markdown) throw new Error("Markdown preview is unavailable. Reload the editor and try again.");
+    try {
+      if (!editor.markdown) throw new Error("Markdown preview is unavailable. Reload the editor and try again.");
+      let candidate = editor.getJSON() as RichDocument;
+      let changed = false;
+      if (runs.length) {
         const transaction = editor.state.tr;
         for (const run of runs.reverse()) {
           if (/!\[[^\]]*\]\([^)]*\)|<img\b/i.test(run.source)) throw new Error("Upload images through the image picker before previewing Markdown image links.");
@@ -319,18 +321,24 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
           for (let index = run.start; index < run.end; index += 1) to += editor.state.doc.child(index).nodeSize;
           transaction.replaceWith(from, to, Fragment.fromArray(nodes));
         }
-        const candidate = transaction.doc.toJSON() as RichDocument;
+        candidate = transaction.doc.toJSON() as RichDocument;
+        changed = transaction.docChanged;
+      }
+      const inline = expandInlineMarkdown(candidate, (source) => editor.markdown!.parse(source) as RichDocument);
+      if (inline.changed) { candidate = inline.document; changed = true; }
+      if (changed) {
+        const normalized = editor.schema.nodeFromJSON(candidate).toJSON() as RichDocument;
         let count = 0;
         let oversized = false;
         const walk = (node: RichDocument | RichDocument["content"][number]) => { count += 1; if ((node.content?.length ?? 0) > chapterContentLimits.children) oversized = true; for (const child of node.content ?? []) walk(child); };
-        walk(candidate);
-        if (oversized || count > chapterContentLimits.nodes || JSON.stringify(candidate).length > chapterContentLimits.json || plainTextFromRichDocument(candidate).length > chapterContentLimits.text) throw new Error("This Markdown exceeds the chapter limit. Split it into shorter chapters.");
-        editor.view.dispatch(transaction);
+        walk(normalized);
+        if (oversized || count > chapterContentLimits.nodes || JSON.stringify(normalized).length > chapterContentLimits.json || plainTextFromRichDocument(normalized).length > chapterContentLimits.text) throw new Error("This Markdown exceeds the chapter limit. Split it into shorter chapters.");
+        editor.commands.setContent(normalized);
         setImportNotice("");
-      } catch (error) {
-        setImportNotice(error instanceof Error ? error.message : "Could not preview this Markdown.");
-        return;
       }
+    } catch (error) {
+      setImportNotice(error instanceof Error ? error.message : "Could not preview this Markdown.");
+      return;
     }
     setPreview(true);
   };

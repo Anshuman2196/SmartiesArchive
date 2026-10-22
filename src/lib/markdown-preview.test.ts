@@ -6,7 +6,7 @@ import { Markdown } from "@tiptap/markdown";
 import { TableKit } from "@tiptap/extension-table";
 import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
-import { markdownRunsForPreview } from "./markdown-preview.ts";
+import { expandInlineMarkdown, markdownRunsForPreview } from "./markdown-preview.ts";
 import { validateRichDocument, type RichDocument } from "./rich-document.ts";
 
 const owner = "11111111-1111-4111-8111-111111111111";
@@ -44,4 +44,22 @@ test("Markdown after a formatted heading remains eligible for conversion", () =>
     { type: "paragraph", content: [{ type: "text", text: "A **bold** moment." }] },
   ] };
   assert.deepEqual(markdownRunsForPreview(mixed), [{ start: 1, end: 2, source: "A **bold** moment." }]);
+});
+
+test("literal bold Markdown inside an existing styled block renders as bold without changing its block", () => {
+  const raw: RichDocument = { type: "doc", content: [{ type: "literaryBlock", attrs: { treatment: "system" }, content: [{ type: "paragraph", content: [
+    { type: "text", text: "**COMPOSITE WITHDRAWN — IDENTIFICATION UNRELIABLE.**" },
+  ] }] }] };
+  assert.deepEqual(markdownRunsForPreview(raw), []);
+  const editor = new Editor({ extensions: [StarterKit, Markdown], content: raw.content[0].content?.[0] ?? { type: "paragraph" } });
+  try {
+    assert.ok(editor.markdown);
+    const result = expandInlineMarkdown(raw, (source) => editor.markdown!.parse(source) as RichDocument);
+    assert.equal(result.changed, true);
+    assert.equal(result.document.content[0].type, "literaryBlock");
+    const bold = result.document.content[0].content?.[0].content?.[0];
+    assert.equal(bold?.text, "COMPOSITE WITHDRAWN — IDENTIFICATION UNRELIABLE.");
+    assert.deepEqual(bold?.marks, [{ type: "bold" }]);
+    assert.doesNotThrow(() => validateRichDocument(result.document, owner, work));
+  } finally { editor.destroy(); }
 });

@@ -1,4 +1,4 @@
-import type { RichDocument } from "./rich-document.ts";
+import type { RichDocument, RichNode } from "./rich-document.ts";
 
 const markdownSyntax = /(^|\n)\s{0,3}(?:#{1,6}\s|>\s|[-*+]\s|\d+\.\s|`{3,}|~{3,}|\|[^\n]*\||-{3,}\s*$)|\*\*\S[^*]*\*\*|__\S[^_]*__|(?<!\*)\*\S[^*\n]*\*(?!\*)|(?<!_)_\S[^_\n]*_(?!_)|~~\S[^~]*~~|\[[^\]]+\]\([^)]+\)|`[^`\n]+`/m;
 
@@ -32,4 +32,25 @@ export function markdownRunsForPreview(document: RichDocument): Array<{ start: n
   });
   if (paragraphs.length) flush(document.content.length);
   return runs;
+}
+
+const inlineMarkdownSyntax = /\*\*[^*\n]+\*\*|__[^_\n]+__|(?<!\*)\*[^*\n]+\*(?!\*)|(?<!_)_[^_\n]+_(?!_)|~~[^~\n]+~~|`[^`\n]+`|\[[^\]]+\]\([^)]+\)/;
+
+/** Parse literal inline Markdown even inside headings, quotes, lists, and literary blocks. */
+export function expandInlineMarkdown(document: RichDocument, parse: (source: string) => RichDocument): { document: RichDocument; changed: boolean } {
+  let changed = false;
+  const walk = (node: RichNode, parentType: string): RichNode[] => {
+    if (node.type === "text" && parentType !== "codeBlock" && typeof node.text === "string" && inlineMarkdownSyntax.test(node.text) && !node.marks?.some((mark) => mark.type === "code" || mark.type === "link")) {
+      const parsed = parse(node.text);
+      const blocks = parsed.content ?? [];
+      const inline = blocks.length === 1 && blocks[0].type === "paragraph" ? blocks[0].content ?? [] : [];
+      if (inline.length && inline.every((child) => child.type === "text") && inline.map((child) => child.text ?? "").join("") !== node.text) {
+        changed = true;
+        return inline.map((child) => ({ ...child, marks: [...(node.marks ?? []), ...(child.marks ?? [])].filter((mark, index, marks) => marks.findIndex((item) => item.type === mark.type) === index) }));
+      }
+    }
+    if (!node.content?.length || node.type === "codeBlock") return [node];
+    return [{ ...node, content: node.content.flatMap((child) => walk(child, node.type)) }];
+  };
+  return { document: { type: "doc", content: document.content.flatMap((node) => walk(node, "doc")) }, changed };
 }
