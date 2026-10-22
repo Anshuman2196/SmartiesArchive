@@ -40,6 +40,7 @@ This tracker is intentionally scoped for a private server project with about 20 
 | B-16–B-17, B-20, B-23–B-30, B-32 | `[~]` | Loading/metadata, guest home continuation from local progress, persistent story/author context, image zoom/fullscreen, dialog naming, mobile contents, theme scope, numbering, serif heading styling, copy/share, keyboard navigation, library density, and author-review suppression received code changes; responsive/theme rendering and review policy need browser/database confirmation. |
 | B-18, B-21–B-22 | `[x]` | Added a hide-content-note filter, review success/deletion feedback, 10-second undo, edited marker, and higher-contrast destructive action. |
 | B-31 | `[x]` | Library results fetch in batches of 100 and expose visible pagination with filters preserved. |
+| Reader completion navigation | `[x]` | The completion card is the only forward/story-details action after a chapter is complete; the pager keeps Previous available. |
 
 ### Cross-cutting findings
 
