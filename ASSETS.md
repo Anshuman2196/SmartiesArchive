@@ -4,13 +4,13 @@ All files below were generated with the native image generation tool and saved i
 
 | File | Site use |
 | --- | --- |
-| `cinema-projection.png` | Home opening image |
-| `cinema-projection-alt.png` | Missing-page atmosphere |
-| `archive-cover-default.png` | Neutral cover when a story has no uploaded cover |
-| `genre-science-fiction.png` | Science Fiction tag link |
-| `genre-horror.png` | Horror tag link |
-| `genre-dark-fantasy.png` | Dark Fantasy tag link |
-| `community-foyer.png` | Studio invitation, inspired by member character references |
+| `cinema-projection.webp` | Home opening image |
+| `cinema-projection-alt.webp` | Missing-page atmosphere |
+| `archive-cover-default.webp` | Neutral cover when a story has no uploaded cover |
+| `genre-science-fiction.webp` | Science Fiction tag link |
+| `genre-horror.webp` | Horror tag link |
+| `genre-dark-fantasy.webp` | Dark Fantasy tag link |
+| `community-foyer.webp` | Studio invitation, inspired by member character references |
 
 ## Prompt set for this revision
 

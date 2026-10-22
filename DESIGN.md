@@ -4,7 +4,7 @@
 
 Smarties Archive is a fiction collection presented like an independent cinema programme. Published covers are the posters. The interface supplies the framing: a dark screening room, a film-frame edge, bold opening-title typography, and simple programme information. The visual treatment gives the existing stories attention without pretending they are films.
 
-The generated projection-room image is atmosphere only. Story art, titles, authors, summaries, and content notes come from published work. The opening image is saved at `public/images/cinema-projection.png`; its alternate frames the missing-page screen. A neutral generated cover is used only when an author has not supplied one. Genre images illustrate real tag filters, and a foyer illustration inspired by member character sheets marks the community section. Asset roles and prompts are recorded in `ASSETS.md`.
+The generated projection-room image is atmosphere only. Story art, titles, authors, summaries, and content notes come from published work. The opening image is saved at `public/images/cinema-projection.webp`; its alternate frames the missing-page screen. A neutral generated cover is used only when an author has not supplied one. Genre images illustrate real tag filters, and a foyer illustration inspired by member character sheets marks the community section. Asset roles and prompts are recorded in `ASSETS.md`.
 
 ## Color
 

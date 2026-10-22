@@ -119,7 +119,7 @@ export async function createWorkRecord(form: FormData): Promise<{ ok: boolean; w
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, message: "Sign in before creating a story." };
   const parsed = workSchema.safeParse({ title: value(form, "title"), summary: value(form, "summary"), visibility: value(form, "visibility") });
-  if (parsed.success === false) return { ok: false, message: "Add a title and check the work details before saving." };
+  if (parsed.success === false) return { ok: false, message: "Add a title and check the story details before saving." };
   const { data, error } = await supabase.from("works").insert({ author_id: user.id, ...parsed.data }).select("id").single();
   if (error || !data) return { ok: false, message: "The story could not be created. Try again." };
   revalidatePath("/studio");
