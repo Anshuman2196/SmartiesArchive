@@ -146,7 +146,7 @@ These requests are now explicitly included in the plan:
 - [x] Author links from story cards
 - [x] Library cards show covers/poster fallbacks, tags, and clamped descriptions
 - [x] Empty search results are separated from an empty library
-- [ ] Add reading-time metadata to cards
+- [x] Add estimated reading-time metadata to cards from published chapter text at 220 words per minute; reducing the full-body query remains tracked under P2-9.
 - [x] Add a simple sort option
 - [x] Add a better no-results state
 - [ ] Add a small featured/staff-pick shelf
