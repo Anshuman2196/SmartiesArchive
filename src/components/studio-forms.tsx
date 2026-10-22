@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEventHandler, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEventHandler, type ReactNode } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { createChapter, saveChapter, saveWorkMetadata } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
@@ -42,17 +43,49 @@ export function ActionForm({ action, children, className }: { action: ServerForm
 function ManagedForm({ action, children, className, onSubmit }: { action: ServerFormAction; children: ReactNode; className?: string; onSubmit?: FormEventHandler<HTMLFormElement> }) {
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState(false);
+  const router = useRouter();
+  const dirtyRef = useRef(false);
+  const allowUnloadRef = useRef(false);
+  const markDirty = () => { dirtyRef.current = true; setDirty(true); };
   useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => { if (dirty && !pending) { event.preventDefault(); event.returnValue = ""; } };
+    if (!dirty || pending) return;
+    const formUrl = window.location.href;
+    const formHistoryState = window.history.state;
+    const warn = (event: BeforeUnloadEvent) => { if (dirtyRef.current && !allowUnloadRef.current) { event.preventDefault(); event.returnValue = ""; } };
+    const guardLink = (event: MouseEvent) => {
+      if (!dirtyRef.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+      const destination = new URL(anchor.href, window.location.href);
+      event.preventDefault();
+      event.stopPropagation();
+      if (!window.confirm("This form has unsaved changes. Leave without saving?")) return;
+      dirtyRef.current = false;
+      setDirty(false);
+      if (destination.origin === window.location.origin) router.push(`${destination.pathname}${destination.search}${destination.hash}`);
+      else { allowUnloadRef.current = true; window.location.assign(destination.href); }
+    };
+    const guardBack = () => {
+      if (!dirtyRef.current) return;
+      window.history.pushState(formHistoryState, "", formUrl);
+      if (!window.confirm("This form has unsaved changes. Leave without saving?")) return;
+      dirtyRef.current = false;
+      setDirty(false);
+      window.setTimeout(() => window.history.back(), 0);
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty, pending]);
+    document.addEventListener("click", guardLink, true);
+    window.addEventListener("popstate", guardBack);
+    return () => { window.removeEventListener("beforeunload", warn); document.removeEventListener("click", guardLink, true); window.removeEventListener("popstate", guardBack); };
+  }, [dirty, pending, router]);
   const submit: ServerFormAction = async (data) => {
     setPending(true);
     try { await action(data); }
-    finally { setDirty(false); setPending(false); }
+    finally { dirtyRef.current = false; setDirty(false); setPending(false); }
   };
-  return <form className={className} action={submit} onSubmit={onSubmit} onChange={() => setDirty(true)} onClick={(event) => { if (event.target instanceof Element && event.target.closest(".chip-remove")) setDirty(true); }} onReset={() => setDirty(false)}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
+  return <form className={className} action={submit} onSubmit={onSubmit} onChange={markDirty} onClick={(event) => { if (event.target instanceof Element && event.target.closest(".chip-remove")) markDirty(); }} onReset={() => { dirtyRef.current = false; setDirty(false); }}>{children}{dirty && <span className="unsaved-indicator" role="status">Unsaved changes</span>}</form>;
 }
 
 type EditableWork = { id: string; title: string; summary: string; visibility: string; cover_url: string; tags: string[]; content_warnings: string[]; expectedUpdatedAt: string };
