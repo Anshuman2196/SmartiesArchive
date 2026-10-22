@@ -10,6 +10,11 @@ const progressPayload = z.object({
 });
 
 export async function POST(request: Request) {
+  const origin = request.headers.get("origin");
+  let sameOrigin = false;
+  try { sameOrigin = !!origin && new URL(origin).origin === new URL(request.url).origin; } catch { /* Reject malformed or opaque origins. */ }
+  if (!sameOrigin) return NextResponse.json({ ok: false }, { status: 403 });
+
   const parsed = progressPayload.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false }, { status: 400 });
 
