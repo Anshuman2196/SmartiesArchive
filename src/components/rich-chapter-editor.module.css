@@ -136,6 +136,12 @@
 
   .quickActions {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .quickActions :global(.editor-publish-hint) {
+    flex-basis: 100%;
+    max-width: none;
   }
 
   .overflowTrigger {
