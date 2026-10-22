@@ -170,6 +170,8 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     handlePaste(view, event) {
       const text = event.clipboardData?.getData("text/plain");
       if (!text || view.state.selection.$from.parent.type.name === "codeBlock") return false;
+      const html = event.clipboardData?.getData("text/html") ?? "";
+      const hadFormatting = /<(?:h[1-6]|ul|ol|li|blockquote|strong|em|b|i|u|table|thead|tbody|tr|td|th)\b/i.test(html);
       const paragraphs = normalizeChapterPaste(text).split(/\n\s*\n/).filter((paragraph) => paragraph.length > 0).map((paragraph) => {
         const content = paragraph.split("\n").flatMap((line, index) => [
           ...(index ? [view.state.schema.nodes.hardBreak.create()] : []),
@@ -188,6 +190,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         return true;
       }
       view.dispatch(transaction);
+      if (hadFormatting) setImportNotice("Pasted text was simplified, so its headings, lists, or emphasis were not kept.");
       return true;
     },
   }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
