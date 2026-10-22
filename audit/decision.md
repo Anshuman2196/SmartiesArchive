@@ -3,6 +3,7 @@
 ## 2026-10-22 assumptions
 
 - Supabase work must use the hosted SmartiesArchive project only. The app configuration identifies project ref `ihrprnxndyzitciyoldz`; the connected Supabase account lists only the unrelated “Summiter 1.0” project and rejects read-only metadata access to this ref. Do not use Summiter or substitute the local prototype. Hosted migration application and verification remain pending until SmartiesArchive access is available. An accidental local startup was stopped without removing containers' volumes; no further local database work will be done.
+- The user replied that they would connect SmartiesArchive. A fresh connector check still exposed only Summiter and denied a read-only lookup of the SmartiesArchive ref. Treat this as an unrefreshed/unavailable connector state; do not attempt any hosted mutation until access is reflected in the project list.
 
 - The reader, writer, cross-cutting, and prior audit findings in `audit/` define this remediation. Existing fixes are credited only after checking the current working tree.
 - Preserve existing story/chapter behavior and stored content formats unless an audit identifies a defect. Keep existing Supabase rows and migrations compatible.
@@ -43,6 +44,7 @@
 - Replace literal reader spacings only where an existing `--space-*` token has the same pixel value; this keeps the audited reader layout unchanged while beginning token adoption.
 - Use “Create account” consistently for the signup tab, heading, and submit action. Avoid adding “free” to signup copy because the audit identified it as an unnecessary claim for this private community.
 - For the mobile writing toolbar, hide the decorative sliders icon when the visible “Aa” label is shown, keep save-state text from being clipped, and enforce 44 px targets. Limit the formatting sheet to 58dvh so the writer can still see part of the document while adjusting formatting; verify the final layout at 320 px and 390 px.
+- Preserve 44 px editor tap targets at every mobile breakpoint. A follow-up source check found 38–40 px values in the `max-width:600px` and `max-width:375px` overrides despite the broader 44 px base rule; update those narrow overrides and leave visual fit confirmation open until browser access is available.
 - Keep the sticky editor toolbar beneath the global sticky site header in focus mode by using the existing desktop/mobile header offsets. The toolbar does not need a separate `top: 0` positioning rule.
 - Apply the audit's 12 px minimum to user-facing small control labels and status text (studio overline, palette select, reader actions/status/settings headings, labels, hints, buttons, and media captions), while keeping decorative microtype and metadata outside this targeted correction until a complete type-scale pass.
 - Preserve `?new=1` only while the first chapter save is in flight, so revalidation keeps the composer mounted. After the server returns its chapter ID, replace that shallow URL with `?chapter=<id>`; this keeps the saved editor mounted while preventing Back from restoring a blank new-chapter composer.
