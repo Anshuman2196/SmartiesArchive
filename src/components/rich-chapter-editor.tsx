@@ -108,6 +108,10 @@ const emojiTerms: Record<string, string[]> = {
 };
 
 const treatmentLabel = (value: string) => value[0].toUpperCase() + value.slice(1);
+const saveTimeLabel = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+};
 
 export function RichChapterEditor({ workId, initialDocument, initialTitle, initialChapterId, initialUpdatedAt }: { workId: string; initialDocument: RichDocument; initialTitle: string; initialChapterId?: string; initialUpdatedAt?: string }) {
   const [title, setTitle] = useState(initialTitle);
@@ -195,7 +199,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     },
   }, onUpdate: ({ editor: instance }) => { documentRef.current = instance.getJSON() as RichDocument; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }, onSelectionUpdate: ({ editor: instance }) => setSelectionActive(!instance.state.selection.empty) });
   const save = useCallback(async () => {
-    if (!dirty) return true;
+    if (!dirty) { setStatus("No changes to save"); return true; }
     if (busy.current) return false;
     const revision = revisionRef.current;
     busy.current = true; setStatus("Saving draft…");
@@ -502,7 +506,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     <header className="editor-topbar">
       <div className="editor-topbar-context"><button type="button" className="editor-back-link" aria-label="Return to Creator Studio" onClick={async () => { if (await save()) router.push(`/studio/${workId}`); }}><ArrowLeft size={17} aria-hidden="true"/><span>Creator Studio</span></button><span aria-hidden="true">/</span><span className="editor-breadcrumb">{title || "Untitled chapter"}</span></div>
       <div className="editor-topbar-actions">
-        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status}</span>
+        <span className={`editor-save-status ${saveError ? "has-error" : ""}`} role="status" aria-live="polite"><i aria-hidden="true"/> {saveError ? "Not saved" : status === "Saved" && updatedAt ? `Saved at ${saveTimeLabel(updatedAt)}` : status}</span>
         <button ref={formatToggleRef} type="button" className="editor-top-action editor-format-toggle" aria-label="Open formatting panel" aria-expanded={sidebarOpen} aria-controls="editor-format-sidebar" onClick={() => sidebarOpen ? closeSidebar() : openSidebar()} title="Formatting options"><Settings2 size={18} aria-hidden="true"/></button>
         <button type="button" className="pill primary editor-save" disabled={!dirty || busy.current} onClick={() => void save()}>{saveError ? "Retry save" : "Save draft"}</button>
         <div className="editor-overflow">
@@ -564,7 +568,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         </div>}
         {preview && <p className="editor-preview-banner" role="status">Previewing current edits · Return to writing from More chapter actions.</p>}
         {preview ? <article className="rich-editor-preview prose-content rich-reader"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas prose-content rich-reader"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
-        <footer className="editor-writing-footer"><span>{status}</span><span className="editor-word-count">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</span></footer>
+        <footer className="editor-writing-footer"><span className="editor-word-count">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</span></footer>
       </section>
       <aside id="editor-format-sidebar" className="editor-format-sidebar" role="dialog" aria-modal="false" aria-labelledby="editor-format-title" aria-hidden={!sidebarOpen} inert={!sidebarOpen} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeSidebar(); } }}>
         <div className="editor-sidebar-heading"><span id="editor-format-title" className="eyebrow">Formatting controls</span><button ref={formatCloseRef} type="button" className={`${styles.dialogClose} editor-sidebar-close`} onClick={closeSidebar} aria-label="Close formatting panel">Close</button></div>
