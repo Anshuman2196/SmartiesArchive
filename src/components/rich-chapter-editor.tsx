@@ -385,7 +385,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     else editor.chain().focus().setLink({ href }).run();
     setLinkDialogOpen(false);
   };
-  const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().focus().updateAttributes("imageBlock", { [key]: value }).run();
+  const updateImage = (key: "alt" | "caption" | "width" | "align", value: string | number) => editor?.chain().updateAttributes("imageBlock", { [key]: value }).run();
 
   if (!editor) return <div className="rich-editor-loading" role="status">Preparing your writing space…</div>;
   const togglePreview = () => {
