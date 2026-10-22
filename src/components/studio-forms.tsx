@@ -73,7 +73,7 @@ export function WorkMetadataForm({ work, previewCoverUrl }: { work: EditableWork
       <Field><FieldTitle>Cover image</FieldTitle><CoverAssetPicker workId={work.id} initialValue={work.cover_url} initialPreview={previewCoverUrl}/></Field>
       <Field><FieldLabel htmlFor="edit-work-tags">Tags</FieldLabel><Input id="edit-work-tags" name="tags" defaultValue={work.tags.join(", ")} placeholder="fantasy, found family"/><FieldDescription>Separate up to 20 tags with commas.</FieldDescription></Field>
       <Field><FieldLabel htmlFor="edit-work-warnings">Content warnings</FieldLabel><Input id="edit-work-warnings" name="contentWarnings" defaultValue={work.content_warnings.join(", ")} placeholder="violence, grief"/><FieldDescription>Separate up to 20 notes with commas.</FieldDescription></Field>
-      <Field><FieldLabel htmlFor="edit-work-visibility">Visibility</FieldLabel><NativeSelect id="edit-work-visibility" name="visibility" defaultValue={work.visibility}><NativeSelectOption value="public">Public — listed in library</NativeSelectOption><NativeSelectOption value="unlisted">Unlisted — direct link</NativeSelectOption><NativeSelectOption value="private">Private — only you</NativeSelectOption></NativeSelect></Field>
+      <Field><FieldLabel htmlFor="edit-work-visibility">Visibility</FieldLabel><NativeSelect id="edit-work-visibility" name="visibility" defaultValue={work.visibility}><NativeSelectOption value="public">Public — listed in library</NativeSelectOption><NativeSelectOption value="unlisted">Shared by link — not listed in the library</NativeSelectOption><NativeSelectOption value="private">Private — only you</NativeSelectOption></NativeSelect></Field>
     </FieldGroup>
     <ActionSubmit>Save story details</ActionSubmit>
   </ManagedForm>;
