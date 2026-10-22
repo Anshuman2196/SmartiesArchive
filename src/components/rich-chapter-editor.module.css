@@ -113,7 +113,7 @@
 .quickActions :global(.editor-publish-hint) {
   max-width: 175px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .overflowTrigger:focus-visible {
