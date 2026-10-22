@@ -25,11 +25,15 @@ const sortLabels = {
   title: "Title A–Z",
 } as const;
 
-type PublishedChapterSummary = { work_id: string; body: string };
+type PublishedChapterSummary = { work_id: string; chapter_count: number | string; word_count: number | string };
+type PublishedChapterBody = { work_id: string; body: string };
 
-function readingMinutes(chapters: PublishedChapterSummary[]): number {
-  const words = chapters.reduce((total, chapter) => total + chapter.body.trim().split(/\s+/).filter(Boolean).length, 0);
-  return words ? Math.max(1, Math.ceil(words / 220)) : 0;
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function readingMinutes(wordCount: number): number {
+  return wordCount ? Math.max(1, Math.ceil(wordCount / 220)) : 0;
 }
 
 function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boolean }) {
@@ -113,19 +117,30 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       if (!data || data.length < 100) break;
     }
     const workIds = works.map((work) => work.id);
-    const [{ data: chapterRows }, coverUrls] = await Promise.all([
-      workIds.length ? supabase.from("chapters").select("work_id,body").in("work_id", workIds).eq("state", "published") : Promise.resolve({ data: [] as PublishedChapterSummary[] }),
+    const [chapterStatsResult, coverUrls] = await Promise.all([
+      workIds.length ? supabase.rpc("get_public_library_chapter_stats", { p_work_ids: workIds }) : Promise.resolve({ data: [] as PublishedChapterSummary[], error: null }),
       signStoryMediaUrls(supabase, works.map((work) => work.cover_url)),
     ]);
-    const chaptersByWork = new Map<string, PublishedChapterSummary[]>();
-    for (const chapter of (chapterRows ?? []) as PublishedChapterSummary[]) {
-      const chapters = chaptersByWork.get(chapter.work_id) ?? [];
-      chapters.push(chapter);
-      chaptersByWork.set(chapter.work_id, chapters);
+    let chapterStats = chapterStatsResult.data as PublishedChapterSummary[] | null;
+    if (chapterStatsResult.error) {
+      // Keep the library available while the hosted project is waiting for this migration.
+      const { data, error } = await supabase.from("chapters").select("work_id,body").in("work_id", workIds).eq("state", "published");
+      if (error) throw error;
+      const fallbackStats = new Map<string, { chapter_count: number; word_count: number }>();
+      for (const chapter of (data ?? []) as PublishedChapterBody[]) {
+        const stat = fallbackStats.get(chapter.work_id) ?? { chapter_count: 0, word_count: 0 };
+        stat.chapter_count += 1;
+        stat.word_count += countWords(chapter.body);
+        fallbackStats.set(chapter.work_id, stat);
+      }
+      chapterStats = [...fallbackStats].map(([work_id, stats]) => ({ work_id, ...stats }));
     }
+    const statsByWork = new Map<string, PublishedChapterSummary>((chapterStats ?? []).map((stats) => [stats.work_id, stats] as const));
     allWorks = works.map((work) => {
-      const chapters = chaptersByWork.get(work.id) ?? [];
-      return { ...work, coverPreviewUrl: work.cover_url ? coverUrls.get(work.cover_url) ?? null : null, chapterCount: chapters.length, readingMinutes: readingMinutes(chapters) };
+      const stats = statsByWork.get(work.id);
+      const chapterCount = Number(stats?.chapter_count ?? 0);
+      const wordCount = Number(stats?.word_count ?? 0);
+      return { ...work, coverPreviewUrl: work.cover_url ? coverUrls.get(work.cover_url) ?? null : null, chapterCount, readingMinutes: readingMinutes(wordCount) };
     });
   } catch {
     configured = false;
