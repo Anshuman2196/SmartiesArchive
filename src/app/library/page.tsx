@@ -141,7 +141,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
     </div>}
 
     {!configured && <p className="notice">Connect your Supabase project to open the shelves.</p>}
-    {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open the studio</Link></div>}
+    {configured && allWorks.length === 0 && <div className="library-empty"><h2 className="serif">No public stories yet.</h2><p>When a story is published, you’ll find it here.</p><Link href="/studio" className="pill primary">Open Creator Studio</Link></div>}
     {configured && allWorks.length > 0 && filteredWorks.length === 0 && <div className="library-empty"><h2 className="serif">No stories match.</h2><p>Try another search or clear the filters.</p><Link href="/library" className="pill primary">Clear filters</Link></div>}
 
     {visibleWorks.length > 0 && <section className="library-results" aria-label="Stories"><div className="library-results-heading"><span>{activeFilters ? "Results" : "Recently added"}</span><span>{filteredWorks.length} {filteredWorks.length === 1 ? "story" : "stories"}</span></div><div className={styles.list}>{visibleWorks.map((work, index) => <Link className={styles.card} key={work.id} href={`/work/${work.id}`} aria-label={`Open story: ${work.title}`}>
