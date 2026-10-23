@@ -218,3 +218,59 @@ input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,t
 .rich-editor .rich-editor-heading textarea:focus-visible{border-color:transparent;border-bottom-color:var(--lime)}
 .rich-editor-canvas .tiptap:focus-visible{outline:none}
 #main-content:focus:not(:focus-visible){outline:none}
+/* Selection toolbar: compact icon buttons with dividers. */
+.editor-selection-toolbar{display:flex;align-items:center;gap:2px;padding:4px}
+.editor-selection-toolbar .editor-tool-icon{display:inline-grid;place-items:center;width:36px;min-width:36px;height:36px;min-height:36px;padding:0;color:var(--muted)}
+.editor-selection-toolbar .editor-tool-icon:hover,.editor-selection-toolbar .editor-tool-icon[aria-pressed="true"]{color:var(--cream)}
+.editor-color-tool{position:relative;cursor:pointer}
+.editor-color-tool>svg{margin-top:-4px}
+.editor-color-swatch{position:absolute;left:10px;right:10px;bottom:7px;height:3px;border-radius:1px}
+.editor-color-tool:has(input:focus-visible){outline:2px solid var(--focus-ring,var(--lime));outline-offset:1px}
+/* Formatting panel: icon tabs, labelled sections, segmented icon groups, swatches, and insert tiles. */
+.editor-format-sidebar{display:flex;flex-direction:column;padding:16px;border-radius:12px;background:var(--panel);box-shadow:0 24px 70px -20px rgb(0 0 0 / .8)}
+.editor-format-sidebar .editor-sidebar-heading{padding:0 0 12px}
+.editor-sidebar-title{color:var(--cream);font:800 17px/1 var(--font-ui);letter-spacing:-.01em}
+.editor-format-sidebar .editor-sidebar-close{width:36px;height:36px;min-height:36px;border-color:transparent}
+.editor-format-sidebar .editor-sidebar-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--ink) 60%,var(--panel));overflow:visible}
+.editor-format-sidebar .editor-sidebar-tabs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;min-height:54px;padding:6px 2px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:600 11px/1 var(--font-ui)}
+.editor-format-sidebar .editor-sidebar-tabs button span{font-size:12px}
+.editor-format-sidebar .editor-sidebar-tabs button:hover{color:var(--cream)}
+.editor-format-sidebar .editor-sidebar-tabs button[aria-selected=true]{background:var(--panel-raised);color:var(--cream);box-shadow:inset 0 0 0 1px var(--line)}
+.editor-format-sidebar .editor-sidebar-tabs button[aria-selected=true] svg{color:var(--lime)}
+.editor-format-sidebar .editor-sidebar-panel{display:flex;flex-direction:column;gap:18px;flex:1;min-height:0;padding-top:18px;overflow:auto}
+.format-section{display:grid;gap:8px}
+.format-section h3{margin:0;color:var(--muted);font:700 12px/1 var(--font-ui);letter-spacing:.06em;text-transform:uppercase;word-spacing:normal}
+.format-select{width:100%;min-height:40px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--ink);color:var(--cream);font:500 13px var(--font-ui)}
+.format-pair{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:8px}
+.format-pair label{display:grid;gap:5px;color:var(--muted);font-size:12px}
+.format-row{display:flex;flex-wrap:wrap;gap:8px}
+.format-segment{display:inline-flex;align-self:start;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:color-mix(in srgb,var(--ink) 60%,var(--panel))}
+.format-segment .editor-tool-icon{display:inline-grid;place-items:center;width:38px;min-width:38px;height:36px;min-height:36px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--muted)}
+.format-segment .editor-tool-icon:hover{background:var(--panel-raised);color:var(--cream)}
+.format-segment .editor-tool-icon[aria-pressed=true]{background:color-mix(in srgb,var(--lime) 18%,var(--panel-raised));color:var(--cream)}
+.format-swatches{display:flex;flex-wrap:wrap;gap:8px}
+.format-swatch{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid transparent;border-radius:50%;box-shadow:inset 0 0 0 1px rgb(0 0 0 / .25);cursor:pointer;color:var(--muted);background:var(--panel-raised)}
+.format-swatch:hover{transform:scale(1.08)}
+.format-swatch[aria-pressed=true]{border-color:var(--cream);box-shadow:0 0 0 2px var(--panel),0 0 0 4px var(--lime)}
+.format-swatch-custom,.format-swatch-none{border:1px dashed var(--line)}
+.format-swatch-custom:has(input:focus-visible){outline:2px solid var(--lime);outline-offset:2px}
+.format-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.format-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:78px;padding:10px 6px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--ink) 45%,var(--panel));color:var(--cream);font:600 12px/1.1 var(--font-ui);cursor:pointer;transition:border-color .15s,background-color .15s}
+.format-tile svg{width:22px;height:22px;color:var(--lime)}
+.format-tile:hover,.format-tile[aria-pressed=true]{border-color:color-mix(in srgb,var(--lime) 55%,var(--line));background:var(--panel-raised)}
+.format-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.format-stats div{display:grid;gap:4px;padding:14px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--ink) 45%,var(--panel))}
+.format-stats strong{color:var(--cream);font:800 24px/1 var(--font-ui)}
+.format-stats span{color:var(--muted);font-size:12px}
+.format-actions{display:grid;gap:4px}
+.format-actions button{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 10px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--cream);font:600 13px/1.25 var(--font-ui);text-align:left;cursor:pointer}
+.format-actions button:hover{border-color:var(--line);background:var(--panel-raised)}
+.format-actions svg{flex:0 0 auto;width:18px;height:18px;color:var(--lime)}
+.format-actions span{display:grid;gap:2px}
+.format-actions small{color:var(--muted);font-size:12px;font-weight:400}
+.editor-detect-styles{align-self:stretch}
+@media(prefers-reduced-motion:reduce){.format-swatch:hover{transform:none}}
+/* Editor sticky stack: site header (70px), then the action bar (~58px), then the writing tools; the selection toolbar sits below all three. */
+.rich-editor [role=toolbar][aria-label="Writing tools"]{top:128px;z-index:19}
+.editor-selection-toolbar{top:190px;z-index:18}
+@media(max-width:850px){.rich-editor [role=toolbar][aria-label="Writing tools"]{top:124px}.editor-selection-toolbar{top:184px}}

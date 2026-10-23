@@ -10,12 +10,6 @@
   border: 0;
 }
 
-.editorRoot :global(.rich-editor-canvas .tiptap:focus-visible) {
-  outline: 3px solid var(--lime);
-  outline-offset: 8px;
-  border-radius: 3px;
-}
-
 .dialogClose {
   display: inline-flex !important;
   align-items: center;
