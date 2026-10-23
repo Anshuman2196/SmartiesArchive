@@ -211,3 +211,9 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .navlinks-desktop>.nav-library{margin-right:10px}
 .navlinks-desktop>.nav-profile{margin-right:4px}
 .navlinks>a.nav-icon,.navlinks button.nav-icon{display:inline-grid;place-items:center;width:40px;min-height:40px;height:40px;padding:0}
+/* Focus: no outline after a mouse click or tap; keyboard focus keeps the ring.
+   Text fields and the writing canvas count as :focus-visible even when clicked, so they mark focus with their border (or the caret) instead. */
+:focus:not(:focus-visible){outline:none}
+input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,textarea:focus-visible,select:focus-visible{outline:none;border-color:var(--lime)}
+.rich-editor .rich-editor-heading textarea:focus-visible{border-color:transparent;border-bottom-color:var(--lime)}
+.rich-editor-canvas .tiptap:focus-visible{outline:none}
