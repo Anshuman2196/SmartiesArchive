@@ -2,7 +2,7 @@
 .featuredGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:28px;margin-bottom:52px}
 .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:28px;padding-top:12px}
 
-.card{position:relative;min-width:0;border-radius:14px;overflow:hidden;background:var(--panel-raised);box-shadow:0 22px 44px -26px rgb(0 0 0 / .9);transition:transform .3s ease,box-shadow .3s ease}
+.card{position:relative;min-width:0;border-radius:0;overflow:hidden;background:var(--panel-raised);box-shadow:0 22px 44px -26px rgb(0 0 0 / .9);transition:transform .3s ease,box-shadow .3s ease}
 .card:hover,.card:focus-within{transform:translateY(-6px);box-shadow:0 34px 60px -28px rgb(0 0 0 / .95)}
 .posterLink{display:block;color:inherit}
 .posterLink:focus-visible{outline:none}
@@ -21,7 +21,7 @@
 .author a:hover{color:#fff;text-decoration:underline;text-underline-offset:3px}
 
 .badges{position:absolute;top:12px;right:12px;display:flex;gap:6px}
-.badge{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:999px;background:rgb(0 0 0 / .55);backdrop-filter:blur(8px);color:#fff;font:700 12px/1 var(--font-ui)}
+.badge{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:0;background:rgb(0 0 0 / .55);backdrop-filter:blur(8px);color:#fff;font:700 12px/1 var(--font-ui)}
 .badge svg{width:13px;height:13px}
 .rating svg{fill:#ffd166;stroke:#ffd166}
 .notes{width:28px;padding:0;justify-content:center;color:#ffc58f;cursor:help}
