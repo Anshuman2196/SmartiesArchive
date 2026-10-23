@@ -18,7 +18,7 @@ import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { Fragment, Slice } from "@tiptap/pm/model";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
@@ -129,6 +129,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [sidebarTab, setSidebarTab] = useState("text");
   const [selectionActive, setSelectionActive] = useState(false);
+  const selectionToolbarRef = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState(false);
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false);
   const [shortcutPlatform, setShortcutPlatform] = useState<ShortcutPlatform>("windows");
@@ -170,7 +171,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
   const router = useRouter();
 
   const shortcutExtension = useMemo(() => createEditorShortcutExtension(shortcutCallbacksRef), []);
-  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, editorProps: {
+  const editor = useEditor({ extensions: [...extensions, shortcutExtension], content: initialDocument, immediatelyRender: false, shouldRerenderOnTransaction: true, editorProps: {
     attributes: { role: "textbox", "aria-label": "Chapter content", "aria-multiline": "true", "aria-describedby": "rich-editor-content-help" },
     handlePaste(view, event) {
       const text = event.clipboardData?.getData("text/plain");
@@ -210,7 +211,11 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
       window.history.replaceState(window.history.state, "", `/studio/${workId}?new=1`);
     }
     let result: Awaited<ReturnType<typeof saveRichChapter>>;
-    try { result = await saveRichChapter(workId, chapterId, titleRef.current, documentRef.current, updatedAt); }
+    // ProseMirror attrs objects are not plain objects, so the server action transport
+    // would send them as opaque references and the server would drop node attrs
+    // (alignment, indent, literary style). Send a plain JSON copy instead.
+    const payload = JSON.parse(JSON.stringify(documentRef.current)) as RichDocument;
+    try { result = await saveRichChapter(workId, chapterId, titleRef.current, payload, updatedAt); }
     catch { result = { ok: false, message: "The save could not reach the server. Your writing is still here; retry when connected." }; }
     finally { busy.current = false; }
     if (!result.ok) { setSaveError(result.message ?? "Draft could not be saved. Your writing is still here. Retry when ready."); setStatus("Not saved"); return false; }
@@ -263,6 +268,30 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     return () => { document.removeEventListener("click", guardLink, true); window.removeEventListener("popstate", guardBack); };
   }, [dirty, router, save]);
   useEffect(() => { setShortcutPlatform(detectShortcutPlatform()); }, []);
+  // Anchor the selection toolbar to the selected text: above it when there is room
+  // below the sticky writing toolbar, otherwise just below the selection.
+  useLayoutEffect(() => {
+    if (!editor || !selectionActive || preview) return;
+    const place = () => {
+      const node = selectionToolbarRef.current;
+      if (!node || editor.state.selection.empty) return;
+      const { from, to } = editor.state.selection;
+      const start = editor.view.coordsAtPos(from), end = editor.view.coordsAtPos(to, -1);
+      const { width, height } = node.getBoundingClientRect();
+      const ceiling = (document.querySelector('.rich-editor [role=toolbar][aria-label="Writing tools"]')?.getBoundingClientRect().bottom ?? 0) + 8;
+      const anchor = start.top === end.top ? (start.left + end.right) / 2 : start.left + width / 2;
+      let top = start.top - height - 8;
+      if (top < ceiling) top = end.bottom + 8;
+      const left = Math.min(Math.max(anchor - width / 2, 8), window.innerWidth - width - 8);
+      Object.assign(node.style, { position: "fixed", top: `${top}px`, left: `${Math.max(left, 8)}px`, right: "auto", visibility: "visible" });
+    };
+    place();
+    editor.on("selectionUpdate", place);
+    editor.on("update", place);
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => { editor.off("selectionUpdate", place); editor.off("update", place); window.removeEventListener("scroll", place, true); window.removeEventListener("resize", place); };
+  }, [editor, selectionActive, preview]);
   const restoreFocus = useCallback((target: HTMLElement | null, fallback: HTMLElement | null = null) => {
     window.requestAnimationFrame(() => {
       if (target?.isConnected) target.focus();
@@ -572,7 +601,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     <div className="editor-workspace">
       <section className="editor-writing-column" aria-label="Chapter writing area">
         <div className="rich-editor-heading"><label className="sr-only" htmlFor="rich-chapter-title">Chapter title</label><textarea ref={(node) => { if (node) { node.style.height = "auto"; node.style.height = `${node.scrollHeight}px`; } }} id="rich-chapter-title" rows={1} placeholder="Untitled chapter" value={title} maxLength={120} onInput={(event) => { event.currentTarget.style.height = "auto"; event.currentTarget.style.height = `${event.currentTarget.scrollHeight}px`; }} onChange={(event) => { setTitle(event.target.value); titleRef.current = event.target.value; revisionRef.current += 1; setDocumentRevision(revisionRef.current); setDirty(true); setSaveError(""); setStatus("Unsaved changes"); }}/></div>
-        {selectionActive && !preview && <div className="editor-selection-toolbar" role="toolbar" aria-label="Selected text formatting">
+        {selectionActive && !preview && <div ref={selectionToolbarRef} className="editor-selection-toolbar" style={{ visibility: "hidden" }} role="toolbar" aria-label="Selected text formatting">
           {toolbarButton("Bold", () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"), false, Bold)}{toolbarButton("Italic", () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"), false, Italic)}{toolbarButton("Underline", () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"), false, Underline)}{toolbarButton("Strikethrough", () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"), false, Strikethrough)}
           <span className={styles.toolDivider} aria-hidden="true"/>
           {toolbarButton("Highlight", () => editor.chain().focus().toggleHighlight({ color: "#d4f36a" }).run(), editor.isActive("highlight"), false, Highlighter)}
