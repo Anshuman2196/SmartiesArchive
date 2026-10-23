@@ -133,27 +133,19 @@ test("legacy non-object node attrs normalize to defaults without losing the chap
   assertRejectedBy({ type: "doc", content: [{ type: "heading", attrs: { level: 99 }, content: [{ type: "text", text: "bad level" }] }] }, "invalid_heading_level");
 });
 
-test("malformed mark attributes return a safe rule and path without retaining text", () => {
-  const input = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "private writing here", marks: [{ type: "textStyle", attrs: { fontSize: "999px" } }] }] }] };
-  assert.throws(() => validateRichDocument(input, owner, work), (error: unknown) => {
-    assert.equal((error as Error).message, "The chapter formatting needs attention.");
-    assert.deepEqual((error as { diagnostic?: unknown }).diagnostic, { rule: "invalid_text_style_attrs", path: "doc.content[0].content[0].marks[0]", nodeType: "text", attribute: "fontSize", markType: "textStyle" });
-    assert.equal(JSON.stringify(error).includes("private writing here"), false);
-    return true;
-  });
-});
-
-test("unsupported text-style diagnostics identify the exact attribute, not the first valid one", () => {
-  const input = { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "private sentence", marks: [{ type: "textStyle", attrs: { color: "#4169e1", lineHeight: "1.5" } }] }] }] };
-  assert.throws(() => validateRichDocument(input, owner, work), (error: unknown) => {
-    const diagnostic = (error as { diagnostic: { attribute?: string; rule: string } }).diagnostic;
-    assert.equal(diagnostic.rule, "invalid_text_style_attrs");
-    assert.equal(diagnostic.attribute, "lineHeight");
-    const message = safeRichDocumentErrorMessage(error as Parameters<typeof safeRichDocumentErrorMessage>[0]);
-    assert.match(message, /text style field “lineHeight” is not supported/);
-    assert.doesNotMatch(message, /private sentence|#4169e1|1\.5/);
-    return true;
-  });
+test("unsupported or invalid text-style settings are dropped instead of blocking the save", () => {
+  const input = { type: "doc", content: [{ type: "paragraph", content: [
+    { type: "text", text: "kept colour", marks: [{ type: "textStyle", attrs: { color: "#4169e1", lineHeight: "1.5", fontSize: "999px" } }] },
+    { type: "text", text: "nothing valid", marks: [{ type: "textStyle", attrs: { fontFamily: "Comic Sans", color: "rgb(1, 2, 3)" } }, { type: "bold" }] },
+    { type: "text", text: "odd highlight", marks: [{ type: "highlight", attrs: { color: "red; background:url(x)" } }] },
+    { type: "text", text: "non-object attrs", marks: [{ type: "textStyle", attrs: "broken" }] },
+  ] }] };
+  const { document } = validateRichDocument(input, owner, work);
+  const [kept, stripped, highlight, broken] = document.content[0].content ?? [];
+  assert.deepEqual(kept.marks, [{ type: "textStyle", attrs: { color: "#4169e1" } }]);
+  assert.deepEqual(stripped.marks, [{ type: "bold" }]);
+  assert.deepEqual(highlight.marks, [{ type: "highlight" }]);
+  assert.equal(broken.marks, undefined);
 });
 
 test("validation feedback identifies a safe formatting target without revealing chapter text", () => {
@@ -240,6 +232,7 @@ test("rich documents reject executable elements, unsafe links, and foreign media
   assertRejectedBy({ type: "doc", content: [{ type: "html", attrs: { html: "<script>run()</script>" } }] }, "unsupported_node");
   assertRejectedBy({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "link", attrs: { href: "javascript:alert(1)" } }] }] }] }, "invalid_link_href");
   assertRejectedBy({ type: "doc", content: [{ type: "imageBlock", attrs: { src: asset.replace(work, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1"), alt: "x", caption: "" } }] }, "invalid_image_reference");
-  assertRejectedBy({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "textStyle", attrs: { fontFamily: "url(javascript:alert(1))" } }] }] }] }, "invalid_text_style_attrs");
+  const scriptedFont = validateRichDocument({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "x", marks: [{ type: "textStyle", attrs: { fontFamily: "url(javascript:alert(1))" } }] }] }] }, owner, work);
+  assert.equal(JSON.stringify(scriptedFont.document).includes("javascript"), false);
   assertRejectedBy({ type: "doc", content: [{ type: "imageBlock", attrs: { src: "https://untrusted.example/image.png", alt: "x", caption: "" } }] }, "invalid_image_reference");
 });

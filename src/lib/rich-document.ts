@@ -143,21 +143,24 @@ export function validateRichDocument(input: unknown, ownerId: string, workId: st
         if (mark.type === "highlight") {
           const markAttrs = mark.attrs;
           const color = typeof markAttrs === "object" && markAttrs !== null && !Array.isArray(markAttrs) ? (markAttrs as Record<string, unknown>).color : undefined;
-          if (color != null && !textStyleSchema.shape.color.safeParse(color).success) reject("invalid_highlight_color", markPath, nodeType, "color", mark.type);
-          return { type: "highlight", ...(typeof color === "string" ? { attrs: { color } } : {}) };
+          // An unsupported highlight colour falls back to the default highlight instead of blocking the save.
+          const safeColor = typeof color === "string" && textStyleSchema.shape.color.safeParse(color).success ? color : undefined;
+          return { type: "highlight", ...(safeColor ? { attrs: { color: safeColor } } : {}) };
         }
         if (mark.type === "textStyle") {
-          const parsedAttrs = textStyleSchema.safeParse(mark.attrs ?? {});
-          if (!parsedAttrs.success) {
-            const issue = parsedAttrs.error.issues[0];
-            const issueField = typeof issue?.path[0] === "string" ? issue.path[0] : issue?.code === "unrecognized_keys" ? issue.keys[0] : undefined;
-            reject("invalid_text_style_attrs", markPath, nodeType, issueField ?? "attrs", mark.type);
-          }
-          const normalized = Object.fromEntries(Object.entries(parsedAttrs.data).filter(([, value]) => value != null));
-          return { type: "textStyle", ...(Object.keys(normalized).length ? { attrs: normalized } : {}) };
+          // Keep only supported, valid style settings. Pasted or imported text can carry styles this editor
+          // does not offer (line height, rgb() colours, other fonts); dropping them is safer than refusing the save.
+          const rawAttrs = typeof mark.attrs === "object" && mark.attrs !== null && !Array.isArray(mark.attrs) ? mark.attrs as Record<string, unknown> : {};
+          const shape = textStyleSchema.shape;
+          const normalized = Object.fromEntries((Object.keys(shape) as (keyof typeof shape)[]).flatMap((key) => {
+            const value = rawAttrs[key];
+            return value != null && shape[key].safeParse(value).success ? [[key, value]] : [];
+          }));
+          return Object.keys(normalized).length ? { type: "textStyle", attrs: normalized } : null;
         }
         return { type: mark.type };
-      });
+      }).filter((mark) => mark !== null);
+      if (!output.marks.length) delete output.marks;
     }
     if (current.content !== undefined) {
       if (!Array.isArray(current.content) || current.content.length > chapterContentLimits.children) reject("invalid_content_array", path, nodeType, "content");
