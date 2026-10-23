@@ -23,6 +23,7 @@ import { listWorkMedia, publishChapter, saveRichChapter } from "@/app/actions";
 import { uploadStoryMediaFile } from "@/lib/client-story-upload";
 import { chapterContentLimits, literaryTreatments, plainTextFromRichDocument, type RichDocument } from "@/lib/rich-document";
 import { detectLiteraryTreatment } from "@/lib/literary-detection";
+import { readingMinutes } from "@/lib/reading-time";
 import { normalizeChapterPaste } from "@/lib/chapter-paste";
 import { expandInlineMarkdown, markdownRunsForPreview } from "@/lib/markdown-preview";
 import { RichDocumentRenderer } from "@/components/rich-document-renderer";
@@ -585,7 +586,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
         </div>}
         {preview && <p className="editor-preview-banner" role="status">Previewing current edits · Return to writing from More chapter actions.</p>}
         {preview ? <article className="rich-editor-preview prose-content rich-reader"><RichDocumentRenderer document={editor.getJSON() as RichDocument}/></article> : <div className="rich-editor-canvas prose-content rich-reader"><p id="rich-editor-content-help" className={styles.visuallyHidden}>Chapter content editor. Use the formatting panel or keyboard shortcuts to format your writing.</p><EditorContent editor={editor}/></div>}
-        <footer className="editor-writing-footer"><span className="editor-word-count">{wordCount.toLocaleString()} words · {Math.max(1, Math.ceil(wordCount / 220))} min read</span></footer>
+        <footer className="editor-writing-footer"><span className="editor-word-count">{wordCount.toLocaleString()} words · {Math.max(1, readingMinutes(wordCount))} min read</span></footer>
       </section>
       <aside id="editor-format-sidebar" className="editor-format-sidebar" role="dialog" aria-modal="false" aria-labelledby="editor-format-title" aria-hidden={!sidebarOpen} inert={!sidebarOpen} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); closeSidebar(); } }}>
         <div className="editor-sidebar-heading"><span id="editor-format-title" className="editor-sidebar-title">Format</span><button ref={formatCloseRef} type="button" className="icon-action editor-sidebar-close" onClick={closeSidebar} aria-label="Close formatting panel" data-tooltip="Close (Esc)"><X/></button></div>
@@ -628,7 +629,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             <p className="editor-sidebar-help">Choose a style for the current paragraph when the wording needs your judgment.</p>
           </>}
           {sidebarTab === "document" && <>
-            <div className="format-stats"><div><strong>{wordCount.toLocaleString()}</strong><span>words</span></div><div><strong>{Math.max(1, Math.ceil(wordCount / 220))}</strong><span>min read</span></div></div>
+            <div className="format-stats"><div><strong>{wordCount.toLocaleString()}</strong><span>words</span></div><div><strong>{Math.max(1, readingMinutes(wordCount))}</strong><span>min read</span></div></div>
             <div className="format-actions">
               <button type="button" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}><RemoveFormatting aria-hidden="true"/><span>Clear all formatting<small>Removes marks and resets blocks in the selection</small></span></button>
               <button type="button" onClick={() => markdownRef.current?.click()}><FileUp aria-hidden="true"/><span>Import Markdown<small>Inserts a .md file at the cursor</small></span></button>

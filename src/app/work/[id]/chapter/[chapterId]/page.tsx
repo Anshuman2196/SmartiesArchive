@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import { ChapterReviewsLoader } from "@/components/chapter-reviews-loader";
 import { ContentWarningGate } from "@/components/content-warning-gate";
+import { countWords, formatReadingTime, readingMinutes } from "@/lib/reading-time";
 import { ReaderExperience } from "@/components/reader-experience";
 import { normalizeReaderContent } from "@/lib/chapter-content";
 import { createClient } from "@/lib/supabase/server";
@@ -103,7 +104,7 @@ export default async function ChapterPage({ params, searchParams }: { params: Pr
 
   return <>
     {isOwner && <div className="reader-owner-link"><Link href={`/studio/${id}?chapter=${chapterId}`}>Edit this chapter in Creator Studio</Link></div>}
-    <ReaderExperience workId={id} chapterId={chapterId} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} tags={work.tags} canReview={!isOwner} chapterTitle={displayedChapter.title} content={content} chapters={readerChapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
+    <ReaderExperience workId={id} chapterId={chapterId} readingTime={formatReadingTime(readingMinutes(countWords(displayedChapter.body)))} workTitle={work.title} author={author ? { displayName: author.display_name, username: author.username } : undefined} tags={work.tags} canReview={!isOwner} chapterTitle={displayedChapter.title} content={content} chapters={readerChapters} authenticated={!!user} previewingDraft={previewingDraft} initialSaved={!!bookmarkResult.data} savedProgress={saved?.chapter_id === chapterId ? saved.progress : 0}>
       {!previewingDraft && <Suspense fallback={<section className="shell" aria-busy="true"><p className="muted" role="status">Loading reader notes…</p></section>}>
         <ChapterReviewsLoader workId={id} chapterId={chapterId} authorId={work.author_id} currentUserId={user?.id} loginHref={`/auth?mode=login&next=${encodeURIComponent(`/work/${id}/chapter/${chapterId}`)}`}/>
       </Suspense>}

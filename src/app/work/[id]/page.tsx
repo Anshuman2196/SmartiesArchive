@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { BookmarkButton, ResumeLink, ShareButton } from "@/components/reader-experience";
 import { getChapterAndWorkReviewSummaries } from "@/lib/chapter-reviews";
 import { chapterFormatLabel } from "@/lib/chapter-format-label";
+import { countWords, formatReadingTime, readingMinutes } from "@/lib/reading-time";
 import { isSecureMediaUrl } from "@/lib/reader-state";
 import { signStoryMediaUrl } from "@/lib/story-media";
 import { createClient } from "@/lib/supabase/server";
@@ -13,7 +14,7 @@ import { getCurrentUser } from "@/lib/supabase/current-user";
 import { workVisibilityLabel } from "@/lib/work-visibility";
 import type { Metadata } from "next";
 
-type Chapter = { id: string; title: string; position: number; state: "draft" | "published"; format?: string };
+type Chapter = { id: string; title: string; position: number; state: "draft" | "published"; format?: string; body?: string };
 type Work = { id: string; title: string; summary: string; visibility: "public" | "unlisted" | "private"; state: "draft" | "published"; author_id: string; cover_url?: string; tags?: string[]; content_warnings?: string[] };
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -46,12 +47,13 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     signStoryMediaUrl(supabase, work.cover_url),
     viaShareLink
       ? supabase.rpc("read_unlisted_chapters", { p_work_id: id })
-      : supabase.from("chapters").select("id,title,position,state,format").eq("work_id", id).order("position"),
+      : supabase.from("chapters").select("id,title,position,state,format,body").eq("work_id", id).order("position"),
     supabase.from("profiles").select("username,display_name,bio").eq("id", work.author_id).maybeSingle(),
   ]);
   const chapters = (chaptersResult.data ?? []) as Chapter[];
   const isOwner = user?.id === work.author_id;
   const published = chapters.filter((chapter) => chapter.state === "published");
+  const storyMinutes = readingMinutes(published.reduce((total, chapter) => total + countWords(chapter.body), 0));
   const reviewSummariesPromise = getChapterAndWorkReviewSummaries(supabase, work.id, published.map((chapter) => ({ id: chapter.id, work_id: work.id })), work.author_id);
   const bookmarkAndProgressPromise = user
     ? Promise.all([
@@ -72,14 +74,14 @@ export default async function WorkPage({ params }: { params: Promise<{ id: strin
     <div className="story-detail">
       <div className="story-heading"><span className="eyebrow">{work.state === "draft" ? "Work in progress" : work.visibility === "private" ? "Private" : work.visibility === "unlisted" ? "Shared by link" : isOwner ? "Public" : "Story"}</span><h1 className="serif">{work.title}</h1>
         {author && <p className="story-byline">By <Link href={`/author/${author.username}`}>{author.display_name}</Link></p>}
-        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{workReviewSummary && <span aria-label={`Story rating ${workReviewSummary.average.toFixed(1)} out of 5 from ${workReviewSummary.count} readers`}>★ {workReviewSummary.average.toFixed(1)} · {workReviewSummary.count} {workReviewSummary.count === 1 ? "reader" : "readers"}</span>}{work.state === "draft" && <span>Draft</span>}{(isOwner || work.visibility !== "public") && <span>{visibilityLabel}</span>}{includesIllustratedChapters && <span>Includes illustrated chapters</span>}</div>
+        <div className="story-badges"><span>{published.length} {published.length === 1 ? "chapter" : "chapters"}</span>{storyMinutes > 0 && <span aria-label={`About ${formatReadingTime(storyMinutes)} for the whole story`}>{formatReadingTime(storyMinutes)}</span>}{workReviewSummary && <span aria-label={`Story rating ${workReviewSummary.average.toFixed(1)} out of 5 from ${workReviewSummary.count} readers`}>★ {workReviewSummary.average.toFixed(1)} · {workReviewSummary.count} {workReviewSummary.count === 1 ? "reader" : "readers"}</span>}{work.state === "draft" && <span>Draft</span>}{(isOwner || work.visibility !== "public") && <span>{visibilityLabel}</span>}{includesIllustratedChapters && <span>Includes illustrated chapters</span>}</div>
         {(work.tags?.length ?? 0) > 0 && <ul className="story-tags" aria-label="Story tags">{work.tags?.map((tag) => <li key={tag}><Link href={`/library?tag=${encodeURIComponent(tag)}`}>{tag}</Link></li>)}</ul>}
         {(work.content_warnings?.length ?? 0) > 0 && <details className="content-warnings"><summary>Content notes</summary><ul>{work.content_warnings?.map((warning) => <li key={warning}>{warning}</li>)}</ul></details>}
         <div className="story-actions">{first && <ResumeLink workId={work.id} firstChapterId={first.id} savedChapterId={resumeId} chapterIds={published.map((chapter) => chapter.id)} allowGuestLocal={!user}/>}{isOwner && <Link className="icon-action" href={`/studio/${work.id}`} aria-label="Manage story in Creator Studio" data-tooltip="Manage in Creator Studio"><PenLine/></Link>}{work.state === "published" && work.visibility !== "private" && <ShareButton iconOnly/>}{user ? <BookmarkButton workId={work.id} initialSaved={!!bookmark} iconOnly/> : work.state === "published" && <Link className="icon-action" href={`/auth?mode=login&next=${encodeURIComponent(`/work/${work.id}`)}`} aria-label="Sign in to bookmark" data-tooltip="Sign in to bookmark this story"><Bookmark/></Link>}</div>
         {work.summary && <p className="story-summary">{work.summary}</p>}
       </div>
       <section className="story-contents" aria-labelledby="story-contents-title"><div className="section-head"><div><span className="eyebrow">The reading path</span><h2 id="story-contents-title" className="serif">Chapters</h2></div><span className="muted">{published.length} published</span></div>
-        {displayChapters.length ? <ol className="story-chapter-list">{displayChapters.map((chapter, index) => { const summary = reviewSummaries.chapters[chapter.id]; const meta = [isOwner && chapter.state === "draft" ? "Draft" : null, chapter.format && chapter.format !== "prose" ? chapterFormatLabel(chapter.format) : null, summary ? `★ ${summary.average.toFixed(1)} (${summary.count})` : null].filter(Boolean).join(" · "); return <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div><Link href={`/work/${work.id}/chapter/${chapter.id}`} className="chapter-title">{chapter.title}</Link>{meta && <span className="chapter-meta">{meta}</span>}</div>{isOwner && <Link href={`/studio/${work.id}?chapter=${chapter.id}`} className="chapter-manage">Edit</Link>}</li>; })}</ol> : <div className="card empty-chapters"><h3 className="serif">A story gathering its first words.</h3><p className="muted">The author has not published a chapter yet.</p>{isOwner && <Link className="pill primary" href={`/studio/${work.id}`}>Open Creator Studio</Link>}</div>}
+        {displayChapters.length ? <ol className="story-chapter-list">{displayChapters.map((chapter, index) => { const summary = reviewSummaries.chapters[chapter.id]; const minutes = readingMinutes(countWords(chapter.body)); const meta = [isOwner && chapter.state === "draft" ? "Draft" : null, chapter.format && chapter.format !== "prose" ? chapterFormatLabel(chapter.format) : null, minutes ? formatReadingTime(minutes) : null, summary ? `★ ${summary.average.toFixed(1)} (${summary.count})` : null].filter(Boolean).join(" · "); return <li key={chapter.id}><span className="chapter-index">{String(index + 1).padStart(2, "0")}</span><div><Link href={`/work/${work.id}/chapter/${chapter.id}`} className="chapter-title">{chapter.title}</Link>{meta && <span className="chapter-meta">{meta}</span>}</div>{isOwner && <Link href={`/studio/${work.id}?chapter=${chapter.id}`} className="chapter-manage">Edit</Link>}</li>; })}</ol> : <div className="card empty-chapters"><h3 className="serif">A story gathering its first words.</h3><p className="muted">The author has not published a chapter yet.</p>{isOwner && <Link className="pill primary" href={`/studio/${work.id}`}>Open Creator Studio</Link>}</div>}
       </section>
       {work.visibility === "unlisted" && <p className="share-note">This story is shared by link and does not appear in public search.</p>}
     </div>

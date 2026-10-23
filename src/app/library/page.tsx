@@ -18,6 +18,7 @@ import {
 } from "@/lib/library-filters";
 import type { Metadata } from "next";
 import { getWorkReviewSummaries } from "@/lib/chapter-reviews";
+import { countWords, formatReadingTime, readingMinutes } from "@/lib/reading-time";
 
 export const metadata: Metadata = { title: "Library", description: "Browse stories in the Smarties Archive." };
 
@@ -31,13 +32,6 @@ const sortLabels = {
 type PublishedChapterSummary = { work_id: string; chapter_count: number | string; word_count: number | string };
 type PublishedChapterBody = { work_id: string; body: string };
 
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function readingMinutes(wordCount: number): number {
-  return wordCount ? Math.max(1, Math.ceil(wordCount / 220)) : 0;
-}
 
 function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boolean }) {
   return <div className={styles.poster} aria-hidden="true">
@@ -75,7 +69,7 @@ function LibraryStoryCard({ work, rating, eager = false, featured = false }: { w
     </div>
     <div className={styles.caption}>
       <h2 className={styles.title}><Link href={`/work/${work.id}`}>{work.title}</Link></h2>
-      <LibraryAuthor work={work}/>
+      <span className={styles.byline}><LibraryAuthor work={work}/>{work.readingMinutes ? <span className={styles.readTime} aria-label={`About ${formatReadingTime(work.readingMinutes)}`}>{formatReadingTime(work.readingMinutes, { suffix: false })}</span> : null}</span>
     </div>
   </article>;
 }
