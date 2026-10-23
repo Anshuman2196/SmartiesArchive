@@ -278,3 +278,4 @@ input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,t
 .editor-literary-shortcuts ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
 .editor-literary-shortcuts li{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--cream);font:600 13px/1.3 var(--font-ui)}
 .editor-literary-shortcuts kbd{padding:3px 7px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--ink) 60%,var(--panel));color:var(--muted);font:600 12px/1 var(--font-ui);white-space:nowrap}
+.rich-reader .rich-document .rich-heading-1,.rich-editor-preview .rich-document .rich-heading-1{font-size:1.9em;margin:1.5em 0 .55em}

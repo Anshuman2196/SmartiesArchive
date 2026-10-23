@@ -37,7 +37,8 @@ function renderNode(node: RichNode, key: string): ReactNode {
   if (node.type === "heading") {
     const style = blockStyle;
     const tag = richNodeTag(node);
-    return tag ? createElement(tag, { key, style }, children) : null;
+    // Level 1 renders as h2 under the chapter title, so the class keeps its size distinct from level 2.
+    return tag ? createElement(tag, { key, style, className: `rich-heading-${Number(attrs.level)}` }, children) : null;
   }
   if (node.type === "bulletList") return createElement(richNodeTag(node)!, { key }, children);
   if (node.type === "orderedList") return createElement(richNodeTag(node)!, { key, start: typeof attrs.start === "number" ? attrs.start : undefined }, children);
