@@ -41,22 +41,14 @@ function readingMinutes(wordCount: number): number {
 
 function LibraryPoster({ work, eager = false }: { work: LibraryWork; eager?: boolean }) {
   return <div className={styles.poster} aria-hidden="true">
-    {work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" fill sizes="(max-width: 540px) 50vw, 240px" unoptimized priority={eager}/> : <CoverFallback title={work.title}/>}
-  </div>;
-}
-
-function LibraryTags({ work, filters, limit = 3 }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters>; limit?: number }) {
-  if (work.tags.length === 0) return null;
-  return <div className={styles.tags} aria-label={`Tags for ${work.title}`}>
-    {work.tags.slice(0, limit).map((tag) => { const params = new URLSearchParams(); if (filters.q) params.set("q", filters.q); for (const selected of filters.tags) params.append("tag", selected); if (!filters.tags.some((selected) => selected.toLocaleLowerCase() === tag.toLocaleLowerCase())) params.append("tag", tag); if (filters.warning) params.set("warning", filters.warning); if (filters.excludeWarning) params.set("excludeWarning", filters.excludeWarning); if (filters.sort !== "newest") params.set("sort", filters.sort); return <Link className={styles.tag} key={tag} href={`/library?${params.toString()}`}>{tag}</Link>; })}
-    {work.tags.length > limit && <span className={styles.moreTags}>+{work.tags.length - limit}</span>}
+    {work.coverPreviewUrl ? <Image className={styles.posterImage} src={work.coverPreviewUrl} alt="" fill sizes="(max-width: 540px) 50vw, (max-width: 1000px) 33vw, 340px" unoptimized priority={eager}/> : <CoverFallback title={work.title}/>}
   </div>;
 }
 
 function LibraryWarnings({ work }: { work: LibraryWork }) {
   if (work.content_warnings.length === 0) return null;
   const label = `Content notes: ${work.content_warnings.join(", ")}`;
-  return <span className={styles.notes} role="img" tabIndex={0} aria-label={label} data-tooltip={label}><TriangleAlert aria-hidden="true"/></span>;
+  return <span className={`${styles.badge} ${styles.notes}`} role="img" tabIndex={0} aria-label={label} data-tooltip={label}><TriangleAlert aria-hidden="true"/></span>;
 }
 
 function libraryStoryLinkLabel(work: LibraryWork, rating?: { average: number; count: number }) {
@@ -74,21 +66,16 @@ function LibraryAuthor({ work }: { work: LibraryWork }) {
   return <span className={styles.author}>By {work.profiles?.username ? <Link href={`/author/${work.profiles.username}`}>{name}</Link> : name}</span>;
 }
 
-function LibraryStoryCard({ work, filters, rating, eager = false, featured = false }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters>; rating?: { average: number; count: number }; eager?: boolean; featured?: boolean }) {
-  const chapters = `${work.chapterCount ?? 0} ${work.chapterCount === 1 ? "chapter" : "chapters"}`;
-  return <article className={`${styles.card}${featured ? ` ${styles.spotlight}` : ""}`}>
-    <Link className={styles.posterLink} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}><LibraryPoster work={work} eager={eager}/></Link>
-    <div className={styles.body}>
-      {featured && work.tags[0] && <span className={styles.genre}>{work.tags[0]}</span>}
+function LibraryStoryCard({ work, rating, eager = false, featured = false }: { work: LibraryWork; filters: ReturnType<typeof parseLibraryFilters>; rating?: { average: number; count: number }; eager?: boolean; featured?: boolean }) {
+  return <article className={`${styles.card}${featured ? ` ${styles.featured}` : ""}`}>
+    <Link className={styles.posterLink} href={`/work/${work.id}`} aria-label={libraryStoryLinkLabel(work, rating)}><LibraryPoster work={work} eager={eager}/><span className={styles.shade} aria-hidden="true"/></Link>
+    <div className={styles.badges}>
+      {rating && <span className={`${styles.badge} ${styles.rating}`} aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} ${rating.count === 1 ? "reader" : "readers"}`} data-tooltip={`${rating.count} ${rating.count === 1 ? "reader rating" : "reader ratings"}`}><Star aria-hidden="true"/>{rating.average.toFixed(1)}</span>}
+      <LibraryWarnings work={work}/>
+    </div>
+    <div className={styles.caption}>
       <h2 className={styles.title}><Link href={`/work/${work.id}`}>{work.title}</Link></h2>
       <LibraryAuthor work={work}/>
-      {featured && work.summary && <p className={styles.summary}>{work.summary}</p>}
-      <div className={styles.meta}>
-        <span>{chapters}{work.readingMinutes ? ` · ${work.readingMinutes} min` : ""}</span>
-        {rating && <span className={styles.rating} aria-label={`Story rating ${rating.average.toFixed(1)} out of 5 from ${rating.count} ${rating.count === 1 ? "reader" : "readers"}`} data-tooltip={`${rating.count} ${rating.count === 1 ? "reader rating" : "reader ratings"}`}><Star aria-hidden="true"/>{rating.average.toFixed(1)}</span>}
-        <LibraryWarnings work={work}/>
-      </div>
-      <LibraryTags work={work} filters={filters} limit={featured ? 3 : 2}/>
     </div>
   </article>;
 }
