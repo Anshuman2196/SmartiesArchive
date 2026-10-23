@@ -217,3 +217,4 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,textarea:focus-visible,select:focus-visible{outline:none;border-color:var(--lime)}
 .rich-editor .rich-editor-heading textarea:focus-visible{border-color:transparent;border-bottom-color:var(--lime)}
 .rich-editor-canvas .tiptap:focus-visible{outline:none}
+#main-content:focus:not(:focus-visible){outline:none}
