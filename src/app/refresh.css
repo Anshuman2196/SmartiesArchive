@@ -274,3 +274,4 @@ input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,t
 .rich-editor [role=toolbar][aria-label="Writing tools"]{top:128px;z-index:19}
 .editor-selection-toolbar{top:190px;z-index:18}
 @media(max-width:850px){.rich-editor [role=toolbar][aria-label="Writing tools"]{top:124px}.editor-selection-toolbar{top:184px}}
+.editor-format-sidebar .editor-sidebar-tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
