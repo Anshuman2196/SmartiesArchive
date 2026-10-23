@@ -481,6 +481,12 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     onTogglePreview: togglePreview,
     onToggleFocusMode: () => setFocusMode((focused) => !focused),
     onOpenHelp: () => openShortcutHelp(),
+    onLiteraryTreatment: (treatment) => {
+      if (!editor) return;
+      // Pressing the shortcut again on a block that already has this style turns it back into plain text.
+      if (editor.isActive("literaryBlock", { treatment })) { editor.chain().focus().lift("literaryBlock").run(); return; }
+      setActiveTreatment(treatment); applyTreatment(treatment);
+    },
   };
   const treatmentValue = literaryTreatments.find((item) => item === activeTreatment) ?? "narration";
   const toolbarButton = (label: string, command: () => void, active = false, disabled = false, Icon?: LucideIcon) => <button type="button" className={`editor-tool-button${Icon ? " editor-tool-icon" : ""}`} data-tooltip={label} aria-label={label} aria-pressed={active} disabled={disabled} onMouseDown={(event) => event.preventDefault()} onClick={command}>{Icon ? <Icon size={17} aria-hidden="true"/> : label}</button>;
@@ -537,7 +543,7 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
     }
   };
   const formattingMore = () => { setSidebarTab("type"); openSidebar(); };
-  const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Insert", "Editor"];
+  const shortcutCategories: EditorShortcutDefinition["category"][] = ["Formatting", "Structure", "Literary", "Insert", "Editor"];
   const closeShortcutHelp = () => setShortcutHelpOpen(false);
 
   return <section ref={editorRootRef} className={`${styles.editorRoot} rich-editor ${focusMode ? "is-focused" : ""} ${sidebarOpen ? "sidebar-open" : "sidebar-closed"} ${sidebarOpen ? "" : "format-drawer-closed"}`} role="region" aria-labelledby="rich-editor-label">
@@ -656,6 +662,10 @@ export function RichChapterEditor({ workId, initialDocument, initialTitle, initi
             {detectionNotice && <p className="editor-sidebar-help" role="status">{detectionNotice}</p>}
             <label className="editor-control">Literary style<select aria-label="Literary text style" value={treatmentValue} onChange={(event) => { setActiveTreatment(event.target.value); applyTreatment(event.target.value); }}>{literaryTreatments.map((treatment) => <option key={treatment} value={treatment}>{treatmentLabel(treatment)}</option>)}</select></label>
             <p className="editor-sidebar-help">Choose a style for the current paragraph when the wording needs your judgment.</p>
+            <section className="format-section editor-literary-shortcuts" aria-labelledby="literary-shortcuts-title"><h3 id="literary-shortcuts-title">Shortcuts</h3>
+              <ul>{editorShortcutDefinitions.filter((definition) => definition.category === "Literary").map((definition) => <li key={definition.id}><span>{definition.label}</span><kbd>{formatShortcut(definition.shortcut, shortcutPlatform)}</kbd></li>)}</ul>
+              <p className="editor-sidebar-help">Press a shortcut again to return the block to plain text.</p>
+            </section>
           </>}
           {sidebarTab === "document" && <>
             <div className="format-stats"><div><strong>{wordCount.toLocaleString()}</strong><span>words</span></div><div><strong>{Math.max(1, readingMinutes(wordCount))}</strong><span>min read</span></div></div>

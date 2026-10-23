@@ -7,7 +7,7 @@ export type EditorShortcutDefinition = {
   label: string;
   shortcut: string;
   description: string;
-  category: "Formatting" | "Structure" | "Insert" | "Editor";
+  category: "Formatting" | "Structure" | "Literary" | "Insert" | "Editor";
 };
 
 export type EditorShortcutCallbacks = {
@@ -20,6 +20,7 @@ export type EditorShortcutCallbacks = {
   onTogglePreview?: () => void;
   onToggleFocusMode?: () => void;
   onOpenHelp?: () => void;
+  onLiteraryTreatment?: (treatment: string) => void;
 };
 
 export const editorShortcutDefinitions: readonly EditorShortcutDefinition[] = [
@@ -45,6 +46,8 @@ export const editorShortcutDefinitions: readonly EditorShortcutDefinition[] = [
   { id: "align-justify", label: "Justify", shortcut: "Mod-Shift-j", description: "Justify the current block", category: "Structure" },
   { id: "indent", label: "Indent", shortcut: "Mod-]", description: "Increase paragraph indentation", category: "Structure" },
   { id: "outdent", label: "Outdent", shortcut: "Mod-[", description: "Decrease paragraph indentation", category: "Structure" },
+  { id: "literary-dialogue", label: "Dialogue", shortcut: "Mod-Shift-1", description: "Toggle the dialogue style on the current block", category: "Literary" },
+  { id: "literary-system", label: "System notice", shortcut: "Mod-Shift-2", description: "Toggle the system notice style on the current block", category: "Literary" },
   { id: "link", label: "Link", shortcut: "Mod-k", description: "Add or edit a link", category: "Insert" },
   { id: "image", label: "Image", shortcut: "Mod-Shift-i", description: "Open the image picker", category: "Insert" },
   { id: "emoji", label: "Emoji", shortcut: "Mod-Alt-;", description: "Open the emoji picker", category: "Insert" },
@@ -104,6 +107,8 @@ export function createEditorShortcutExtension(callbacks: { current: EditorShortc
         "Mod-Shift-e": () => editor.chain().focus().setTextAlign("center").run(),
         "Mod-Shift-r": () => editor.chain().focus().setTextAlign("right").run(),
         "Mod-Shift-j": () => editor.chain().focus().setTextAlign("justify").run(),
+        "Mod-Shift-1": () => runCallback(() => callbacks.current.onLiteraryTreatment?.("dialogue")),
+        "Mod-Shift-2": () => runCallback(() => callbacks.current.onLiteraryTreatment?.("system")),
         "Mod-[": () => runCallback(callbacks.current.onOutdent),
         "Mod-]": () => runCallback(callbacks.current.onIndent),
         "Mod-k": () => runCallback(callbacks.current.onLink),

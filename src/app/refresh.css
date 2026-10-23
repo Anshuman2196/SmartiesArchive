@@ -275,3 +275,6 @@ input:not([type=checkbox],[type=radio],[type=range],[type=file]):focus-visible,t
 .editor-selection-toolbar{top:190px;z-index:18}
 @media(max-width:850px){.rich-editor [role=toolbar][aria-label="Writing tools"]{top:124px}.editor-selection-toolbar{top:184px}}
 .editor-format-sidebar .editor-sidebar-tabs button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.editor-literary-shortcuts ul{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.editor-literary-shortcuts li{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--cream);font:600 13px/1.3 var(--font-ui)}
+.editor-literary-shortcuts kbd{padding:3px 7px;border:1px solid var(--line);border-radius:6px;background:color-mix(in srgb,var(--ink) 60%,var(--panel));color:var(--muted);font:600 12px/1 var(--font-ui);white-space:nowrap}
