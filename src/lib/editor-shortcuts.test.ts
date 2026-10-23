@@ -6,7 +6,7 @@ test("the editor shortcut registry has one documented binding per action", () =>
   const bindings = editorShortcutDefinitions.map((definition) => definition.shortcut);
 
   assert.equal(new Set(bindings).size, bindings.length);
-  assert.equal(editorShortcutDefinitions.length, 31);
+  assert.equal(editorShortcutDefinitions.length, 34);
   assert.deepEqual(new Set(editorShortcutDefinitions.map((definition) => definition.category)), new Set(["Formatting", "Structure", "Literary", "Insert", "Editor"]));
 });
 
