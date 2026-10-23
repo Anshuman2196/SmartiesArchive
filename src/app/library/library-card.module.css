@@ -1,45 +1,49 @@
-.list{display:grid;grid-template-columns:1fr;gap:0;border-top:1px solid var(--line);padding-top:var(--space-1)}
-.featuredGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4);margin-bottom:28px}
-.card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:20px;padding:20px 0;border-bottom:1px solid var(--line);min-width:0;color:var(--cream)}
-.featuredCard{grid-template-columns:minmax(0,1fr);align-content:start;gap:var(--space-3);padding:14px;border:1px solid var(--line);background:var(--panel)}
-.featuredCard .posterLink{width:100%}
-.featuredCard .poster{width:100%;aspect-ratio:4/3}
-.card.featuredCard .title{font-size:clamp(18px,1.9vw,31px)}
-.posterLink{display:block;width:max-content;max-width:100%;height:max-content}
-.poster{position:relative;width:112px;aspect-ratio:2/3;background:var(--panel-raised);overflow:hidden}
-.posterImage{object-fit:cover;transition:transform .35s ease}
-.card:hover .posterImage{transform:scale(1.025)}
-.body{padding:0;min-width:0}
-.card .title{margin:0 0 11px;font:800 clamp(22px,2.3vw,31px)/1.05 var(--font-ui);letter-spacing:-.055em;text-transform:uppercase;overflow-wrap:anywhere}.title a{color:inherit;text-decoration:none}.title a:hover{color:var(--lime)}
-.summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-width:58ch;margin:0 0 15px;color:var(--muted);font-size:14px;line-height:1.55}
-.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
-.tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 7px;border:1px solid var(--line);color:var(--cream);font-size:12px;letter-spacing:0;text-transform:none;text-decoration:none}.tag:hover{border-color:var(--lime);color:var(--lime)}
-.moreTags{align-self:center;color:var(--muted);font-size:12px}
-.warnings{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 var(--space-3)}
-.warning{max-width:100%;padding:var(--space-1) 7px;border:1px solid color-mix(in srgb,#d9a17c 55%,var(--line));color:var(--cream);font-size:12px;line-height:1.35;overflow-wrap:anywhere}
-.warningMore{align-self:center;color:var(--muted);font-size:12px}
-.meta{display:flex;flex-wrap:wrap;gap:5px 13px;padding-top:var(--space-3);border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.5}
-.author{color:var(--cream)}.author a{color:inherit;text-underline-offset:3px}.author a:hover{color:var(--lime)}
-.openStory{display:none}
-@media(min-width:1000px){.card{grid-template-columns:124px minmax(0,1fr);gap:var(--space-6)}.poster{width:124px}}
-@media(max-width:540px){.list{grid-template-columns:1fr;gap:0;padding-top:var(--space-1)}.card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:var(--space-4);padding:19px 0;border-bottom:1px solid var(--line)}.poster{width:112px}.body{padding:0}.card .title,.card.featuredCard .title{font-size:22px}.summary{font-size:12px;margin-bottom:10px}.tags{margin-bottom:var(--space-2)}.warnings{margin-bottom:var(--space-2)}.meta{font-size:12px}}
-@media(max-width:760px){.featuredGrid{grid-template-columns:1fr;gap:0}.featuredCard{grid-template-columns:112px minmax(0,1fr);gap:var(--space-4);padding:19px 0;border:0;border-bottom:1px solid var(--line);background:transparent}.featuredCard .posterLink{width:max-content}.featuredCard .poster{width:112px;aspect-ratio:2/3}}
-@media(prefers-reduced-motion:reduce){.posterImage{transition:none}}
-@media(min-width:761px){
-.card.featuredCard{display:flex;flex-direction:column;gap:0;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:6px;background:var(--panel);transition:border-color .2s}
-.card.featuredCard:hover{border-color:color-mix(in srgb,var(--lime) 55%,var(--line))}
-.featuredCard .posterLink{width:100%;height:auto}
-.featuredCard .poster{width:100%;aspect-ratio:16/10;background:var(--panel-raised)}
-.featuredCard .posterImage{object-position:center 30%}
-.featuredCard .body{display:flex;flex:1;flex-direction:column;padding:18px 20px 20px}
-.card.featuredCard .title{margin-bottom:8px;font-size:clamp(20px,1.7vw,27px);line-height:1.05}
-.featuredCard .summary{margin-bottom:14px}
-.featuredCard .meta{margin-top:auto;padding-top:14px}
-.featuredCard .body>:nth-last-child(2){margin-bottom:16px}
+.featuredGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:20px;margin-bottom:44px}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:36px 24px;padding-top:12px}
+
+.card{position:relative;display:flex;flex-direction:column;gap:14px;min-width:0;color:var(--cream)}
+.posterLink{display:block;border-radius:10px;overflow:hidden;box-shadow:0 1px 0 rgb(255 255 255 / .06) inset,0 10px 24px -12px rgb(0 0 0 / .7);transition:transform .25s ease,box-shadow .25s ease}
+.card:hover .posterLink,.posterLink:focus-visible{transform:translateY(-4px);box-shadow:0 1px 0 rgb(255 255 255 / .08) inset,0 18px 36px -14px rgb(0 0 0 / .85)}
+.posterLink:focus-visible{outline:2px solid var(--lime);outline-offset:3px}
+.poster{position:relative;width:100%;aspect-ratio:2/3;background:var(--panel-raised)}
+.posterImage{object-fit:cover;transition:transform .45s ease}
+.card:hover .posterImage{transform:scale(1.035)}
+
+.body{display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:0;font:700 16px/1.3 var(--font-ui);letter-spacing:-.01em;text-transform:none;word-spacing:normal}
+.title a{color:inherit;text-decoration:none}
+.title a:hover{color:var(--lime)}
+.author{color:var(--muted);font-size:13px}
+.author a{color:inherit;text-decoration:none}
+.author a:hover{color:var(--cream);text-decoration:underline;text-underline-offset:3px}
+
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin-top:6px;color:var(--muted);font-size:12px;line-height:1.4}
+.rating{display:inline-flex;align-items:center;gap:4px;color:var(--cream);font-weight:600}
+.rating svg{width:13px;height:13px;fill:var(--lime);stroke:var(--lime)}
+.notes{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;color:#e9b27f;cursor:help}
+.notes svg{width:14px;height:14px}
+.notes:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+
+.tags{display:flex;flex-wrap:wrap;gap:2px 10px;margin-top:4px}
+.tag{color:var(--muted);font-size:12px;line-height:1.6;text-decoration:none}
+.tag::before{content:"#" / "";opacity:.6}
+.tag:hover{color:var(--lime)}
+.moreTags{color:var(--muted);font-size:12px;line-height:1.6;opacity:.7}
+
+/* Featured spotlight: cover beside the story's pitch. */
+.spotlight{flex-direction:row;align-items:stretch;gap:20px;padding:16px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(155deg,color-mix(in srgb,var(--panel-raised) 92%,var(--lime)) 0%,var(--panel) 70%);transition:border-color .25s ease}
+.spotlight:hover{border-color:color-mix(in srgb,var(--lime) 45%,var(--line))}
+.spotlight .posterLink{flex:0 0 132px;align-self:flex-start}
+.spotlight .body{gap:6px;padding-top:2px}
+.genre{color:var(--lime);font:700 12px/1.2 var(--font-ui);letter-spacing:.08em;text-transform:uppercase}
+.card.spotlight .title{font-size:clamp(19px,1.6vw,23px);font-weight:800;line-height:1.15;letter-spacing:-.02em}
+.summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;margin:6px 0 0;color:var(--muted);font-size:13px;line-height:1.55}
+.spotlight .meta{margin-top:auto;padding-top:10px}
+
+@media(max-width:540px){
+  .list{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 14px}
+  .spotlight{gap:14px;padding:12px}
+  .spotlight .posterLink{flex-basis:100px}
+  .summary{-webkit-line-clamp:2}
 }
-/* Tags are filled pills; content notes stay outlined so the two read differently. */
-.card .tags,.card .warnings{gap:5px;margin:0 0 8px}
-.card .tag,.card .warning{min-height:0;padding:3px 9px;border-radius:999px;font-size:12px;line-height:1.5}
-.card .tag{border-color:transparent;background:color-mix(in srgb,var(--cream) 8%,transparent)}
-.card .tag:hover{border-color:var(--lime)}
-@media(prefers-reduced-motion:reduce){.card.featuredCard{transition:none}}
+@media(prefers-reduced-motion:reduce){.posterLink,.posterImage,.spotlight{transition:none}.card:hover .posterLink,.card:hover .posterImage{transform:none}}

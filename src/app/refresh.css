@@ -204,3 +204,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,text
 .pill{gap:8px}
 .pill svg{flex:0 0 auto}
 .navlinks form{display:contents}
+/* Unlayered a{color:inherit} outranks Tailwind utilities, so restate the primary button's ink colour. */
+[data-slot="button"][data-variant="default"],[data-slot="button"][data-variant="default"]:hover{color:var(--primary-foreground)}
+/* Header icons: outrank the older .navlinks>a rule so each icon is centred in an equal square with even spacing. */
+.navlinks-desktop{gap:4px}
+.navlinks-desktop>.nav-library{margin-right:10px}
+.navlinks-desktop>.nav-profile{margin-right:4px}
+.navlinks>a.nav-icon,.navlinks button.nav-icon{display:inline-grid;place-items:center;width:40px;min-height:40px;height:40px;padding:0}
